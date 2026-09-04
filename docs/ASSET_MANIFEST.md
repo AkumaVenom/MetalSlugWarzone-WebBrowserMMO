@@ -1,4 +1,4 @@
-# Runtime Asset Manifest — v0.3.3
+# Runtime Asset Manifest — v0.3.4
 
 The XAMPP package is runtime-only. It contains no `source_assets/` tree and no supplied source ZIP archives.
 
@@ -38,3 +38,8 @@ No runtime image, map or sprite asset changes. This release changes only AI name
 ## v0.3.3 asset delta
 
 No binary artwork changed. The patch only redistributes existing autonomous commander `character_key` values across the six already accepted player-operative sprite sets. All runtime image bytes remain identical to v0.3.1.
+
+
+## v0.3.4 asset delta
+
+No binary artwork changed. The release adds only the level-1 basic Fulton manufacturing recipe plus version/documentation metadata; all existing runtime image bytes are preserved.

@@ -1,4 +1,4 @@
-# Security and Exploit-Resistance Contract — v0.3.3
+# Security and Exploit-Resistance Contract — v0.3.4
 
 This candidate treats all browser state as untrusted and does not give autonomous commanders login sessions.
 
@@ -56,3 +56,8 @@ Compact AI labels do not reduce server identity or authorization checks. Full bo
 ## v0.3.3 per-warzone variety migration safety
 
 The skin reconciliation operates only on `users` rows joined to production `bot_commanders` indexes 1–1000 and updates only `users.character_key`. Human accounts are never selected. Existing bot identity/progression/resource/roster/position/FOB/PvP data is not recreated. The assignment is deterministic for the current persisted warzone grouping and is executed inside the same population transaction, so a failed Update / Repair cannot commit only part of the skin reconciliation.
+
+
+## v0.3.4 R&D manufacturing authority
+
+Making the basic Fulton recipe available at R&D 1 does not move authority to the browser. `rd.php` continues to resolve the submitted recipe against `msw_rd_catalog()`, verify the persisted R&D sector level, debit persistent resources through the locked resource ledger, and only then add inventory. Battle recovery independently validates the selected item against `msw_fulton_catalog()`, R&D level, target class and inventory consumption. Higher-tier unlock thresholds are unchanged.

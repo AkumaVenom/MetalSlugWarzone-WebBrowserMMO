@@ -3,7 +3,7 @@ declare(strict_types=1);
 
 return [
     'name' => 'Metal Slug Warzone',
-    'version' => '0.3.3',
+    'version' => '0.3.4',
     'timezone' => 'Australia/Melbourne',
     'db' => [
         'host' => getenv('MSW_DB_HOST') ?: '127.0.0.1',

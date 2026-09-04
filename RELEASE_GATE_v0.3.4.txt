@@ -1,0 +1,38 @@
+Metal Slug Warzone v0.3.4 — Level-1 Fulton Manufacturing
+===========================================================
+Parent: v0.3.3 — Per-Warzone AI Operative Variety public baseline
+Schema: 4 (unchanged)
+Status: PASS — STATIC / PACKAGE XAMPP TEST-CANDIDATE GATE
+
+Verified pre-package checks
+---------------------------
+PASS — 46/46 PHP files: php -l (PHP 8.4.23)
+PASS — 1/1 JavaScript files: node --check (Node v22.16.0)
+PASS — CSS structure: 401 opening / 401 closing braces
+PASS — R&D Level 1 exposes basic Fulton Recovery Pack
+PASS — basic recipe economy: 60 Common Metal + 40 Fuel -> x4 Fulton
+PASS — R&D Level 1 keeps Fulton+ / Cargo / Wormhole locked
+PASS — manufacturing thresholds remain 1 / 4 / 8 / 15
+PASS — battle capability thresholds remain 1 / 4 / 8 / 15
+PASS — schema revision 4 unchanged / no SQL migration
+PASS — gameplay runtime delta vs v0.3.3 restricted to app version + R&D catalog
+PASS — 31/31 runtime images byte-identical to v0.3.3
+PASS — 45 unique literal internal PHP references resolve
+PASS — 33 unique runtime asset references resolve
+PASS — 0 source_assets directories / 0 nested ZIP archives
+
+Release delta contract
+----------------------
+- Standard Fulton Recovery Pack is now manufacturable from R&D Level 1.
+- Recipe consumes 60 Common Metal + 40 Fuel and manufactures 4 basic Fulton units.
+- Fulton+ remains R&D 4, Cargo Fulton remains R&D 8, Wormhole Fulton remains R&D 15.
+- Recovery bonuses, eligible target classes and battle-side server validation are unchanged.
+- Existing inventories are not rewritten; existing starter/Field Contract rewards are preserved.
+- Autonomous commander, Mother Base, dispatch, FOB, PvP and per-warzone skin-variety systems are unchanged.
+- Runtime-only asset policy remains mandatory.
+
+Runtime acceptance boundary
+---------------------------
+Static validation cannot execute the user's real MariaDB resource/inventory ledger. Run
+docs/XAMPP_TEST_PLAN.md and verify the live R&D 1 manufacturing/resource debit/inventory gain
+before promoting v0.3.4 to stable.

@@ -1,523 +1,105 @@
-# MetalSlugWarzone-WebBrowserMMO
+# Metal Slug Warzone — Web Browser MMORPG
+
+**Version:** 0.3.4 Level-1 Fulton Manufacturing — XAMPP Test Candidate  
+**Schema revision:** 4
+
+Metal Slug Warzone is a server-authoritative PHP/MySQL browser MMORPG built around persistent four-way exploration, turn-based combat, Fulton recovery, permanent staff/hardware ownership, physical Mother Base visitation, base management, dispatch operations, FOB infiltration, live PvP and a persistent social command network. v0.3.4 is a focused progression repair over the v0.3.3 public baseline: the standard Fulton Recovery system can now be manufactured at R&D Level 1, preventing commanders from exhausting finite starter stock and becoming unable to recover the staff needed to advance R&D.
+
+
+
+## v0.3.4 polish: sustainable level-1 Fulton recovery
+
+- The standard **Fulton Recovery Pack** is now present in the R&D manufacturing catalog at **R&D Level 1**, so it is unlocked by default for every commander.
+- The recipe produces **4 Fulton Recovery units** for **60 Common Metal + 40 Fuel**. This preserves a resource cost while guaranteeing a renewable early-game personnel-recovery path.
+- This resolves the progression trap where a commander could consume all starter/contract Fulton stock while still at R&D 1 and then have no way to recover additional staff to improve the R&D Team.
+- Higher technology remains unchanged: **Fulton+ = R&D 4**, **Cargo Fulton = R&D 8**, and **Wormhole Fulton = R&D 15**. Their existing costs, yields, recovery bonuses and eligible target classes are preserved.
+- Schema remains **4**. Existing inventories, characters, staff, bases, resources and multiplayer state require no reset or conversion.
+
+## v0.3.3 polish: real operative variety inside every warzone
+
+- The v0.3.2 global modulo mapping was correlated with the six-way warzone seeder and could therefore produce one operative skin per map. v0.3.3 removes that correlation.
+- Fresh populations rotate the six player operatives **within each warzone**, not merely across the global 1,000-bot population.
+- Update / Repair also fixes already-persisted bot populations in-place by ordering bots inside each current warzone by durable `bot_index` and cycling Marco, Tarma, Eri, Fio, Nadia and Trevor independently for that map.
+- Every 166–167-bot warzone should contain all six skins, normally about **27–28 of each operative per map**.
+- Only `users.character_key` for autonomous commanders is reconciled. Bot IDs/usernames, XP, positions, captured personnel/vehicles, resources, Mother Bases, dispatch state, FOB history and PvP records remain preserved.
+- The assignment is deterministic and idempotent for the current six-warzone population; repeated Update / Repair does not create bots or reset progression.
+- Confirm Installation now checks per-warzone skin diversity and fails if a map is still a clone army.
+- Schema remains **4** and the compact v0.3.1 `AI` hover labels are preserved.
+
+## v0.3.1 polish: compact autonomous commander map labels
+
+- Autonomous commanders now render as a compact cyan **AI** tag at rest instead of drawing the full callsign / `AI COMMANDER` / grade string for every visible bot.
+- Hovering either an autonomous commander's operative sprite or its **AI** tag reveals that commander's complete callsign, AI COMMANDER marker and grade.
+- Keyboard focus on the AI profile link exposes the same full identity, and the full text remains available through accessible label metadata.
+- The keyed 3-second presence updater refreshes each bot's hidden full identity/activity in place without rebuilding the map entity or forcing the expanded label open.
+- Human player labels are unchanged. Bot population, simulation, collision, profiles, PvP, FOB, Mother Base and persistence behavior are unchanged.
+- Schema remains **4** and no database migration is required beyond the usual idempotent **Update / Repair** verification.
+
+## v0.3.0 major feature: 1,000 persistent autonomous commanders
+
+- Exactly **1,000** persistent AI commander identities are seeded idempotently at schema revision 4 and remain database-backed across browser/Apache/MySQL restarts.
+- `bot_index` 1–1000 is authoritative. Default names are `WarzoneAI0001`–`WarzoneAI1000`; a pre-existing human username collision is preserved and receives a deterministic alternate AI presentation name instead of blocking migration.
+- Bots use the same six selectable Metal Slug operative skins as player commanders; they never use enemy sprites as their commander identity and cannot log in through the human authentication flow.
+- Fresh populations are balanced across all six warzones (167/167/167/167/166/166) and start on distinct legal collision-safe positions sampled across each native map.
+- Bots move using the accepted 18-pixel server-authoritative movement/collision path, resolve field contacts, gain Commander XP/resources, use Fulton recovery, own permanent soldiers/vehicles, staff Mother Base sectors and increase Base Power.
+- Bot simulation is bounded, leased and timestamp-driven. Presence refreshes advance small due batches instead of creating one PHP worker per bot; opening additional browsers cannot make an individual bot act faster than its persisted `next_action_at`.
+- Mature bots develop R&D legitimately and can unlock Cargo Fulton, allowing actual vehicle-class recoveries without bypassing player progression restrictions.
+- Autonomous Combat Unit dispatches use the same persistent `dispatch_missions` ledger and MySQL completion timestamps as player dispatches; pending missions survive browser/Apache/MySQL restarts and settle rewards/unit XP once.
+- Human commanders can invade bot FOBs through the existing transactional snapshot/resource-transfer system. Bots also raid other bots, so their resource stocks and FOB histories evolve autonomously without silently draining offline human players.
+- Bot profiles support **Live AI PvP** and **Commander Snapshot Battle**. AI turns are committed server-side without a hidden bot session, while bot-v-bot PvP activity is also persisted in the shared match ledger.
+- Added an **AI Network** page with exact population/map distribution and recent autonomous activity. AI commanders also appear in rankings, FOB targets and normal mandatory map presence.
+- Warzone presence rendering now updates keyed remote entities in place, avoiding full DOM teardown/recreation with ~166+ AI commanders visible on a map.
+
+## v0.2.0 major feature: physical Mother Base / FOB spaces
+
+- Seven user-supplied Mother Base maps are available: four land bases and three sea FOBs.
+- A Mother Base is selected during account creation and can be changed later from **Account Options** without deleting progression, staff, vehicles, resources, sector levels, dispatch state, FOB history or Commander XP.
+- The owner's selected base is a native-size 1:1 map inside the same close-up auto-scrolling viewport discipline used by the accepted v0.1.4 warzones.
+- The player moves in four directions with WASD/Arrow keys or the external command pad.
+- Base movement is server-authoritative and collision-blocked against buildings, walls, machinery, perimeter structures, cliffs/platform edges and ocean boundaries.
+- Captured personnel and hardware are projected directly from the persistent `units` roster into the physical base.
+- Human staff receive persistent server positions and roam slowly around local anchor areas. Their movement is advanced from database timestamps, not browser animation authority.
+- Vehicles/air-class hardware remain parked and do not roam.
+- Presence polling updates staff and authorized visitors without re-entering/reloading the level. Existing NPC DOM entities move with deliberate transitions rather than being recreated every tick.
+- Established friends and members of the same Strike Force may enter one another's bases. Access is checked server-side on page entry, movement requests and every live presence refresh.
+- Entering a physical Mother Base clears warzone presence so one account cannot appear in two physical spaces simultaneously.
+
+## Preserved production foundation
+
+- Selectable Metal Slug operative and persistent Commander Level/XP progression.
+- Six accepted v3 overhead warzones at exact native resolution with fixed close-up camera, four-way movement and server collision.
+- Mandatory multiplayer warzone presence.
+- Versioned turn-based combat, damage/type effectiveness and HP-dependent Fulton recovery.
+- Persistent recovered soldiers and vehicles with levels, XP, aptitude stats and E-- through S++ grades.
+- Seven Mother Base management sectors and derived Base Power.
+- R&D and progression-gated Fulton systems.
+- Missions, Field Contracts, Rival Commanders and Boss Operations.
+- Persistent Combat Unit dispatch timers.
+- Persistent strategic/nuclear-deterrence production timers.
+- Transactional FOB resource theft with attacker cooldown and defender protection.
+- Versioned live PvP with no permanent unit death.
+- Friends, direct messages, Strike Forces and rankings.
+- Loopback-only `_setup.php` with Fresh Install, Update / Repair and Confirm Installation.
+
+## Requirements
+
+- XAMPP or equivalent Apache + PHP + MySQL/MariaDB stack.
+- PHP 8.1+; release syntax is audited with PHP 8.4.
+- MySQL/MariaDB with InnoDB and `utf8mb4`.
+- PHP `mysqli` extension.
+
+## Updating from v0.3.3 / earlier schema-4 test data
+
+1. Back up the current database, then replace the runtime project files with v0.3.4.
+2. On the server PC open `_setup.php` via `127.0.0.1` / `localhost`.
+3. Select **Update / Repair**. Do **not** Fresh Install. Schema remains revision 4 and the repair is non-destructive.
+4. Select **Confirm Installation** and verify schema revision **4**, **1,000 persistent autonomous commanders**, the six-warzone population distribution, and `autonomous_skin_variety` reports **every warzone mixed**.
+5. Open **R&D Laboratory** on an R&D Level 1 commander and verify **Fulton Recovery Pack** is immediately manufacturable while Fulton+, Cargo Fulton and Wormhole Fulton remain locked until levels 4/8/15.
+6. Manufacture one basic batch and confirm 60 Common Metal + 40 Fuel are spent and inventory increases by 4.
+7. Complete the focused runtime checks in `docs/XAMPP_TEST_PLAN.md`.
+
+## Runtime-only asset policy
 
-# METAL SLUG WARZONE
-## Web Browser MMORPG
+Release packages contain only runtime assets needed by the game. The accepted warzone/Mother Base PNGs remain runtime files; source/replacement ZIPs and development libraries are **not** included in the distributable. v0.3.4 introduces no new art assets; all existing accepted runtime images remain unchanged. No generated images are included.
 
-**Build your army. Recover enemy soldiers. Grow your Mother Base. Invade rival commanders. Rule the warzone.**
-
-**Metal Slug Warzone** is a persistent browser-based multiplayer RPG that combines fast-moving Metal Slug battlefield atmosphere with turn-based combat, soldier recovery, Mother Base management, FOB warfare, PvP, dispatch missions, progression, and a living world populated by real players and 1,000 persistent autonomous commanders.
-
-This is not a traditional side-scrolling Metal Slug game.
-
-You enter large explorable warzones, move freely in four directions, encounter enemy soldiers and vehicles, battle them in a turn-based combat system, weaken them, and recover them using Fulton technology. Every successful recovery can strengthen your army, improve your Mother Base, unlock better technology, and increase your power in the global commander rankings.
-
-<img width="3792" height="1847" alt="0" src="https://github.com/user-attachments/assets/0e170775-2928-46fa-b856-3dcddea237f4" />
-<img width="3804" height="1849" alt="1" src="https://github.com/user-attachments/assets/970f0d0d-4b32-4ed1-903a-95056d3cd3ce" />
-<img width="3811" height="1846" alt="2" src="https://github.com/user-attachments/assets/5abf9cb7-97a5-4283-97dc-b5abb5073898" />
-<img width="3781" height="1846" alt="3" src="https://github.com/user-attachments/assets/ada9a670-0806-4193-a5cf-cb29ce00f891" />
-<img width="3784" height="1849" alt="4" src="https://github.com/user-attachments/assets/4a798544-e427-47f3-a6ba-1394bad7ac82" />
-<img width="3767" height="1804" alt="5" src="https://github.com/user-attachments/assets/d25d6244-e8b8-4b41-b0a9-6fc35e35b135" />
-<img width="3787" height="1849" alt="6" src="https://github.com/user-attachments/assets/52e3c07b-1153-497b-a33f-09a0950bbdf8" />
-<img width="3768" height="1846" alt="7" src="https://github.com/user-attachments/assets/9c71220a-13cc-4ba7-a60b-aaf106437850" />
-<img width="3788" height="1845" alt="8" src="https://github.com/user-attachments/assets/fe173ee9-04c7-4252-a8e9-0b9990798976" />
-<img width="3792" height="1840" alt="9" src="https://github.com/user-attachments/assets/ac85ab35-7f38-4043-bd97-476fa620478c" />
-
----
-
-# WHY PLAY METAL SLUG WARZONE?
-
-## A Living Persistent Warzone
-
-Every warzone is a shared multiplayer space.
-
-You will see other commanders moving around the battlefield with you, including human players and a persistent population of **1,000 autonomous AI commanders**.
-
-These AI commanders are not static NPC decorations.
-
-They move around the world, fight enemies, recover soldiers, gather resources, improve their bases, run dispatch missions, participate in FOB warfare, gain experience, build their rosters, and compete in the same ranking ecosystem as players.
-
-Each warzone contains a varied mix of playable operative appearances rather than copy-pasted clone armies.
-
----
-
-# EXPLORE SIX WARZONES
-
-Choose a combat zone and deploy your commander into large native-resolution battlefield maps.
-
-Current warzones include:
-
-- **Jungle Front**
-- **Industrial Railhead**
-- **Ruined Temple**
-- **Occupied City**
-- **Coastal Breach**
-- **Iron Citadel Interior**
-
-Movement is fully four-directional with collision-aware terrain.
-
-Walls, cliffs, buildings, machinery, barriers, water edges, and other solid environmental objects block movement properly.
-
-The camera stays close to your operative inside a scrolling battlefield viewport so maps remain detailed rather than being shrunk down to fit the entire screen.
-
-Use:
-
-- **WASD**
-- **Arrow Keys**
-- On-screen movement controls
-
----
-
-# TURN-BASED FIELD COMBAT
-
-Moving through a warzone can trigger enemy encounters.
-
-Battles take place in a dedicated combat screen where your selected operative fights enemy soldiers, heavy infantry, specialists, and vehicles.
-
-Choose your attack pattern, deal damage, survive counterattacks, and decide whether to finish the enemy or attempt a recovery.
-
-Different unit classes and attack types matter, giving battles more depth than simply pressing the same attack every turn.
-
----
-
-# FULTON RECOVERY SYSTEM
-
-Defeating enemies is not always the best choice.
-
-Weakening them first makes them easier to recover.
-
-Use Fulton recovery equipment to extract enemy soldiers and vehicles and permanently add them to your forces.
-
-Recovered units become real persistent roster assets.
-
-You can recover:
-
-- Riflemen
-- Bazooka Troopers
-- Shield Troopers
-- Heavy Gunners
-- Rebel Bikers
-- Additional personnel and hardware as the game expands
-
-Better Fulton technology becomes available through progression and R&D.
-
-Vehicle recovery requires more advanced development, so building your Mother Base matters.
-
----
-
-# BUILD YOUR OWN MOTHER BASE
-
-Every commander owns a persistent Mother Base.
-
-When creating your account, choose from multiple land and offshore base layouts.
-
-Your selected base can later be changed from Account Options without deleting your progression.
-
-Your Mother Base is not only a menu.
-
-You can physically enter it as a multiplayer space.
-
-Inside your base you can see your recovered staff and captured hardware positioned around the facility.
-
-Human staff move around naturally over time while vehicles and heavy hardware remain parked.
-
-Friends and Strike Force members can visit your Mother Base and see the same synchronized garrison.
-
----
-
-# MOTHER BASE MANAGEMENT
-
-Captured personnel can be assigned to specialized sectors.
-
-Current teams include:
-
-- **Combat Unit**
-- **R&D Team**
-- **Intel Team**
-- **Medical Team**
-- **Mess Hall**
-- **Security Team**
-- **Support Unit**
-
-Every recovered soldier has value.
-
-Assigning the right staff to the right department improves your base, unlocks systems, strengthens FOB defense, raises your Base Power, and pushes your overall grade higher.
-
-Grades progress from low-level recruits all the way toward elite high-ranking personnel and bases.
-
----
-
-# COMMANDER LEVELING
-
-Your selected Metal Slug operative is your persistent commander.
-
-Win battles, recover enemies, defeat bosses, complete missions, fight other commanders, and participate in the wider warzone to earn Commander XP.
-
-Leveling increases your combat profile and improves statistics such as:
-
-- HP
-- Attack
-- Defense
-- Speed
-
-Your current level, XP progress, Commander Rank, and combat stats are visible throughout the interface.
-
----
-
-# PLAYABLE OPERATIVES
-
-Choose from familiar Metal Slug heroes when creating your commander:
-
-- **Marco Rossi**
-- **Tarma Roving**
-- **Eri Kasamoto**
-- **Fiolina Germi**
-- **Nadia Cassel**
-- **Trevor Spacey**
-
-You can later change your operative appearance from Account Options.
-
----
-
-# DISPATCH MISSIONS
-
-Not every battle requires you to be there personally.
-
-Send recovered Combat Unit members on persistent timed operations.
-
-Dispatch missions continue using real server timestamps, so shutting down your browser, Apache, or MySQL does not erase elapsed progress.
-
-Units can return with:
-
-- Resources
-- Experience
-- Mission results
-- Improved unit progression
-
-Dispatch teams are selected using clear unit cards and exact mission slot requirements.
-
----
-
-# BOSS OPERATIONS
-
-Take on dedicated high-threat battles against powerful Metal Slug bosses.
-
-Boss encounters are separate from normal field contacts and provide major rewards and Commander progression.
-
-Current boss targets include:
-
-- **Huge Hermit**
-- **Rootmars**
-
-More major targets can be added as the war continues.
-
----
-
-# FOB WARFARE
-
-Every commander has something worth defending.
-
-Attack another player's Forward Operating Base and fight against a server snapshot of their defenses.
-
-Successful infiltrations can steal real stored resources.
-
-The defender actually loses the resources you take.
-
-FOB raids use server-authoritative transactional settlement so rewards are not simply generated from nothing.
-
-Defender protection and attacker cooldowns prevent constant repeated draining.
-
-Autonomous commanders can also raid other autonomous commanders, meaning the world economy continues evolving even when you are not directly involved.
-
----
-
-# LIVE PVP
-
-Challenge another commander in synchronized turn-based PvP.
-
-Human players can fight each other using version-locked server-authoritative turns.
-
-You can also challenge autonomous commanders through:
-
-### Live AI Battle
-Fight a persistent AI commander while the server chooses and commits its turns automatically.
-
-### Commander Snapshot Battle
-Battle a frozen snapshot of that commander's current combat state.
-
-AI commanders use their real persistent profile, operative, level, progression, and power rather than a fake temporary opponent.
-
----
-
-# 1,000 AUTONOMOUS COMMANDERS
-
-Metal Slug Warzone includes **1,000 persistent autonomous commanders** spread across all six warzones.
-
-They:
-
-- Use the same playable operative skins as players
-- Move around warzones
-- Obey terrain collision
-- Fight field enemies
-- Gain Commander XP
-- Recover soldiers
-- Recover vehicles
-- Build real rosters
-- Gather resources
-- Improve Mother Bases
-- Develop R&D
-- Run dispatch missions
-- Raid AI FOBs
-- Participate in PvP
-- Climb global rankings
-- Persist through server restarts
-
-Their activity can be viewed through the dedicated **AI Network** page.
-
-This gives the world a living population even when only a few human players are online.
-
----
-
-# COMMANDER PROFILES
-
-Every human and autonomous commander has a persistent profile.
-
-View information such as:
-
-- Operative
-- Commander Level
-- XP
-- Base Power
-- Base Grade
-- Recovered units
-- Current warzone
-- Current activity
-- Field battle record
-- Recovery record
-- FOB record
-- PvP record
-- Physical Mother Base
-
-Autonomous commanders can be challenged directly from their profiles.
-
----
-
-# GLOBAL COMMANDER RANKINGS
-
-Human and AI commanders compete on the same persistent Base Power ladder.
-
-Your ranking is based on your actual progression:
-
-- Recovered personnel
-- Staff assignments
-- Base sectors
-- R&D
-- Resources
-- Dispatch progression
-- FOB activity
-- Overall command strength
-
-There are no fake leaderboard numbers.
-
-Build the strongest military organization and climb toward the top.
-
----
-
-# SOCIAL SYSTEMS
-
-Metal Slug Warzone supports persistent multiplayer social features including:
-
-- Friends
-- Direct messages
-- Player profiles
-- Mother Base visits
-- Strike Forces
-- Multiplayer presence
-- PvP challenges
-- FOB rivalry
-
-Strike Forces function as the game's clan/guild-style organization system.
-
----
-
-# PERSISTENT SERVER PROGRESSION
-
-Metal Slug Warzone is built around persistent MySQL-backed progression.
-
-Your important state survives:
-
-- Browser refreshes
-- Logging out
-- Apache restarts
-- MySQL restarts
-- Server restarts
-
-Persistent systems include:
-
-- Commander progression
-- Recovered units
-- Resources
-- Mother Base
-- Staff assignments
-- R&D
-- Dispatch missions
-- PvP
-- FOB records
-- Friends
-- Strike Forces
-- Autonomous commander progression
-
----
-
-# BUILT FOR MULTIPLAYER
-
-The game uses a server-authoritative design wherever important progression or combat decisions are involved.
-
-This includes:
-
-- Movement validation
-- Collision
-- Battle state
-- Recovery eligibility
-- Inventory use
-- Resource changes
-- FOB transfers
-- PvP turns
-- Dispatch completion
-- Autonomous AI progression
-
-The browser displays the game.
-
-The server decides what is valid.
-
----
-
-# GETTING STARTED
-
-Metal Slug Warzone is designed for a local or hosted PHP/MySQL environment.
-
-For a local XAMPP setup:
-
-1. Extract **Metal Slug Warzone** into your XAMPP `htdocs` directory.
-2. Start **Apache** and **MySQL**.
-3. Open the local setup page:
-
-   `http://127.0.0.1/MetalSlugWarzone/_setup.php`
-
-4. Run **Fresh Install** on a brand-new database.
-5. Run **Confirm Installation**.
-6. Create your commander account.
-7. Choose your operative.
-8. Choose your Mother Base.
-9. Deploy to a warzone.
-
-For existing installations, use **Update / Repair** rather than resetting your database.
-
----
-
-# YOUR FIRST HOUR
-
-Not sure what to do first?
-
-Try this:
-
-1. Create your commander.
-2. Pick the operative you like most.
-3. Choose your Mother Base.
-4. Deploy to Jungle Front.
-5. Fight your first enemy.
-6. Damage the enemy before attempting Fulton recovery.
-7. Recover several soldiers.
-8. Open Mother Base and assign staff.
-9. Send a Combat Unit on a dispatch mission.
-10. Challenge an AI commander.
-11. Visit the FOB network.
-12. Build enough power to climb the rankings.
-
-From there, the game becomes about creating your own military organization and deciding how you want to grow it.
-
----
-
-# THE CORE LOOP
-
-**Explore → Fight → Weaken → Fulton Recover → Recruit → Assign Staff → Develop R&D → Build Mother Base → Run Dispatches → Raid FOBs → Fight PvP → Climb the Rankings**
-
-Every battle can make your organization stronger.
-
-Every recovered soldier can matter.
-
-Every base becomes different depending on who you capture and how you manage them.
-
----
-
-# CURRENT HIGHLIGHTS
-
-Metal Slug Warzone currently features:
-
-- Persistent browser MMORPG architecture
-- Six explorable warzones
-- Four-direction movement
-- Native-resolution scrolling maps
-- Server-authoritative collision
-- Turn-based combat
-- Fulton soldier recovery
-- Vehicle recovery
-- Commander leveling
-- Six selectable playable operatives
-- Seven selectable physical Mother Bases
-- Live Mother Base visitation
-- Persistent staff roaming
-- Base sector management
-- R&D progression
-- Combat Unit dispatch missions
-- Boss battles
-- FOB invasions
-- Real resource theft
-- Live PvP
-- Snapshot PvP
-- Live AI PvP
-- Friends
-- Messaging
-- Strike Forces
-- Global rankings
-- 1,000 persistent autonomous commanders
-- AI world simulation
-- Runtime-only deployment package
-- Persistent MySQL progression
-
----
-
-# ENTER THE WARZONE
-
-Metal Slug Warzone is built for players who enjoy:
-
-- Collecting and recruiting units
-- Growing a persistent base
-- Character progression
-- Turn-based combat
-- MMO worlds
-- PvP
-- Base invasions
-- Resource management
-- Long-term progression
-- Watching a persistent world continue evolving around them
-
-If the idea of **Metal Slug combat mixed with Fulton recovery, Mother Base management, FOB warfare, persistent AI commanders, and Pokémon-Vortex-style browser exploration** sounds like your kind of game, deploy and start building your army.
-
-**Your Mother Base starts small.  
-What it becomes is up to you.**
-
----
-
-## Project Status
-
-**Metal Slug Warzone is an actively developed browser MMORPG project.**
-
-Current accepted gameplay baseline: **v0.3.3**
-
-More warzones, enemies, vehicles, bosses, missions, progression systems, social systems, and Mother Base features can continue to expand over future releases.
-
----
-
-### Unofficial Fan Project
-
-Metal Slug Warzone is an unofficial fan-made project and is not presented as an official SNK product.
+See `docs/ARCHITECTURE.md`, `docs/SECURITY.md`, `docs/ASSET_MANIFEST.md`, `docs/BUILD_VALIDATION.md`, and `docs/XAMPP_TEST_PLAN.md`.

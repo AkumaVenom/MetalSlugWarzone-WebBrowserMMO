@@ -1,4 +1,4 @@
-# Architecture — Metal Slug Warzone v0.3.3
+# Architecture — Metal Slug Warzone v0.3.4
 
 ## Authority model
 
@@ -100,3 +100,8 @@ Autonomous commander presence still uses the same keyed server payload and DOM e
 ## v0.3.3 per-warzone autonomous operative assignment
 
 `bot_index` remains the durable autonomous identity, but skin assignment is deliberately **decoupled from the round-robin warzone slot**. Fresh seeding uses the bot's local ordinal inside its assigned map plus a map offset to rotate through `msw_character_catalog()`. Update / Repair performs the same concept against the current persisted population: bots are ordered by `active_map` then `bot_index`, and each map gets its own independent six-skin rotation. This guarantees all six player operatives coexist inside every 166–167-bot warzone instead of producing one skin per map. Only `users.character_key` is reconciled; presence, profiles, snapshots and Live AI PvP automatically resolve the corrected sprite through the existing character catalog.
+
+
+## v0.3.4 level-1 recovery manufacturing
+
+`msw_fulton_catalog()` remains the authoritative capability/target-class table used by combat recovery, while `msw_rd_catalog()` remains the authoritative manufacturing table. v0.3.4 aligns those two layers for the baseline recovery item by exposing `fulton` as an **R&D 1** recipe. The item is still consumed by the normal server-side inventory path and the battle engine still revalidates R&D level and target class before recovery. Higher Fulton tiers remain independently gated at R&D 4/8/15. No schema state is added; existing R&D Team level is immediately sufficient to expose the basic recipe.

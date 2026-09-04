@@ -1,5 +1,19 @@
 # Changelog
 
+## v0.3.4 — Level-1 Fulton Manufacturing — XAMPP Test Candidate
+
+### Early R&D progression deadlock fix
+- Rebased directly on the v0.3.3 Per-Warzone AI Operative Variety public baseline.
+- Added the standard `fulton` item to the normal R&D manufacturing catalog at **R&D Level 1**, making the first personnel-recovery system manufacturable from the beginning of R&D progression instead of relying permanently on finite starter/Field Contract stock.
+- The basic recipe manufactures **4 Fulton Recovery units** for **60 Common Metal + 40 Fuel**, giving a sustainable early-game recovery loop while still consuming persistent server-authoritative resources.
+- `Fulton+ Balloon Pack` remains gated at **R&D 4**, `Cargo Fulton Pack` at **R&D 8**, and `Wormhole Fulton` at **R&D 15** with their existing costs, yields, recovery bonuses and target-class restrictions unchanged.
+- Battle-side recovery validation remains server-authoritative: inventory is consumed normally and each Fulton tier still requires the R&D level defined by `msw_fulton_catalog()`.
+
+### Preservation
+- Schema remains revision **4**; no database migration or progression reset is required.
+- Existing starter inventories, Field Contract rewards, autonomous commander systems, per-warzone operative variety, compact AI labels, Mother Base, dispatch, FOB and PvP behavior are unchanged.
+- Runtime artwork is unchanged and runtime-only packaging remains enforced.
+
 ## v0.3.3 — Per-Warzone AI Operative Variety — XAMPP Test Candidate
 
 ### Clone-army correlation fix

@@ -361,6 +361,7 @@ function msw_dispatch_catalog(): array {
 }
 function msw_rd_catalog(): array {
     return [
+        'fulton'=>['name'=>'Fulton Recovery Pack','rd'=>1,'cost'=>['common_metal'=>60,'fuel'=>40],'quantity'=>4,'desc'=>'Baseline personnel recovery system. Available from R&D Level 1 so early staff progression cannot deadlock.'],
         'fulton_plus'=>['name'=>'Fulton+ Balloon Pack','rd'=>4,'cost'=>['common_metal'=>120,'fuel'=>80],'quantity'=>3,'desc'=>'Improved personnel recovery envelope.'],
         'cargo_fulton'=>['name'=>'Cargo Fulton Pack','rd'=>8,'cost'=>['common_metal'=>260,'minor_metal'=>100,'fuel'=>160],'quantity'=>2,'desc'=>'Extends recovery to ground vehicles.'],
         'wormhole_fulton'=>['name'=>'Wormhole Fulton','rd'=>15,'cost'=>['minor_metal'=>420,'precious_metal'=>120,'fuel'=>350],'quantity'=>1,'desc'=>'Advanced extraction for personnel, vehicles and aircraft.'],
