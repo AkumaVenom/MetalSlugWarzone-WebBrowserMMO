@@ -500,8 +500,6 @@ What it becomes is up to you.**
 
 **Metal Slug Warzone is an actively developed browser MMORPG project.**
 
-Current accepted gameplay baseline: **v0.3.3**
-
 More warzones, enemies, vehicles, bosses, missions, progression systems, social systems, and Mother Base features can continue to expand over future releases.
 
 ---
