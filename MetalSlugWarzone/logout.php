@@ -1,0 +1,2 @@
+<?php
+declare(strict_types=1); require __DIR__.'/includes/bootstrap.php'; if(msw_user_id()){msw_stmt('UPDATE users SET active_map=NULL,last_seen=NULL WHERE id=?','i',[msw_user_id()]);msw_mb_presence_leave(msw_user_id());} $_SESSION=[]; if(ini_get('session.use_cookies')){$p=session_get_cookie_params();setcookie(session_name(),'',time()-42000,$p['path'],$p['domain']??'',(bool)$p['secure'],(bool)$p['httponly']);}session_destroy();msw_redirect('index.php');

@@ -1,0 +1,52 @@
+Metal Slug Warzone v0.3.3 — Per-Warzone AI Operative Variety
+===============================================================
+Parent: v0.3.1 — Compact AI Warzone Labels (runtime accepted)
+Supersedes: v0.3.2 — global-only skin mapping (rejected)
+Schema: 4 (unchanged)
+Status: PASS — STATIC / PACKAGE XAMPP TEST-CANDIDATE GATE
+
+Verified pre-package checks
+---------------------------
+PASS — 46/46 PHP files: php -l
+PASS — 1/1 JavaScript files: node --check
+PASS — CSS structure: 401 opening / 401 closing braces
+PASS — exact 1,000-bot six-warzone production simulation
+PASS — all six player-operative skins represented inside every individual warzone
+PASS — per-map skin spread is <= 1 bot (27–28 of each skin per map)
+PASS — fresh seeding uses per-map ordinal + map offset, not correlated global modulo
+PASS — existing-population Update / Repair reconciliation is per-warzone and in-place
+PASS — repair changes only autonomous users.character_key state
+PASS — Confirm Installation validates per-warzone six-skin diversity
+PASS — compact v0.3.1 AI-label contract retained
+PASS — 31/31 runtime images byte-identical to accepted v0.3.1
+PASS — focused runtime delta vs v0.3.1: app version + population repair + setup health report only
+PASS — literal internal PHP route/reference check
+PASS — runtime asset-reference check
+PASS — 0 source_assets directories / 0 nested ZIP archives
+PASS — final distributable ZIP integrity
+PASS — post-extraction 46 PHP / JS / per-warzone variety / runtime-only rechecks
+
+Expected fresh/per-repair warzone skin counts
+---------------------------------------------
+Jungle Front:          28 / 28 / 28 / 28 / 28 / 27
+Industrial Railhead:   27 / 28 / 28 / 28 / 28 / 28
+Ruined Temple:         28 / 27 / 28 / 28 / 28 / 28
+Occupied City:         28 / 28 / 27 / 28 / 28 / 28
+Coastal Breach:        28 / 28 / 27 / 27 / 28 / 28
+Iron Citadel Interior: 28 / 28 / 28 / 27 / 27 / 28
+Catalog order: Marco / Tarma / Eri / Fio / Nadia / Trevor
+
+Release delta contract
+----------------------
+- Corrects the v0.3.2 formula correlation that made one map equal one skin.
+- Every individual warzone now independently cycles all six accepted player operatives.
+- Existing bot index/user identity, username, XP, map position, roster, captures, resources,
+  Mother Base, dispatch state, FOB history and PvP state are preserved.
+- Re-running Update / Repair is idempotent for the current persisted population.
+- Compact AI labels and all accepted v0.3.1 gameplay/persistence behavior remain unchanged.
+- Runtime-only package policy remains mandatory.
+
+Runtime acceptance boundary
+---------------------------
+Static validation cannot query the user's real MariaDB population. Run docs/XAMPP_TEST_PLAN.md
+and Update / Repair on the current database before promoting v0.3.3 to stable.
