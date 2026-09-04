@@ -1,32 +1,34 @@
-# Build Validation — v0.3.5 Local WorldServer Console
+# Build Validation — v0.4.1 Polished FOB Spatial Distribution & Globe Alignment
 
-Parent baseline: **v0.3.4 Level-1 Fulton Manufacturing — runtime-confirmed by the user**  
-Schema revision: **4 (unchanged)**
+Parent baseline: **v0.4.0 Polished Sharded Global FOB World — supplied/accepted test-candidate baseline**  
+Schema revision: **6**  
+Candidate type: **Runtime-only XAMPP test candidate**
 
-Static and isolated subsystem validation completed on the candidate source tree:
+Static release-gate validation completed on the candidate source tree:
 
-- **47/47 PHP files** pass `php -l`.
-- **1/1 JavaScript file** passes `node --check`.
-- CSS structure remains balanced at **401 opening / 401 closing braces**.
-- `serverconsole.ps1` has balanced static structure (**59/59 braces, 81/81 parentheses**) and `serverconsole.bat` resolves the sibling PowerShell renderer path. A native Windows PowerShell runtime was not available in the Linux build container, so final renderer execution remains an XAMPP/server-PC acceptance item.
-- All **54 literal PHP include/require references** resolve.
-- All **28 literal `msw_url()` PHP references** found by the static scanner resolve.
-- `public_html/includes/server_console.php` stores the feed at package-root `_server_console/`, outside `public_html`.
-- `_server_console/.htaccess` contains `Require all denied` as defense in depth.
-- Hard suppression contains exactly the required high-noise/non-action endpoints: `map_move.php`, `map_presence.php`, `mother_base_move.php`, `mother_base_presence.php`, and `pvp_state.php`.
-- Those five endpoints contain **no direct console action hooks**.
-- Isolated logger test: a human event is written; a `users.is_bot=1` identity is rejected; an event attempted from `map_move.php` is rejected.
-- Isolated traffic test: a successful authenticated `GET /dashboard.php` is written; `map_move.php` traffic is suppressed; an HTTP 404 completion is not written.
-- Concurrency test: **60/60 parallel event writes** were preserved as valid unique NDJSON records under file locking.
-- Rotation test: an event written after the feed exceeded **8 MiB** moved the previous feed to `events.ndjson.1` and wrote the new event cleanly to the fresh active feed.
-- Direct-message console hook receives only precomputed character count/recipient metadata; the message-body variable is not passed to the logging function.
-- The logger does not install PHP error/exception handlers and does not call `error_log()` or ingest Apache/PHP/MySQL logs.
-- Combat action/result events are queued until the authoritative battle transaction commits, avoiding false-positive activity lines after rollback.
-- Schema revision remains **4**; no SQL/database migration is introduced.
-- v0.3.4 basic Fulton manufacturing remains present at **R&D 1**, with existing higher thresholds **4 / 8 / 15** preserved.
-- **31/31 runtime images** are byte-identical to the v0.3.4 runtime-confirmed baseline.
-- Package source tree contains **0 `source_assets/` directories** and **0 nested/source ZIP archives**.
+- **56/56 PHP files** pass `php -l` under PHP 8.4.23.
+- **1/1 JavaScript file** passes `node --check` under Node 22.16.0.
+- CSS structure remains balanced at **481 opening / 481 closing braces**.
+- All **63 literal `__DIR__` include/require references** found by the release scanner resolve.
+- All **78 literal `msw_url()` path prefixes** found by the release scanner resolve to present runtime routes/assets.
+- Application version is **0.4.1** and both PHP schema authority and standalone install SQL report **schema revision 6**.
+- Fresh-install SQL still contains **25 top-level statements** under the quote-aware statement scanner.
+- FOB world capacity remains **144** and the database still owns exclusivity through `UNIQUE(world_id,slot_index)`.
+- The new irregular layout contains exactly **144/144 unique anchors**.
+- Anchor geometry produces **0 overlap pairs** under the validated **136×96 center-clearance envelope**, while the desktop marker footprint is 128×86.
+- Biome/shard permutation was validated for Continental, Forest, Desert, Arctic and Sea across shard indices 001–003; all tested 57-member partial-layout hashes are distinct while each full 144-slot mapping remains bijective.
+- Globe hotspots are centralized in `msw_fob_globe_hotspots()` at normalized source coordinates: Arctic **50/14**, Continental **27/35**, Forest **70.5/34**, Desert **62.5/55.5**, Sea **49.5/76.5**.
+- Human placement, autonomous bot seeding and schema repair all call the same biome/shard-aware `msw_fob_slot_position()` authority.
+- Update / Repair contains the v0.4.1 reflow pass that preserves `user_id`, `world_id`, `skin_key` and `slot_index` while recalculating only stored x/y.
+- Confirm Installation now validates `fob_spatial_distribution` in addition to the inherited slot uniqueness and autonomous population checks.
+- All **44 runtime image assets** are byte-identical to the v0.4.0 package; v0.4.1 modifies no artwork.
+- All **13 FOB runtime assets** remain present at exact supplied dimensions: globe **1254×1254**, five overview maps **2000×2000**, seven FOB icons **256×171**.
+- Package tree contains **0 nested/source archives** and **0 `source_assets/` directories**.
+- Immediate raid authority still contains no attacker-cooldown gate; defender post-invasion protection remains authoritative.
+- Staff FOB strike, standard Dispatch, autonomous commander, Mother Base coherence, PvP/social and local WorldServer-console code paths were not structurally replaced by this hotfix.
 
 ## Runtime acceptance boundary
 
-The build container cannot execute Windows `cmd.exe`/Windows PowerShell or the user's real Apache/MariaDB/browser stack. Final promotion therefore requires the server-PC checks in `docs/XAMPP_TEST_PLAN.md`: launch `serverconsole.bat`, verify real color rendering/live following, verify human/IP attribution, exercise representative gameplay actions, and confirm prolonged warzone/Mother Base movement produces no console lines.
+This environment can validate source integrity, deterministic FOB geometry and package structure, but it cannot substitute for the user's live Apache + MariaDB/MySQL + browser stack. Database migration execution, real concurrent SQL behavior, actual browser positioning/scrolling and restart persistence must therefore be accepted on the XAMPP server PC.
+
+For an existing v0.4.0 database, back it up, replace the runtime files, run **Update / Repair** to advance **schema 5 → 6**, then run **Confirm Installation** and require `fob_spatial_distribution = OK`. Complete every release-blocking scenario in `docs/XAMPP_TEST_PLAN.md` before promoting v0.4.1 from test candidate to stable.

@@ -1,4 +1,4 @@
-# Architecture — Metal Slug Warzone v0.3.5
+# Architecture — Metal Slug Warzone v0.4.1
 
 ## Authority model
 
@@ -116,3 +116,23 @@ The administration console is deliberately separated from browser authority. `pu
 Gameplay events use `msw_console_event_for_user()`. That helper independently revalidates `users.is_bot=0`, clips metadata to bounded scalar values, refuses suppressed routes and never persists raw request payloads. Explicit action hooks are placed only after successful authoritative state changes or committed gameplay actions. Technical exceptions continue through the existing browser/game flows and are not converted into console events.
 
 The writer uses an application-level lock plus append locking. At 8 MiB the active feed rotates to `.1`, retaining `.1` through `.3`. Logging is fail-silent by design: filesystem/encoding/locking problems cannot abort or roll back gameplay transactions. `serverconsole.bat` launches `serverconsole.ps1`, which reads the file locally with read/write sharing, detects rotation, renders category colors and never reads Apache/PHP/MySQL error logs.
+
+
+## v0.4.x sharded global FOB authority
+
+The primary FOB surface is now a persistent spatial layer rather than a global query of every commander. `fob_worlds` identifies a biome plus sequential shard index, while `fob_world_memberships` gives each user exactly one world, one coherent skin and one authoritative slot. The browser renders these rows but cannot choose coordinates or world IDs.
+
+A shard has 144 authoritative slot identities. Ownership is protected by a unique `(world_id,slot_index)` key. In v0.4.1, `msw_fob_slot_position()` maps each slot through a biome/shard-specific deterministic permutation of 144 irregular collision-validated native-map anchors instead of the former visible 12×12 grid. Human deployment uses a per-biome MySQL advisory lock while it chooses/creates the first non-full shard, preventing a count/select race under simultaneous account deployments. When no shard has capacity, the next `shard_index` is inserted automatically.
+
+FOB skin keys intentionally reuse `users.mother_base_key`. This makes one selection authoritative for both the global overview icon and the physical Mother Base map. After a membership exists, profile-based Mother Base redeployment is disabled. Existing v0.3.5 human progression is not auto-moved; those commanders make the new selection once. Autonomous commanders are reconciled idempotently during schema repair.
+
+Immediate raids use `msw_fob_resolve_direct_raid()`. The old attacker cooldown is no longer a precondition. Same-shard membership, target post-invasion protection, user/resource row locks, Base Power/Security/Combat Unit snapshots, and exact debit/credit transfer remain server-authoritative. Every completed attempt sets defender protection.
+
+`fob_strike_dispatches` is separate from `dispatch_missions`, but both reserve staff through `units.dispatched_until`. This keeps the existing standard Dispatch system unchanged while providing an FOB-specific persistent mission ledger. Staff invasions snapshot both sides at launch, then settle on/after `finish_at`; resolution clears the same reserved units exactly once.
+
+Autonomous commanders occupy the same membership table and icon catalog. Their direct and staff-dispatch raids are constrained to bot targets in the same FOB shard, so the background economy evolves without silently attacking offline human accounts.
+
+
+### Cross-ledger staff reservation authority
+
+Standard Combat Unit Dispatch and FOB staff invasions intentionally share `units.dispatched_until`. `includes/dispatch_authority.php` centralizes standard mission completion, while FOB resolution uses the same reservation-release rule: due missions are settled before either surface offers staff again, selected IDs are normalized/locked deterministically, and an older completion clears `dispatched_until` only when that reservation has not been replaced by a newer mission. This preserves mutual exclusion across simultaneous tabs and expiry-boundary requests without merging the two mission ledgers.

@@ -1,4 +1,4 @@
-# Security and Exploit-Resistance Contract — v0.3.5
+# Security and Exploit-Resistance Contract — v0.4.1
 
 This candidate treats all browser state as untrusted and does not give autonomous commanders login sessions.
 
@@ -74,3 +74,19 @@ Making the basic Fulton recipe available at R&D 1 does not move authority to the
 - Logger exceptions/filesystem failures are swallowed intentionally, so observability cannot become a gameplay availability dependency or transaction rollback trigger.
 - File writes are lock-protected and automatically rotated at 8 MiB to bound disk growth.
 - Remote player IP addresses are shown because the requested console is a server-operator traffic surface; the data remains local to the server filesystem and is not exposed back to players.
+
+
+## v0.4.x FOB world security / authority
+
+- The client never submits a world ID, shard index, slot index or x/y placement during initial FOB deployment. It submits only the catalog-validated biome and compatible skin; placement is chosen server-side.
+- A unique database key on `(world_id,slot_index)` is the final collision guard, while a short per-biome MySQL advisory lock serializes the select/create/assign critical section.
+- Enemy target actions are revalidated against the attacker's current `fob_world_memberships.world_id`; changing a query-string user ID cannot attack a commander in another shard.
+- Direct raids and staff dispatch launches require CSRF validation on human POST surfaces.
+- Staff IDs are normalized to positive unique integers and re-read under `FOR UPDATE` ownership/availability checks before reservation.
+- Resource transfer remains an atomic debit/credit operation under locked resource ledgers.
+- Defender post-invasion protection is checked after user rows are locked. There is intentionally no attacker-side cooldown in v0.4.x.
+
+
+### Cross-ledger reservation race guard
+
+FOB strikes and standard Dispatch missions share one staff reservation column by design. Both launch surfaces settle due work before allowing reuse, selected staff are revalidated under row locks, and completion uses a conditional reservation release keyed to the completed mission's `finish_at`. A stale completion therefore cannot erase a newer reservation created by the other mission system.

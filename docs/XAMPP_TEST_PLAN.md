@@ -1,86 +1,121 @@
-# XAMPP Runtime Acceptance Plan — v0.3.5 Local WorldServer Console
+# XAMPP Runtime Acceptance Plan — v0.4.1 Polished FOB Spatial Distribution & Globe Alignment
 
-v0.3.5 is an observability/polish update over the **runtime-confirmed v0.3.4 Level-1 Fulton Manufacturing** baseline. Schema remains revision **4** and no database reset is required.
+v0.4.1 is a non-destructive corrective update over the **v0.4.0 Sharded Global FOB World** baseline. Schema advances **5 → 6** to reflow existing FOB x/y coordinates from their unchanged slot identities. The same repair path also supports direct upgrades from v0.3.5/schema 4. Use **Update / Repair** for an existing database; do not Fresh Install unless deliberately testing a clean database.
 
-## 1. Backup and Update / Repair — RELEASE BLOCKING
+## 1. Backup and schema migration — RELEASE BLOCKING
 
-1. Back up the current database.
-2. Replace the current runtime project files with v0.3.5 while preserving the release folder structure.
-3. Open `_setup.php` locally and run **Update / Repair**. Do **not** Fresh Install.
-4. Run **Confirm Installation** and verify schema revision **4**, exactly **1,000 persistent autonomous commanders**, balanced six-warzone population, and `autonomous_skin_variety` reports every warzone mixed.
-5. Confirm no human/bot XP, coordinates, rosters, Mother Bases, resources, dispatches, FOB history, PvP records or inventories are reset.
+1. Back up the existing database (v0.4.0/schema 5 or earlier supported baseline).
+2. Replace runtime files with the v0.4.1 candidate while preserving the package structure.
+3. Open `_setup.php` locally and run **Update / Repair**.
+4. Run **Confirm Installation** and require:
+   - schema revision `6`;
+   - exactly 1,000 enabled persistent autonomous commanders;
+   - `fob_worlds`, `fob_world_memberships`, `fob_strike_dispatches` all `OK`;
+   - `autonomous_fob_memberships = OK · 1000 persistent unique slots`;
+   - `autonomous_fob_distribution` reports 200 bots in each of Continental / Forest / Desert / Arctic / Sea;
+   - `fob_slot_collision_guard = OK · zero duplicate world slots`;
+   - `fob_spatial_distribution = OK` and reports irregular collision-free anchors.
+5. Confirm existing human Commander XP, characters, resources, staff/vehicles, sector levels, standard dispatches, raid history, PvP/social state and inventory remain intact.
+6. Existing human accounts should have **no forced automatic FOB membership** until their owner makes the new globe choice.
 
-## 2. Local WorldServer console startup — RELEASE BLOCKING
+## 2. New account FOB onboarding — RELEASE BLOCKING
 
-1. On the server PC, double-click `serverconsole.bat`.
-2. Confirm a dedicated command window opens with the **METAL SLUG WARZONE // LOCAL WORLDSERVER ACTIVITY CONSOLE** banner and color-channel legend.
-3. Confirm the console states that human player traffic/gameplay actions are shown and movement/presence/error logs are excluded.
-4. Confirm `C` clears/redraws the console and `Q` exits cleanly.
-5. Confirm `_server_console/events.ndjson` exists beside `public_html`, not inside it.
+1. Create a new account and choose a field operative.
+2. Confirm signup no longer asks for a Mother Base and sends the new commander directly to the Earth FOB deployment screen.
+3. Confirm the supplied 1254×1254 Earth overview is visible with five choices: **Continental, Forest, Desert, Arctic, Sea**. Verify each control is visually centered on its matching art region: Continental = gold Americas, Forest = green Eurasia, Desert = orange Africa, Arctic = polar ice, Sea = open ocean.
+4. Select each land biome in separate disposable accounts/tests and confirm the next screen exposes only its matching skin.
+5. Select **Sea** and confirm exactly three coherent choices appear: Offshore Alpha, Offshore Bravo and Maritime Fortress.
+6. Deploy a skin and confirm the account enters its native 2000×2000 overview world and the camera centers on the player's FOB.
 
-## 3. Human-only traffic capture — RELEASE BLOCKING
+## 3. Existing account migration flow — RELEASE BLOCKING
 
-1. Log in with a normal human commander from a browser.
-2. Browse Dashboard, R&D, Missions, Staff, FOB, PvP, Friends and Profile.
-3. Confirm each successful page request produces a `WEB` line containing the correct human username, user ID, client IP, HTTP method and route.
-4. Use a second human account from another PC/browser if available and confirm its lines identify that commander/IP independently.
-5. Leave autonomous commander simulation active and browse the AI Network. Confirm **no bot activity is emitted as player console events**.
-6. Confirm visiting unauthenticated pages before login does not create human traffic lines.
+1. For a v0.3.5 account, log in with a pre-update human commander and confirm the one-time globe flow still works. For an already deployed v0.4.0 account, confirm no new biome/skin selection is forced.
+2. Open **FOB**. Confirm the globe/skin deployment flow appears once.
+3. On another not-yet-deployed legacy account, open **Mother Base** and confirm it redirects to the same global deployment flow rather than silently using an incoherent legacy base. On an already deployed v0.4.0 account, record its `world_id`, `shard_index`, `slot_index` and `skin_key` before repair and confirm all four remain unchanged afterward.
+4. Complete deployment and confirm all existing staff, hardware, resources, sector levels, XP and historical raid records remain.
+5. Relog/restart browser and confirm the account returns directly to the same overview world, same shard, same FOB skin and same slot.
+6. Open Profile and confirm independent Mother Base redeployment is no longer offered; the Global FOB placement is presented as locked persistent identity.
 
-## 4. Movement and polling suppression — RELEASE BLOCKING
+## 4. Shard placement and non-overlap — RELEASE BLOCKING
 
-1. Enter a warzone and continuously move with WASD/arrow controls for at least 30 seconds.
-2. Confirm **no `map_move.php` or `map_presence.php` lines appear**, and no coordinates/directions are printed.
-3. Enter a physical Mother Base and continuously move for at least 30 seconds.
-4. Confirm **no `mother_base_move.php` or `mother_base_presence.php` lines appear**.
-5. Open a PvP match and leave its live state watcher running. Confirm **no `pvp_state.php` polling lines appear**.
-6. Normal non-movement page traffic such as opening `map.php`, `mother_base.php` or `pvp_match.php` may still appear under `WEB`.
+1. With several human accounts in one biome, confirm every FOB has a distinct position.
+2. Query `fob_world_memberships` and confirm no duplicate `(world_id,slot_index)` pair exists.
+3. Confirm every membership x/y equals `msw_fob_slot_position(slot_index, biome_key, shard_index)`, the icons are visually separated, and the population is visibly irregular rather than arranged in horizontal/vertical rows.
+4. Confirm the overview header reports the correct shard label (`FOREST-001`, `SEA-002`, etc.) and population/capacity.
+5. Capacity test in a disposable database: populate a biome to 144 memberships, then deploy one additional account. Confirm the server creates the next shard and places the new account there rather than overlapping shard 001.
+6. Confirm a commander cannot manually switch to another shard from the UI or by changing query parameters.
+7. Compare two partially populated shards of the same biome and confirm their visible anchor subsets are not identical; biome/shard permutation should alter the partial spatial pattern while remaining deterministic after reload.
+8. Reload/restart Apache and MySQL and confirm every FOB returns to the exact same irregular x/y position.
 
-## 5. Color-coded gameplay actions — RELEASE BLOCKING
+## 5. Same-shard target authority — RELEASE BLOCKING
 
-Perform at least one valid successful action in each available system and verify an appropriately colored line appears:
+1. Use two accounts in the same shard and confirm each appears on the other's overview map.
+2. Select the rival icon and confirm `fob_target.php` opens its correct commander/base/security details.
+3. Use an account in a different shard and attempt to substitute its user ID into `fob_target.php?id=...` or the attack POST. Confirm the target is rejected / not found.
+4. Confirm the classic Infiltration Network lists only rival FOBs in the current world instance.
 
-- `AUTH`: successful login and logout.
-- `COMBAT`: committed attack and resolved engagement.
-- `RECOVERY`: actual Fulton success/failure gameplay result after a Fulton unit is consumed.
-- `MISSION`: mission/contract/rival/boss engagement start.
-- `R&D`: successful manufacture.
-- `BASE`: staff assignment or Mother Base redeployment.
-- `DISPATCH`: deployment and later result settlement.
-- `STRATEGIC`: project start/claim when available.
-- `FOB`: completed raid result.
-- `PVP`: match start/committed turn.
-- `SOCIAL`: friend, direct-message metadata, or Strike Force action.
-- `PROFILE`: operative change when used.
+## 6. Direct invasion cooldown removal + defender protection — RELEASE BLOCKING
 
-Confirm action text is concise and readable, not raw database/request dumps.
+1. Have attacker A and open defenders B and C in the same shard.
+2. A immediately infiltrates B and receives a normal After Action Report.
+3. Without waiting, A infiltrates C. Confirm there is **no attacker cooldown** blocking the second raid.
+4. Immediately try B again. Confirm B is blocked only because B has post-invasion protection.
+5. Test both an attacker-win and a defender-win result and confirm the invaded defender receives protection in either case.
+6. After protection expires, confirm B becomes attackable again.
+7. Verify successful transfers debit B and credit A atomically and failure transfers zero.
 
-## 6. No technical error logging / privacy boundary — RELEASE BLOCKING
+## 7. Staff FOB invasion dispatch — RELEASE BLOCKING
 
-1. Submit an invalid gameplay request that produces a normal browser validation/flash message. Confirm the console does not show exception/error/stack-trace content.
-2. Request a nonexistent authenticated PHP route/page that returns HTTP 4xx where practical. Confirm the failed request is not emitted as a successful `WEB` event.
-3. Send a direct message containing a distinctive phrase. Confirm the console shows only recipient metadata/character count and **does not show the message body**.
-4. Inspect `_server_console/events.ndjson` and confirm there are no passwords, password hashes, session IDs, cookies, CSRF tokens or raw POST payloads.
-5. Confirm Apache/PHP/MySQL error logs are not read or mirrored into the console.
+1. Open an enemy FOB and select 2–4 available staff.
+2. Confirm fewer than 2 / more than 4 cannot be submitted; server validation must still reject malformed requests if browser controls are bypassed.
+3. Launch the strike and verify the Staff Strike Ledger shows target, team count, stored chance and countdown.
+4. While staff are en route, open standard `dispatch.php` and confirm those same units are unavailable because `units.dispatched_until` is shared.
+5. Reload pages and confirm the mission persists.
+6. For restart persistence, stop/restart Apache/MySQL before `finish_at`, then return after the timestamp and confirm the strike resolves exactly once.
+7. Confirm staff return (`dispatched_until` cleared), receive XP, and the result links to a normal FOB After Action Report.
+8. Launch a staff strike, then have a different commander invade/protect the target before the strike arrives. Confirm the arriving mission becomes `protected_abort`, transfers zero resources and safely returns the staff.
 
-## 7. Preserved v0.3.4 Level-1 Fulton manufacturing — RELEASE BLOCKING
+## 8. Standard Dispatch regression — RELEASE BLOCKING
 
-1. Use a commander whose R&D Team is Level 1.
-2. Confirm basic **Fulton Recovery Pack** remains manufacturable at R&D 1 for **60 Common Metal + 40 Fuel → x4**.
-3. Confirm Fulton+ remains locked below R&D 4, Cargo Fulton below R&D 8, and Wormhole Fulton below R&D 15.
-4. Manufacture and consume a basic Fulton in normal battle; verify persistent inventory/resource behavior remains correct.
+1. Run at least one normal `dispatch.php` mission from start to finish.
+2. Confirm its original mission catalog, slot count, success chance, reward, unit XP and return behavior remain unchanged.
+3. Confirm a unit on a normal Dispatch mission cannot be selected for an FOB staff invasion.
+4. Confirm `dispatch_missions` and `fob_strike_dispatches` remain separate ledgers.
+5. Expiry-boundary race test: let a standard mission reach `finish_at`, then immediately open an FOB target; confirm the due standard mission resolves before those units are offered for an FOB strike. Repeat in reverse with an FOB strike reaching `finish_at` and then opening standard Dispatch.
+6. With two browser tabs submitting near the same expiry boundary, confirm an older completion never clears the `dispatched_until` timestamp of a newer mission and no unit is simultaneously active in both ledgers.
 
-## 8. Persistence/performance regression — RELEASE BLOCKING
+## 9. Autonomous commander FOB integration — RELEASE BLOCKING
 
-1. Restart Apache/MySQL while the console is closed, then reopen `serverconsole.bat`; game progression must remain unchanged.
-2. Confirm console file rotation/creation does not alter database state.
-3. Keep the console open while multiple players browse/act and verify gameplay remains responsive.
-4. Confirm logging failure cannot block gameplay by temporarily making the feed file read-only in a disposable test copy; requests should continue to function without exposing technical errors in the game UI.
+1. Open AI Network and confirm the Autonomous FOB Distribution section reports five biomes and the expected shard counts/populations.
+2. In your own FOB shard, confirm AI FOB markers are visible and selectable.
+3. Infiltrate an AI FOB as a human and confirm normal raid/protection/resource behavior.
+4. Let bot simulation run and verify bot activities can record both immediate FOB infiltration and staff invasion deployment/return.
+5. Inspect bot staff while a bot strike is pending and confirm its selected units are reserved through `dispatched_until`.
+6. Confirm autonomous attack targets remain other bots only; no offline human resource loss should occur from background bot aggression.
 
-## 9. Runtime-only packaging
+## 10. Mother Base coherence / visitation regression — RELEASE BLOCKING
 
-Confirm the candidate contains no `source_assets/` directory and no nested/source `.zip` archives. All accepted runtime images must remain unchanged from v0.3.4.
+1. Enter the physical Mother Base after global deployment and confirm its map exactly matches the selected overview FOB skin.
+2. Confirm staff/hardware projection, movement, collision and persistent positions still function.
+3. Friend/Strike Force visitation must still authorize correctly.
+4. Verify a Sea overview commander uses the selected Sea physical base; Forest/Desert/Arctic/Continental commanders use their corresponding land base.
+
+## 11. Local WorldServer console regression — RELEASE BLOCKING
+
+1. Launch `serverconsole.bat` on the server PC.
+2. Confirm normal human page/action events still appear and bot events remain excluded.
+3. Confirm new FOB deployment, direct raid and staff dispatch actions produce concise `FOB` channel entries for human commanders.
+4. Confirm warzone/Mother Base movement and presence polling remain completely suppressed.
+5. Confirm no passwords, cookies, CSRF tokens, raw POST data or direct-message bodies enter `_server_console/events.ndjson`.
+
+## 12. Runtime-only packaging
+
+Confirm the candidate contains:
+
+- the runtime globe, five overview maps and seven overview FOB icons;
+- **no** `source_assets/` directory;
+- **no** nested/source ZIP archive, including the supplied overview-world development ZIP.
 
 ## Acceptance
 
-Promote v0.3.5 only after real XAMPP testing confirms the console is **local-only, human-only, color-coded, useful for real gameplay traffic/actions, completely silent for map movement/presence polling, and not an error-log surface**, while v0.3.4 Fulton progression and all existing gameplay remain intact.
+Promote v0.4.1 only after the real XAMPP/MariaDB/browser environment confirms correctly aligned globe controls, irregular persistent collision-free FOB placement, unchanged shard/slot ownership for upgraded v0.4.0 accounts, automatic next-shard creation, same-shard attack authority, no attacker cooldown, defender-only protection, restart-safe staff invasions, unchanged standard Dispatch behavior, and complete autonomous commander integration.

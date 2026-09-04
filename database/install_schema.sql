@@ -200,6 +200,55 @@ CREATE TABLE IF NOT EXISTS base_projects (
  INDEX idx_projects(user_id,state,finish_at)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
+CREATE TABLE IF NOT EXISTS fob_worlds (
+ id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+ biome_key VARCHAR(32) NOT NULL,
+ shard_index INT UNSIGNED NOT NULL,
+ capacity SMALLINT UNSIGNED NOT NULL DEFAULT 144,
+ created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+ UNIQUE KEY uq_fob_world_shard(biome_key,shard_index),
+ INDEX idx_fob_world_biome(biome_key,shard_index)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS fob_world_memberships (
+ user_id BIGINT UNSIGNED PRIMARY KEY,
+ world_id BIGINT UNSIGNED NOT NULL,
+ skin_key VARCHAR(64) NOT NULL,
+ slot_index SMALLINT UNSIGNED NOT NULL,
+ x SMALLINT UNSIGNED NOT NULL,
+ y SMALLINT UNSIGNED NOT NULL,
+ placed_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+ updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+ FOREIGN KEY(user_id) REFERENCES users(id) ON DELETE CASCADE,
+ FOREIGN KEY(world_id) REFERENCES fob_worlds(id) ON DELETE CASCADE,
+ UNIQUE KEY uq_fob_world_slot(world_id,slot_index),
+ INDEX idx_fob_members_world(world_id,user_id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS fob_strike_dispatches (
+ id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+ attacker_user_id BIGINT UNSIGNED NOT NULL,
+ defender_user_id BIGINT UNSIGNED NOT NULL,
+ world_id BIGINT UNSIGNED NOT NULL,
+ unit_ids_json TEXT NOT NULL,
+ attacker_snapshot_json MEDIUMTEXT NOT NULL,
+ defender_snapshot_json MEDIUMTEXT NOT NULL,
+ snapshot_power INT UNSIGNED NOT NULL,
+ success_chance DECIMAL(5,4) NOT NULL,
+ started_at DATETIME NOT NULL,
+ finish_at DATETIME NOT NULL,
+ resolved_at DATETIME DEFAULT NULL,
+ result ENUM('pending','attacker_win','defender_win','protected_abort') NOT NULL DEFAULT 'pending',
+ transfer_json TEXT DEFAULT NULL,
+ raid_id BIGINT UNSIGNED DEFAULT NULL,
+ FOREIGN KEY(attacker_user_id) REFERENCES users(id) ON DELETE CASCADE,
+ FOREIGN KEY(defender_user_id) REFERENCES users(id) ON DELETE CASCADE,
+ FOREIGN KEY(world_id) REFERENCES fob_worlds(id) ON DELETE CASCADE,
+ INDEX idx_fob_dispatch_attacker(attacker_user_id,result,finish_at),
+ INDEX idx_fob_dispatch_target(defender_user_id,result,finish_at),
+ INDEX idx_fob_dispatch_world(world_id,result,finish_at)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
 CREATE TABLE IF NOT EXISTS fob_raids (
  id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
  attacker_user_id BIGINT UNSIGNED NOT NULL,
@@ -294,4 +343,4 @@ CREATE TABLE IF NOT EXISTS login_attempts (
  PRIMARY KEY(ip_hash,username_key)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
-INSERT INTO schema_meta(meta_key,meta_value) VALUES ("schema_revision","4") ON DUPLICATE KEY UPDATE meta_value=VALUES(meta_value);
+INSERT INTO schema_meta(meta_key,meta_value) VALUES ("schema_revision","6") ON DUPLICATE KEY UPDATE meta_value=VALUES(meta_value);

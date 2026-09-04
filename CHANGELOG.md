@@ -1,5 +1,66 @@
 # Changelog
 
+## v0.4.1 — Polished FOB Spatial Distribution & Globe Alignment — XAMPP Test Candidate
+
+### Globe deployment alignment
+- Corrected all five normalized deployment hotspots against the supplied 1254×1254 globe.
+- Continental now targets the gold Americas, Forest the green Eurasian biome, Desert the orange African biome, Arctic the polar ice, and Sea open ocean.
+- Hotspot coordinates are centralized in `msw_fob_globe_hotspots()` so responsive percentage positioning remains tied to the square source artwork.
+
+### Irregular persistent overview placement
+- Replaced the visible 12×12 FOB row/column projection with 144 validated irregular native-map anchors.
+- Each biome/shard uses a deterministic permutation of the anchor constellation. Partially populated shards therefore distribute occupants around the map instead of filling left-to-right/top-to-bottom rows or reproducing the same partial layout in every shard.
+- The anchor catalogue is validated against a 136×96 center-clearance envelope, larger than the 128×86 desktop marker footprint, while `(world_id,slot_index)` remains the authoritative database exclusivity key.
+- Human deployment and autonomous population placement now derive x/y using biome + shard identity.
+
+### Non-destructive repair
+- Schema revision advances **5 → 6**.
+- Update / Repair preserves every user's world, shard, slot, skin, progression and history and only recalculates stored FOB membership x/y from the existing authoritative slot.
+- Confirm Installation adds `fob_spatial_distribution` validation for exact v0.4.1 x/y projection and rendered-marker clearance.
+- No runtime artwork, invasion rules, staff-dispatch rules, defender protection, bot identity or standard Dispatch behavior changed.
+
+## v0.4.0 — Polished Sharded Global FOB World — XAMPP Test Candidate
+
+### Global overview deployment
+- Added Earth overview selection for Continental, Forest, Desert, Arctic and Sea FOB theatres using the supplied production globe.
+- Added a second-stage coherent skin selector. Land biomes expose their matching land base; Sea exposes Offshore Alpha, Offshore Bravo and Maritime Fortress.
+- New accounts enter this flow immediately after signup; upgraded human accounts enter once on first FOB/Mother Base access.
+- Once deployed, `mother_base_key` is synchronized to the chosen FOB skin and independent profile redeployment is locked.
+
+### Unlimited-on-demand world sharding
+- Added `fob_worlds` and `fob_world_memberships`. Biomes create sequential shards only when needed.
+- Each 2000×2000 overview shard provides 144 fixed non-overlapping placement slots.
+- Added database uniqueness on `(world_id,slot_index)` plus per-biome serialized assignment so simultaneous deployments cannot overlap.
+- FOB membership is one-row-per-user and persists across logout, browser restart, Apache/PHP restart and database restart.
+- Overview rendering auto-centers on the owner's FOB and presents human/AI rivals from the same shard as selectable world entities.
+
+### Invasion reconstruction
+- Replaced the attacker cooldown gate with unrestricted attacker pacing. `fob_attack_cooldown_seconds` is retained at `0` only as a compatibility configuration key and is no longer consulted by raid authority.
+- Defender post-invasion protection is retained and now applies after every completed raid attempt, including a repelled attack.
+- Immediate raids require attacker and defender to share the same persisted FOB world.
+- Preserved transactional user/resource locks, immutable combat/security snapshots, exact resource debit/credit transfer and the existing `fob_raids` after-action ledger.
+- Preserved the classic tabular target/raid screen as `fob_infiltration.php`, now scoped to the player's shard.
+
+### Staff FOB dispatch invasions
+- Added `fob_strike_dispatches` with launch/finish/resolution timestamps, attacker/defender snapshots, selected unit IDs, success chance, transfer result and linked raid report ID.
+- Players commit 2–4 staff on the enemy FOB command screen. Staff use the existing `units.dispatched_until` reservation state, preventing overlap with standard Dispatch missions.
+- Due invasions resolve once from persistent timestamps and return staff with XP. A successful staff invasion transfers resources and every completed impact applies defender protection.
+- If another invasion protected the target before staff arrival, the mission resolves as `protected_abort`, returns the staff and performs no resource transfer.
+- Existing standard Combat Unit Dispatch missions and `dispatch_missions` remain unchanged.
+- Added shared standard-dispatch completion authority plus conditional reservation release so standard Dispatch and FOB staff strikes cannot reuse or accidentally release the same staff row at an expiry-boundary race.
+
+### Autonomous commander integration
+- Update / Repair assigns all 1,000 enabled bots to coherent persistent FOB worlds without changing their durable bot identity.
+- Bots distribute deterministically at 200 per biome, creating additional 144-slot shards as required.
+- Autonomous direct raids now select open bot FOBs from the attacker's own shard and have no attacker cooldown.
+- Autonomous simulation can also launch/resolve timed staff FOB invasion dispatches using normal unit availability.
+- Human commanders can continue to invade bot FOBs. Background bot aggression remains bot-v-bot only.
+
+### Schema / packaging
+- Schema revision advanced **4 → 5**. Migration is additive and non-destructive for v0.3.5 progression/history.
+- Added runtime-only globe, five overview maps and seven FOB overview icon assets from the supplied asset archive.
+- Added FOB world topology, staff strike and migration documentation/tests.
+
 ## v0.3.5 — Local WorldServer Console — XAMPP Test Candidate
 
 ### Local-only human activity console
