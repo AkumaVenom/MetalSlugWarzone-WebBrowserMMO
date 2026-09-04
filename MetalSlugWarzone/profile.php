@@ -10,6 +10,8 @@ if(msw_is_post()){
         $char=(string)($_POST['character']??'');
         if(isset(msw_character_catalog()[$char])){
             msw_stmt('UPDATE users SET character_key=? WHERE id=?','si',[$char,$uid]);
+            $charName=(string)(msw_character_catalog()[$char]['name']??$char);
+            msw_console_event_for_user($uid,'PROFILE','OPERATIVE','Field operative changed to '.$charName.'.',['character'=>$char]);
             msw_flash('Field operative updated. Commander level and XP remain attached to your account.','success');
         }
     }elseif($action==='mother_base'){
@@ -22,6 +24,8 @@ if(msw_is_post()){
                     msw_stmt('UPDATE users SET mother_base_key=? WHERE id=?','si',[$baseKey,$uid]);
                     msw_mb_reset_layout($uid);
                     $db->commit();
+                    $baseName=(string)(msw_mother_base_catalog()[$baseKey]['name']??$baseKey);
+                    msw_console_event_for_user($uid,'BASE','REDEPLOY','Mother Base deployment changed to '.$baseName.'.',['mother_base'=>$baseKey]);
                     msw_flash('Mother Base deployment changed. Staff and hardware will be safely re-positioned on the selected base without losing any units or progression.','success');
                 }catch(Throwable $e){$db->rollback();throw $e;}
             }else msw_flash('That Mother Base is already active.','info');

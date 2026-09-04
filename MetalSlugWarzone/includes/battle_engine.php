@@ -94,7 +94,10 @@ function msw_start_encounter(int $uid,string $enemyKey,string $context='field',s
     if(!in_array($context,['field','mission','sidequest','trainer','boss'],true)) throw new InvalidArgumentException('Unknown battle context.');
     $state=msw_new_battle_state($uid,$enemyKey,$context,$contextKey);
     msw_stmt('INSERT INTO encounters(user_id,context_type,context_key,state_json) VALUES(?,?,?,?)','isss',[$uid,$context,$contextKey,json_encode($state,JSON_UNESCAPED_SLASHES)]);
-    return (int)msw_db()->insert_id;
+    $encounterId=(int)msw_db()->insert_id;
+    $category=in_array($context,['mission','sidequest','trainer','boss'],true)?'MISSION':'COMBAT';
+    msw_console_event_for_user($uid,$category,'ENGAGE','Engaged '.$state['enemy']['name'].'.',['encounter_id'=>$encounterId,'context'=>$context,'context_key'=>$contextKey,'enemy'=>$state['enemy']['name']]);
+    return $encounterId;
 }
 
 function msw_damage(int $power,int $attack,int $defense,float $multiplier): int {

@@ -1,4 +1,4 @@
-# Security and Exploit-Resistance Contract — v0.3.4
+# Security and Exploit-Resistance Contract — v0.3.5
 
 This candidate treats all browser state as untrusted and does not give autonomous commanders login sessions.
 
@@ -61,3 +61,16 @@ The skin reconciliation operates only on `users` rows joined to production `bot_
 ## v0.3.4 R&D manufacturing authority
 
 Making the basic Fulton recipe available at R&D 1 does not move authority to the browser. `rd.php` continues to resolve the submitted recipe against `msw_rd_catalog()`, verify the persisted R&D sector level, debit persistent resources through the locked resource ledger, and only then add inventory. Battle recovery independently validates the selected item against `msw_fulton_catalog()`, R&D level, target class and inventory consumption. Higher-tier unlock thresholds are unchanged.
+
+
+## v0.3.5 local console security contract
+
+- The console has **no network administration endpoint**. `serverconsole.bat`/PowerShell consume a local file on the server filesystem.
+- The activity feed is stored outside `public_html`; `_server_console/.htaccess` also denies HTTP access as defense in depth.
+- Every event requires a database-backed human identity with `users.is_bot=0`. Autonomous commanders never receive console visibility merely because they share gameplay tables.
+- Movement/presence/poll endpoints are suppressed before event writing: `map_move.php`, `map_presence.php`, `mother_base_move.php`, `mother_base_presence.php`, and `pvp_state.php`.
+- Passwords, password hashes, session IDs/cookies, CSRF tokens, request bodies, raw POST arrays and direct-message contents are never written.
+- The logger does not ingest or mirror PHP, Apache, MySQL/MariaDB or operating-system error logs. HTTP 4xx/5xx shutdown traffic and fatal PHP terminations are skipped by the traffic observer.
+- Logger exceptions/filesystem failures are swallowed intentionally, so observability cannot become a gameplay availability dependency or transaction rollback trigger.
+- File writes are lock-protected and automatically rotated at 8 MiB to bound disk growth.
+- Remote player IP addresses are shown because the requested console is a server-operator traffic surface; the data remains local to the server filesystem and is not exposed back to players.

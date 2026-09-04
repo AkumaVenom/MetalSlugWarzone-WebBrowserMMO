@@ -5,7 +5,7 @@ require_once __DIR__.'/includes/ui.php';
 $u=msw_require_user();$uid=(int)$u['id'];$id=(int)($_GET['id']??$_POST['id']??0);
 if(msw_is_post()){
     msw_verify_post();$version=(int)($_POST['version']??0);$move=(string)($_POST['move']??'rifle_burst');
-    try{$result=msw_pvp_commit_turn($id,$uid,$version,$move);if($result['mode']==='snapshot'&&$result['status']==='active')msw_pvp_process_bot_turn($id,true);}catch(Throwable $e){msw_flash($e->getMessage(),'warning');}
+    try{$result=msw_pvp_commit_turn($id,$uid,$version,$move);$moveCatalog=msw_move_catalog();$moveName=(string)($moveCatalog[$move]['name']??$move);msw_console_event_for_user($uid,'PVP','TURN','Committed '.$moveName.' in PvP match #'.$id.'.',['match_id'=>$id,'move'=>$moveName,'status'=>(string)($result['status']??'active'),'mode'=>(string)($result['mode']??'live')]);if($result['mode']==='snapshot'&&$result['status']==='active')msw_pvp_process_bot_turn($id,true);}catch(Throwable $e){msw_flash($e->getMessage(),'warning');}
     msw_redirect('pvp_match.php?id='.$id);
 }
 $m=msw_one('SELECT p.*,u1.username p1,u2.username p2,u1.character_key c1,u2.character_key c2,u1.is_bot b1,u2.is_bot b2 FROM pvp_matches p JOIN users u1 ON u1.id=p.player1_id JOIN users u2 ON u2.id=p.player2_id WHERE p.id=? AND (p.player1_id=? OR p.player2_id=?)','iii',[$id,$uid,$uid]);

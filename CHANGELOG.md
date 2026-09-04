@@ -1,5 +1,25 @@
 # Changelog
 
+## v0.3.5 — Local WorldServer Console — XAMPP Test Candidate
+
+### Local-only human activity console
+- Rebased directly on the runtime-confirmed v0.3.4 Level-1 Fulton Manufacturing baseline.
+- Added `serverconsole.bat` plus `serverconsole.ps1`, providing a dedicated color-coded WorldServer-style command window on the server PC.
+- Added `includes/server_console.php`, a fail-silent structured application activity feed that records only authenticated human commanders (`users.is_bot=0`).
+- Successful authenticated PHP traffic is emitted with commander identity, remote IP, HTTP method, route and completion time. HTTP 4xx/5xx shutdowns and fatal request terminations are skipped.
+- Added color-coded gameplay action events for login/logout, combat attacks/results, Fulton outcomes, R&D manufacturing, staff assignment, dispatch deployment/results, strategic project actions, FOB raids, PvP match/turn activity, social actions and profile/Mother Base changes.
+- Warzone movement, warzone presence polling, Mother Base movement, Mother Base presence polling and PvP state polling are hard-suppressed. No movement coordinates or movement requests are emitted.
+- The console is intentionally not an error log. It does not ingest PHP/Apache/MySQL errors or exceptions, and logger failures are swallowed so monitoring cannot interrupt gameplay.
+- Sensitive request data is excluded: passwords, cookies, sessions, CSRF tokens, raw POST payloads and direct-message bodies are never persisted.
+- The NDJSON feed lives outside `public_html` in `_server_console/`, is additionally protected by deny-all `.htaccess`, uses file locking, rotates at 8 MiB and keeps three historical generations.
+- The PowerShell renderer follows rotation, replays only the latest 80 events on startup, provides category-specific console colors and supports `C` clear / `Q` quit controls.
+
+### Preservation
+- Schema remains revision **4**; no database migration or reset is required.
+- v0.3.4 Level-1 Fulton manufacturing remains unchanged at 60 Common Metal + 40 Fuel -> x4 Fulton, with higher tiers still locked at R&D 4/8/15.
+- Autonomous commander simulation, per-warzone operative variety, Mother Base movement, maps, combat authority, dispatch, FOB, PvP and social gameplay remain unchanged outside the new observational event hooks.
+- Runtime artwork is unchanged and runtime-only packaging remains enforced.
+
 ## v0.3.4 — Level-1 Fulton Manufacturing — XAMPP Test Candidate
 
 ### Early R&D progression deadlock fix

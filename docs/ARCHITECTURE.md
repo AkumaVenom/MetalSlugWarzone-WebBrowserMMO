@@ -1,4 +1,4 @@
-# Architecture — Metal Slug Warzone v0.3.4
+# Architecture — Metal Slug Warzone v0.3.5
 
 ## Authority model
 
@@ -105,3 +105,14 @@ Autonomous commander presence still uses the same keyed server payload and DOM e
 ## v0.3.4 level-1 recovery manufacturing
 
 `msw_fulton_catalog()` remains the authoritative capability/target-class table used by combat recovery, while `msw_rd_catalog()` remains the authoritative manufacturing table. v0.3.4 aligns those two layers for the baseline recovery item by exposing `fulton` as an **R&D 1** recipe. The item is still consumed by the normal server-side inventory path and the battle engine still revalidates R&D level and target class before recovery. Higher Fulton tiers remain independently gated at R&D 4/8/15. No schema state is added; existing R&D Team level is immediately sufficient to expose the basic recipe.
+
+
+## v0.3.5 local WorldServer console
+
+The administration console is deliberately separated from browser authority. `public_html/includes/server_console.php` emits a compact NDJSON activity record to the package-root `_server_console/events.ndjson`; normal deployments expose only `public_html`, so the feed is not part of the web document tree. `_server_console/.htaccess` denies HTTP access as an additional safeguard if a broader document root is ever misconfigured. There is no console PHP page, JSON API, SSE endpoint or WebSocket listener.
+
+`msw_console_register_request_traffic()` runs after authentication/bootstrap and registers a shutdown observer only for a real logged-in human account. It captures identity before shutdown, then writes a `WEB` event only when the request completes below HTTP 400 and did not terminate through a fatal PHP error. Movement/presence/state-poll routes are rejected before any identity lookup or write.
+
+Gameplay events use `msw_console_event_for_user()`. That helper independently revalidates `users.is_bot=0`, clips metadata to bounded scalar values, refuses suppressed routes and never persists raw request payloads. Explicit action hooks are placed only after successful authoritative state changes or committed gameplay actions. Technical exceptions continue through the existing browser/game flows and are not converted into console events.
+
+The writer uses an application-level lock plus append locking. At 8 MiB the active feed rotates to `.1`, retaining `.1` through `.3`. Logging is fail-silent by design: filesystem/encoding/locking problems cannot abort or roll back gameplay transactions. `serverconsole.bat` launches `serverconsole.ps1`, which reads the file locally with read/write sharing, detects rotation, renders category colors and never reads Apache/PHP/MySQL error logs.

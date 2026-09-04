@@ -21,6 +21,8 @@ if(msw_is_post()){
             msw_flash('Transmission rate limit reached. Try again shortly.','warning');
         }else{
             msw_stmt('INSERT INTO direct_messages(sender_user_id,receiver_user_id,body) VALUES(?,?,?)','iis',[$uid,(int)$target['id'],$body]);
+            $messageLength=mb_strlen($body);
+            msw_console_event_for_user($uid,'SOCIAL','MESSAGE','Direct message sent to '.(string)$target['username'].'.',['recipient_id'=>(int)$target['id'],'recipient'=>(string)$target['username'],'characters'=>$messageLength]);
             msw_flash('Transmission sent.','success');
         }
     }

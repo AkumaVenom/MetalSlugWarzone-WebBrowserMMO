@@ -102,4 +102,6 @@ function msw_client_ip_hash(): string {
     return hash('sha256', 'msw|' . $ip);
 }
 
+require_once __DIR__ . '/server_console.php';
 require_once __DIR__ . '/bots.php';
+msw_console_register_request_traffic();

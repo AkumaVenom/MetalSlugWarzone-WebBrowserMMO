@@ -82,6 +82,7 @@ if(msw_is_post()){
         );
         $raidId=(int)$db->insert_id;
         $db->commit();
+        msw_console_event_for_user($uid,'FOB','RAID','FOB raid against '.(string)$defender['username'].' resolved: '.strtoupper(str_replace('_',' ',$result)).'.',['raid_id'=>$raidId,'defender_id'=>$defenderId,'defender'=>(string)$defender['username'],'result'=>$result,'materials_transferred'=>(int)array_sum($transfer)]);
         msw_redirect('fob_result.php?id='.$raidId);
     }catch(Throwable $e){
         $db->rollback();

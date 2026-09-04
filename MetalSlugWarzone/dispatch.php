@@ -30,6 +30,7 @@ foreach($due as $dueRow){
         msw_grant_resources($uid,$reward);
         msw_recalculate_base($uid);
         $db->commit();
+        msw_console_event_for_user($uid,'DISPATCH','RESOLVED',($definition['name']??$mission['mission_key']).' resolved: '.strtoupper($result).'.',['mission_id'=>(int)$mission['id'],'mission_key'=>(string)$mission['mission_key'],'result'=>$result,'units'=>count($ids)]);
     }catch(Throwable $e){
         $db->rollback();
         throw $e;
@@ -68,6 +69,7 @@ if(msw_is_post()){
         msw_stmt('INSERT INTO dispatch_missions(user_id,mission_key,unit_ids_json,snapshot_power,success_chance,started_at,finish_at) VALUES(?,?,?,?,?,NOW(),?)','issids',[$uid,$key,json_encode($ids),$power,$chance,$finish]);
         foreach($ids as $unitId) msw_stmt('UPDATE units SET dispatched_until=? WHERE id=? AND owner_user_id=?','sii',[$finish,$unitId,$uid]);
         $db->commit();
+        msw_console_event_for_user($uid,'DISPATCH','DEPLOY',$definition['name'].' dispatched with '.count($ids).' units.',['mission_key'=>$key,'units'=>count($ids),'power'=>$power,'success_percent'=>(int)round($chance*100)]);
         msw_flash($definition['name'].' dispatched with '.count($ids).' units. Completion remains anchored to the MySQL server clock.','success');
     }catch(Throwable $e){
         $db->rollback();

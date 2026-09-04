@@ -12,7 +12,7 @@ if(msw_is_post()){
     $allowed=array_merge(['reserve'],array_keys(msw_sectors()));
     if(!in_array($assignment,$allowed,true)) $assignment='reserve';
 
-    $unit=msw_one('SELECT id,assignment,active_combat,dispatched_until FROM units WHERE id=? AND owner_user_id=?','ii',[$unitId,$uid]);
+    $unit=msw_one('SELECT id,callsign,assignment,active_combat,dispatched_until FROM units WHERE id=? AND owner_user_id=?','ii',[$unitId,$uid]);
     if($unit){
         if(!empty($unit['dispatched_until']) && strtotime((string)$unit['dispatched_until'])>time()){
             msw_flash('A dispatched unit cannot be reassigned until its mission has concluded.','warning');
@@ -34,6 +34,7 @@ if(msw_is_post()){
 
         msw_stmt('UPDATE units SET assignment=?,active_combat=? WHERE id=? AND owner_user_id=?','siii',[$assignment,$active,$unitId,$uid]);
         msw_recalculate_base($uid);
+        msw_console_event_for_user($uid,'BASE','STAFF',($unit['callsign']??('Unit #'.$unitId)).' assigned to '.strtoupper($assignment).($active?' · active combat':'').'.',['unit_id'=>$unitId,'assignment'=>$assignment,'active_combat'=>(bool)$active]);
         if(!isset($_SESSION['flash'])) msw_flash('Personnel assignment updated.','success');
     }
     msw_redirect('staff.php');

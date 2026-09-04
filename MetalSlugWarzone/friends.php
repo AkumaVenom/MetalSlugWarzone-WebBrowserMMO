@@ -14,7 +14,7 @@ if(msw_is_post()){
 
     if($action==='send'){
         $name=trim((string)($_POST['username']??''));
-        $target=msw_one('SELECT id FROM users WHERE username=? AND is_bot=0','s',[$name]);
+        $target=msw_one('SELECT id,username FROM users WHERE username=? AND is_bot=0','s',[$name]);
         if(!$target||(int)$target['id']===$uid){
             msw_flash('Commander not found.','error');
         }elseif(msw_one('SELECT 1 FROM friends WHERE user_id=? AND friend_user_id=?','ii',[$uid,(int)$target['id']])){
@@ -29,12 +29,12 @@ if(msw_is_post()){
                     msw_stmt("UPDATE friend_requests SET status='accepted' WHERE id=?",'i',[(int)$reciprocal['id']]);
                     msw_friend_link($uid,$targetId);
                     $db->commit();
-                    msw_flash('Mutual friend request detected. Friend link established.','success');
+                    msw_console_event_for_user($uid,'SOCIAL','FRIEND', 'Friend link established with '.(string)$target['username'].'.',['friend_id'=>$targetId,'friend'=>(string)$target['username']]);msw_flash('Mutual friend request detected. Friend link established.','success');
                 }catch(Throwable $e){$db->rollback();throw $e;}
             }else{
                 try{
                     msw_stmt("INSERT INTO friend_requests(sender_user_id,receiver_user_id,status) VALUES(?,?,'pending') ON DUPLICATE KEY UPDATE status='pending',created_at=NOW()",'ii',[$uid,$targetId]);
-                    msw_flash('Friend request transmitted.','success');
+                    msw_console_event_for_user($uid,'SOCIAL','FRIEND REQ','Friend request sent to '.(string)$target['username'].'.',['target_id'=>$targetId,'target'=>(string)$target['username']]);msw_flash('Friend request transmitted.','success');
                 }catch(Throwable $e){
                     msw_flash('Request could not be sent.','error');
                 }
@@ -50,11 +50,16 @@ if(msw_is_post()){
                 msw_stmt("UPDATE friend_requests SET status='accepted' WHERE id=?",'i',[$requestId]);
                 msw_friend_link($uid,(int)$request['sender_user_id']);
                 $db->commit();
+                $friendUser=msw_one('SELECT username FROM users WHERE id=? AND is_bot=0','i',[(int)$request['sender_user_id']]);
+                msw_console_event_for_user($uid,'SOCIAL','FRIEND', 'Friend request accepted'.($friendUser?' from '.(string)$friendUser['username']:'').'.',['friend_id'=>(int)$request['sender_user_id']]);
                 msw_flash('Friend link established.','success');
             }catch(Throwable $e){$db->rollback();throw $e;}
         }
     }elseif($action==='decline'){
-        msw_stmt("UPDATE friend_requests SET status='declined' WHERE id=? AND receiver_user_id=?",'ii',[(int)($_POST['request_id']??0),$uid]);
+        $declineId=(int)($_POST['request_id']??0);
+        $declined=msw_one("SELECT sender_user_id FROM friend_requests WHERE id=? AND receiver_user_id=? AND status='pending'",'ii',[$declineId,$uid]);
+        msw_stmt("UPDATE friend_requests SET status='declined' WHERE id=? AND receiver_user_id=?",'ii',[$declineId,$uid]);
+        if($declined) msw_console_event_for_user($uid,'SOCIAL','DECLINE','Friend request declined.',['sender_id'=>(int)$declined['sender_user_id']]);
         msw_flash('Friend request declined.','info');
     }
     msw_redirect('friends.php');

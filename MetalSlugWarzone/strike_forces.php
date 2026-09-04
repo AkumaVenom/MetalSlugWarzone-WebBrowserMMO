@@ -8,12 +8,12 @@ if(msw_is_post()){
     if($action==='create'&&!$membership){
         $name=trim((string)($_POST['name']??''));$tag=strtoupper(trim((string)($_POST['tag']??'')));$desc=trim((string)($_POST['description']??''));
         if(!preg_match('/^[A-Za-z0-9 _-]{3,40}$/',$name)||!preg_match('/^[A-Z0-9]{2,6}$/',$tag)) msw_flash('Use a 3–40 character name and 2–6 character alphanumeric tag.','error');
-        else{try{$db=msw_db();$db->begin_transaction();msw_stmt('INSERT INTO strike_forces(name,tag,owner_user_id,description) VALUES(?,?,?,?)','ssis',[$name,$tag,$uid,mb_substr($desc,0,500)]);$sid=(int)$db->insert_id;msw_stmt("INSERT INTO strike_force_members(strike_force_id,user_id,role) VALUES(?,?,'commander')",'ii',[$sid,$uid]);$db->commit();msw_flash('Strike Force established.','success');}catch(Throwable $e){try{msw_db()->rollback();}catch(Throwable $_){}msw_flash('Name or tag is already in use.','error');}}
+        else{try{$db=msw_db();$db->begin_transaction();msw_stmt('INSERT INTO strike_forces(name,tag,owner_user_id,description) VALUES(?,?,?,?)','ssis',[$name,$tag,$uid,mb_substr($desc,0,500)]);$sid=(int)$db->insert_id;msw_stmt("INSERT INTO strike_force_members(strike_force_id,user_id,role) VALUES(?,?,'commander')",'ii',[$sid,$uid]);$db->commit();msw_console_event_for_user($uid,'SOCIAL','FORCE CREATE','Strike Force ['.$tag.'] '.$name.' established.',['strike_force_id'=>$sid,'tag'=>$tag]);msw_flash('Strike Force established.','success');}catch(Throwable $e){try{msw_db()->rollback();}catch(Throwable $_){}msw_flash('Name or tag is already in use.','error');}}
     }elseif($action==='join'&&!$membership){
         $tag=strtoupper(trim((string)($_POST['tag']??'')));$s=msw_one('SELECT id FROM strike_forces WHERE tag=?','s',[$tag]);
-        if(!$s)msw_flash('Strike Force tag not found.','error');else{try{msw_stmt("INSERT INTO strike_force_members(strike_force_id,user_id,role) VALUES(?,?,'member')",'ii',[(int)$s['id'],$uid]);msw_flash('Joined Strike Force.','success');}catch(Throwable $e){msw_flash('Unable to join Strike Force.','error');}}
+        if(!$s)msw_flash('Strike Force tag not found.','error');else{try{msw_stmt("INSERT INTO strike_force_members(strike_force_id,user_id,role) VALUES(?,?,'member')",'ii',[(int)$s['id'],$uid]);msw_console_event_for_user($uid,'SOCIAL','FORCE JOIN','Joined Strike Force ['.$tag.'].',['strike_force_id'=>(int)$s['id'],'tag'=>$tag]);msw_flash('Joined Strike Force.','success');}catch(Throwable $e){msw_flash('Unable to join Strike Force.','error');}}
     }elseif($action==='leave'&&$membership&&$membership['role']!=='commander'){
-        msw_stmt('DELETE FROM strike_force_members WHERE user_id=?','i',[$uid]);msw_flash('Strike Force membership ended.','success');
+        msw_stmt('DELETE FROM strike_force_members WHERE user_id=?','i',[$uid]);msw_console_event_for_user($uid,'SOCIAL','FORCE LEAVE','Left Strike Force ['.(string)$membership['tag'].'].',['strike_force_id'=>(int)$membership['strike_force_id'],'tag'=>(string)$membership['tag']]);msw_flash('Strike Force membership ended.','success');
     }
     msw_redirect('strike_forces.php');
 }

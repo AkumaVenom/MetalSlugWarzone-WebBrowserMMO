@@ -1,10 +1,28 @@
 <?php
 declare(strict_types=1);require __DIR__.'/includes/battle_engine.php';require_once __DIR__.'/includes/ui.php';$u=msw_require_user();$uid=(int)$u['id'];$id=(int)($_GET['id']??$_POST['id']??0);if($id<=0)msw_redirect('map_select.php');$flash=null;
 if(msw_is_post()){
- msw_verify_post();$version=(int)($_POST['version']??0);$db=msw_db();$db->begin_transaction();
- try{$row=msw_one("SELECT * FROM encounters WHERE id=? AND user_id=? FOR UPDATE",'ii',[$id,$uid]);if(!$row||$row['status']!=='active'||(int)$row['version']!==$version){$db->rollback();msw_flash('Battle state changed in another request. Refreshed safely.','warning');msw_redirect('battle.php?id='.$id);} $s=json_decode((string)$row['state_json'],true,512,JSON_THROW_ON_ERROR);msw_sync_commander_battle_state($uid,$s);msw_sync_enemy_runtime_state($s);$action=(string)($_POST['action']??'');
-  if($action==='attack')msw_battle_attack($s,(string)($_POST['move']??'rifle_burst'));elseif($action==='recover'){[$ok,$msg]=msw_try_recovery($uid,$s,(string)($_POST['item']??'fulton'));$flash=['message'=>$msg,'kind'=>$ok?'success':'warning'];}elseif($action==='retreat'){if($s['context']==='field'){$s['finished']=true;$s['result']='retreated';}else $flash=['message'=>'Retreat is unavailable in this operation.','kind'=>'error'];}
-  if(!empty($s['finished'])) msw_finalize_battle($uid,$id,$s); else msw_stmt('UPDATE encounters SET state_json=?,version=version+1 WHERE id=? AND user_id=?','sii',[json_encode($s,JSON_UNESCAPED_SLASHES),$id,$uid]);$db->commit();
+ msw_verify_post();$version=(int)($_POST['version']??0);$db=msw_db();$db->begin_transaction();$consoleEvents=[];
+ try{
+  $row=msw_one("SELECT * FROM encounters WHERE id=? AND user_id=? FOR UPDATE",'ii',[$id,$uid]);
+  if(!$row||$row['status']!=='active'||(int)$row['version']!==$version){$db->rollback();msw_flash('Battle state changed in another request. Refreshed safely.','warning');msw_redirect('battle.php?id='.$id);}
+  $s=json_decode((string)$row['state_json'],true,512,JSON_THROW_ON_ERROR);msw_sync_commander_battle_state($uid,$s);msw_sync_enemy_runtime_state($s);$action=(string)($_POST['action']??'');
+  if($action==='attack'){
+   $moveKey=(string)($_POST['move']??'rifle_burst');$moves=msw_move_catalog();$moveName=(string)($moves[$moveKey]['name']??$moves['rifle_burst']['name']??'Attack');
+   msw_battle_attack($s,$moveKey);
+   $consoleEvents[]=['COMBAT','ATTACK',$moveName.' against '.(string)($s['enemy']['name']??'target').'.',['encounter_id'=>$id,'move'=>$moveName,'enemy_hp'=>(int)($s['enemy']['hp']??0),'round'=>(int)($s['round']??0)]];
+  }elseif($action==='recover'){
+   $itemKey=(string)($_POST['item']??'fulton');$fultonCatalog=msw_fulton_catalog();$systemName=(string)($fultonCatalog[$itemKey]['name']??$itemKey);
+   [$ok,$msg]=msw_try_recovery($uid,$s,$itemKey);$flash=['message'=>$msg,'kind'=>$ok?'success':'warning'];
+   if($msg==='Recovery successful.'||$msg==='Recovery failed.') $consoleEvents[]=['RECOVERY',$ok?'SUCCESS':'FAILED',($ok?'Recovered ':'Recovery attempt failed on ').(string)($s['enemy']['name']??'target').' using '.$systemName.'.',['encounter_id'=>$id,'target'=>(string)($s['enemy']['name']??'target'),'system'=>$systemName]];
+  }elseif($action==='retreat'){
+   if($s['context']==='field'){$s['finished']=true;$s['result']='retreated';$consoleEvents[]=['COMBAT','RETREAT','Retreated from '.(string)($s['enemy']['name']??'field engagement').'.',['encounter_id'=>$id]];}
+   else $flash=['message'=>'Retreat is unavailable in this operation.','kind'=>'error'];
+  }
+  $resolved=null;
+  if(!empty($s['finished'])){$resolved=(string)($s['result']??'lost');msw_finalize_battle($uid,$id,$s);}else msw_stmt('UPDATE encounters SET state_json=?,version=version+1 WHERE id=? AND user_id=?','sii',[json_encode($s,JSON_UNESCAPED_SLASHES),$id,$uid]);
+  $db->commit();
+  if($resolved!==null)$consoleEvents[]=['COMBAT','RESOLVED','Engagement '.$resolved.' against '.(string)($s['enemy']['name']??'target').'.',['encounter_id'=>$id,'result'=>$resolved,'context'=>(string)($s['context']??'field'),'context_key'=>(string)($s['context_key']??''),'enemy'=>(string)($s['enemy']['name']??'target')]];
+  foreach($consoleEvents as $evt)msw_console_event_for_user($uid,$evt[0],$evt[1],$evt[2],$evt[3]);
  }catch(Throwable $e){$db->rollback();throw $e;}
 }
 $row=msw_one('SELECT * FROM encounters WHERE id=? AND user_id=?','ii',[$id,$uid]);if(!$row){http_response_code(404);exit('Battle not found.');}$s=json_decode((string)$row['state_json'],true);if($row['status']==='active'){msw_sync_commander_battle_state($uid,$s);msw_sync_enemy_runtime_state($s);}$inv=msw_inventory($uid);$enemy=$s['enemy'];$player=$s['player'];$ec=msw_enemy_catalog()[$enemy['key']]??null;msw_header('Combat Engagement');if(!$flash)$flash=msw_flash();msw_alert($flash);?>
