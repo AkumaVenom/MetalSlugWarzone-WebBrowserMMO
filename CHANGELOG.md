@@ -1,4 +1,40 @@
 # Changelog
+## v0.6.0 — Advanced FOB Invasion Command Centre, Retaliation & Command Network Visual Overhaul — XAMPP Test Candidate
+
+### Integrated FOB Command Centre
+- Replaced the deployed-commander's `fob.php` redirect with a full **Invasion Command Centre** that is now the primary strategic FOB surface rather than a bolt-on utility page.
+- Added a command-status strip for recovery-shield state, active outbound invasions, detected inbound staff strikes, retaliation orders and globally open targets.
+- Added a global priority targeting matrix with direct invasion controls and full target-intel links while retaining Earth/theatre/shard browsing for detailed reconnaissance.
+- Added a **Multi-Invasion Staff Strike Planner** that can launch repeated 2–4 member operations against different open targets. Each operation continues to use its own persisted `fob_strike_dispatches` row and the shared `units.dispatched_until` reservation contract, so parallel invasions are naturally bounded by actually available staff.
+- Added live outbound-operation and inbound-threat boards with persisted ETA countdowns, target/world context and stored success chances.
+- Added recent outgoing After Action Reports directly to command so direct, staff and retaliation results can be reviewed without leaving the strategic hub.
+
+### One-use retaliation system
+- Added the **Retaliation Command Desk** using the existing authoritative `fob_raids` history as the incident source. Each incoming raid can authorize exactly one retaliatory direct strike against that exact attacker.
+- Added nullable `fob_raids.retaliation_for_raid_id` with unique index `uq_fob_retaliation_source`. The unique database constraint prevents double-click/replay/race attempts from consuming the same incoming incident twice.
+- Retaliation revalidates the original attacker/defender relationship, the target's current global FOB membership, optional world context and target protection inside the normal locked raid transaction.
+- Retaliation does **not** bypass defender protection. If the attacker is currently protected, the command desk tracks the shield countdown until that target becomes eligible again.
+- Retaliation After Action Reports are tagged as `retaliation` in the immutable attacker snapshot and link back to the original incident.
+
+### Offensive protection doctrine
+- Defender protection remains the anti-drain recovery boundary after every completed invasion attempt.
+- A commander may still launch offensively while personally protected, but a **successfully committed direct invasion, retaliation or staff-strike launch immediately removes the attacker's remaining protection** in the same database transaction.
+- Invalid, stale, protected-target or otherwise rejected launch attempts do not remove the attacker's shield.
+- The rule applies to human and autonomous commanders because both direct and staff invasion authority share the same server-side functions.
+- Protected-state actions exposed by the browser display a confirmation warning, but PHP/MySQL—not JavaScript—owns the actual shield removal.
+
+### Schema, compatibility and polish
+- Schema revision advances **7 → 8** with the additive nullable retaliation source column and unique index only. Existing users, resources, staff, FOB memberships, coordinates, dispatches and raid history remain intact.
+- `_setup.php` Update / Repair adds the column/index idempotently and Confirm Installation now reports `fob_retaliation_integrity`.
+- Existing `fob_target.php`, shard targeting, infiltration ledger, strike ledger, globe and raid-report screens now link back into the Command Centre and surface the offensive protection doctrine consistently.
+- Added a full supplied-art **Command Network visual integration** across the website. All 23 supplied JPGs are stored byte-for-byte in `public_html/assets/artwork/` and mapped coherently to their gameplay systems instead of being used as detached decorative banners.
+- Replaced the old green-dominant website tone with a gunmetal/charcoal base, sunset amber/orange command accents, steel/cyan information states and semantic green/red success/threat states derived from the supplied artwork.
+- Added per-resource telemetry colours for Common Metal, Minor Metal, Precious Metal, Fuel, Biological and Strategic Devices, plus stronger value colouring for GMP, Base Power, Security and other key command statistics.
+- Added a moving CRT scan beam, top-bar command-link pulse/sweep, selected-operative sprite presence inside page heroes, restrained sprite idle motion, panel/card elevation and overlap, button glints, map-card zoom, and viewport reveal choreography. Motion is presentation-only and honors `prefers-reduced-motion`.
+- Existing accepted maps/sprites remain byte-identical; the new artwork is copied without resize/recompression and no generated image is included.
+- Updated README, architecture, FOB authority, security, asset manifest, build validation and XAMPP release-blocking acceptance documentation for v0.6.0.
+
+
 ## v0.5.0 — Polished Combat Support, Global FOB Invasion & Competitive AI — XAMPP Test Candidate
 
 ### Mother Base progression and manufacturing

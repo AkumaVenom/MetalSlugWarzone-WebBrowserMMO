@@ -270,9 +270,11 @@ CREATE TABLE IF NOT EXISTS fob_raids (
  defender_snapshot_json MEDIUMTEXT NOT NULL,
  result ENUM('attacker_win','defender_win') NOT NULL,
  transfer_json TEXT NOT NULL,
+ retaliation_for_raid_id BIGINT UNSIGNED DEFAULT NULL,
  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
  FOREIGN KEY(attacker_user_id) REFERENCES users(id) ON DELETE CASCADE,
  FOREIGN KEY(defender_user_id) REFERENCES users(id) ON DELETE CASCADE,
+ UNIQUE KEY uq_fob_retaliation_source(retaliation_for_raid_id),
  INDEX idx_fob_attacker(attacker_user_id,created_at),
  INDEX idx_fob_defender(defender_user_id,created_at)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
@@ -356,4 +358,4 @@ CREATE TABLE IF NOT EXISTS login_attempts (
  PRIMARY KEY(ip_hash,username_key)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
-INSERT INTO schema_meta(meta_key,meta_value) VALUES ("schema_revision","7") ON DUPLICATE KEY UPDATE meta_value=VALUES(meta_value);
+INSERT INTO schema_meta(meta_key,meta_value) VALUES ("schema_revision","8") ON DUPLICATE KEY UPDATE meta_value=VALUES(meta_value);

@@ -1,4 +1,4 @@
-# Security and Exploit-Resistance Contract — v0.5.0
+# Security and Exploit-Resistance Contract — v0.6.0
 
 The development target is local XAMPP, but gameplay state is still designed around server authority, validation and transactional persistence.
 
@@ -10,6 +10,23 @@ The development target is local XAMPP, but gameplay state is still designed arou
 - MySQL row locking and transactional ledgers are used where concurrent requests could duplicate rewards, consume inventory twice or transfer the same resources inconsistently.
 - User-supplied IDs are re-resolved against ownership/authorization rules instead of trusting page form contents.
 - The local `_setup.php` remains loopback-oriented; Fresh Install is destructive and must never be used as an upgrade shortcut.
+
+## v0.6.0 FOB Command Centre, retaliation and protection authority
+
+The Command Centre is an orchestration surface only. Every state-changing action still enters existing PHP authority through CSRF-protected POSTs and re-resolves IDs from persistent state.
+
+Retaliation has a database-backed one-use boundary:
+
+- the submitted source raid must exist;
+- its original `defender_user_id` must equal the current retaliating commander;
+- its original `attacker_user_id` must equal the requested retaliation target;
+- that target must still be a valid global FOB target in its real membership/world;
+- the target's protection is rechecked under the normal locked raid transaction;
+- `retaliation_for_raid_id` is unique, so duplicate/replayed concurrent requests cannot create two committed retaliations for one incident.
+
+Protection removal is also server-owned. JavaScript provides only a warning. `msw_fob_break_protection_for_offense_locked()` runs inside the same transaction as a valid direct/retaliation settlement or staff-strike launch. A request rejected for stale target context, defender protection, invalid retaliation source or unavailable staff never commits the protection removal.
+
+The rule intentionally applies to autonomous commanders as well because bots call the same direct/staff authority. A protected bot may choose to attack, but doing so gives up its own remaining recovery shield.
 
 ## v0.5.0 medical item authority
 
@@ -61,9 +78,9 @@ FOB strikes and standard Dispatch missions share `units.dispatched_until`. Both 
 
 ## Population and migration safety
 
-The 1,000 production bot indexes remain stable. Update / Repair creates missing schema objects/identities and reconciles supported metadata without deleting human progression. v0.5.0 schema revision 7 adds `security_backup_slots` only; existing FOB world identity/coordinates and prior gameplay ledgers remain intact.
+The 1,000 production bot indexes remain stable. Update / Repair creates missing schema objects/identities and reconciles supported metadata without deleting human progression. v0.5.0 revision 7 added `security_backup_slots`; v0.6.0 revision 8 adds only nullable `fob_raids.retaliation_for_raid_id` plus its unique index. Existing FOB world identity/coordinates and prior gameplay ledgers remain intact.
 
-`_setup.php` Confirm Installation checks the expected schema revision and `security_backup_integrity` plus the inherited autonomous population, FOB membership, duplicate-slot and irregular-spatial checks.
+`_setup.php` Confirm Installation checks the expected schema revision, `security_backup_integrity`, `fob_retaliation_integrity` and the inherited autonomous population, FOB membership, duplicate-slot and irregular-spatial checks.
 
 ## Mother Base / physical-space security
 
@@ -76,3 +93,8 @@ The console remains local-filesystem-only and outside `public_html`. It does not
 ## Internet-facing deployment
 
 For public hosting, use HTTPS, least-privilege database credentials, hardened Apache/PHP settings, centralized rate limiting, secure backup/restore procedures, monitoring/audit controls and an appropriate reverse proxy/WAF. Default XAMPP is a development/test stack, not a hardened production edge configuration.
+
+
+## Presentation-layer trust boundary
+
+The v0.6.0 supplied-art palette, scan sweep, hover/reveal choreography and selected-operative hero sprite are non-authoritative presentation. The browser may add/remove CSS classes or decorative DOM nodes, but the server never trusts those classes/nodes for resource values, protection state, invasion eligibility, combat resolution, staff reservation or retaliation authorization. Resource and statistic colour classes are derived from server-rendered labels only and do not carry gameplay meaning back to PHP.

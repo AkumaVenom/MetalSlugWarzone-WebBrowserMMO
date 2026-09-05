@@ -2,7 +2,7 @@
 declare(strict_types=1);
 require_once __DIR__ . '/catalog.php';
 
-const MSW_SCHEMA_REVISION = 7;
+const MSW_SCHEMA_REVISION = 8;
 
 function msw_schema_statements(): array {
     return [
@@ -261,9 +261,11 @@ function msw_schema_statements(): array {
  defender_snapshot_json MEDIUMTEXT NOT NULL,
  result ENUM('attacker_win','defender_win') NOT NULL,
  transfer_json TEXT NOT NULL,
+ retaliation_for_raid_id BIGINT UNSIGNED DEFAULT NULL,
  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
  FOREIGN KEY(attacker_user_id) REFERENCES users(id) ON DELETE CASCADE,
  FOREIGN KEY(defender_user_id) REFERENCES users(id) ON DELETE CASCADE,
+ UNIQUE KEY uq_fob_retaliation_source(retaliation_for_raid_id),
  INDEX idx_fob_attacker(attacker_user_id,created_at),
  INDEX idx_fob_defender(defender_user_id,created_at)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4",
@@ -563,6 +565,14 @@ function msw_schema_index_exists(mysqli $db, string $table, string $index): bool
     return (bool)$stmt->get_result()->fetch_row();
 }
 
+function msw_schema_index_is_unique(mysqli $db, string $table, string $index): bool {
+    $stmt = $db->prepare('SELECT NON_UNIQUE FROM INFORMATION_SCHEMA.STATISTICS WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME=? AND INDEX_NAME=? LIMIT 1');
+    $stmt->bind_param('ss', $table, $index);
+    $stmt->execute();
+    $row=$stmt->get_result()->fetch_assoc();
+    return $row!==null&&(int)$row['NON_UNIQUE']===0;
+}
+
 function msw_install_schema(mysqli $db): void {
     foreach (msw_schema_statements() as $sql) $db->query($sql);
 
@@ -598,6 +608,17 @@ function msw_install_schema(mysqli $db): void {
         $db->query("ALTER TABLE pvp_matches ADD COLUMN match_mode ENUM('live','live_ai','snapshot','ai_sim') NOT NULL DEFAULT 'live' AFTER player2_id");
     } else {
         $db->query("ALTER TABLE pvp_matches MODIFY match_mode ENUM('live','live_ai','snapshot','ai_sim') NOT NULL DEFAULT 'live'");
+    }
+
+    // Non-destructive v7 -> v8 FOB Command Centre / retaliation migration.
+    if (!msw_schema_column_exists($db, 'fob_raids', 'retaliation_for_raid_id')) {
+        $db->query('ALTER TABLE fob_raids ADD COLUMN retaliation_for_raid_id BIGINT UNSIGNED DEFAULT NULL AFTER transfer_json');
+    }
+    if (msw_schema_index_exists($db, 'fob_raids', 'uq_fob_retaliation_source') && !msw_schema_index_is_unique($db, 'fob_raids', 'uq_fob_retaliation_source')) {
+        $db->query('ALTER TABLE fob_raids DROP INDEX uq_fob_retaliation_source');
+    }
+    if (!msw_schema_index_exists($db, 'fob_raids', 'uq_fob_retaliation_source')) {
+        $db->query('ALTER TABLE fob_raids ADD UNIQUE INDEX uq_fob_retaliation_source(retaliation_for_raid_id)');
     }
 
     // Keep the encounter enum forward-compatible with the production PvE surfaces.

@@ -1,0 +1,48 @@
+METAL SLUG WARZONE v0.6.0 — ADVANCED FOB INVASION COMMAND CENTRE, RETALIATION & COMMAND NETWORK VISUAL OVERHAUL
+XAMPP TEST CANDIDATE RELEASE GATE
+Build date: 2026-09-05
+Schema revision: 8
+
+IMPLEMENTED — FOB COMMAND CENTRE
+- FOB now opens into an integrated strategic Invasion Command Centre rather than redirecting to the globe.
+- Global priority target matrix with protected/open target state and full target-intel navigation.
+- Multi-invasion staff strike planner using the existing persistent 2–4 staff dispatch authority.
+- Concurrent outbound operation board with stored target/world/ETA/success-chance context.
+- Inbound staff-threat early-warning board.
+- One-use Retaliation Command Desk bound to the exact incoming raid incident.
+- Retaliation uses canonical raid snapshots, settlement, defender protection, events and AARs.
+- Protected commanders voluntarily lose their own remaining recovery shield when a valid direct invasion, staff invasion, autonomous invasion or retaliation is successfully committed.
+- Invalid/blocked attack attempts do not consume the attacker's protection.
+- Retaliation replay is guarded by transaction validation plus a unique database source binding.
+- Command Centre links remain integrated with Global Earth, shard reconnaissance, target intel, raid ledger and strike ledger.
+- Schema revision 8 additive migration plus setup health check for retaliation integrity.
+
+IMPLEMENTED — SUPPLIED-ART COMMAND NETWORK VISUAL SYSTEM
+- Integrated all 23 user-supplied JPG assets byte-for-byte under public_html/assets/artwork/.
+- Every supplied artwork file is used by the production stylesheet; none is orphaned or bolted on as an unrelated gallery/banner.
+- Command Centre/FOB, Warzone, Combat Missions, Boss Operations, Dispatch, R&D, Strategic/Deterrence, Rankings, Mother Base/Staff, Community/Social and AI/PvP surfaces receive coherent matching artwork.
+- Replaced the old green-dominant base palette with charcoal/gunmetal surfaces, sunset amber/orange command accents, cyan/steel information states and semantic green/red status colours.
+- Added dedicated resource telemetry colours for Common Metal, Minor Metal, Precious Metal, Fuel, Biological and Strategic Devices.
+- Added moving CRT scan beam, command-link pulse/sweep, panel/card hover elevation and overlap, button glints, map-card zoom and restrained viewport reveal motion.
+- The already-selected operative sprite is mirrored decoratively into hero surfaces and uses restrained idle motion; no new character image is generated.
+- prefers-reduced-motion disables non-essential presentation motion.
+- The visual layer does not calculate or own resources, combat results, invasion eligibility, protection state, staff reservations, retaliation authorization or persistence.
+
+STATIC VALIDATION PASSED
+- PHP 8.4.23: all 57 public_html PHP files lint clean.
+- Node v22.16.0: assets/js/msw.js syntax clean.
+- CSS structural brace validation clean: 1023 blocks, balance 0, no negative nesting.
+- 64 literal include/require paths resolve.
+- 63 literal msw_url PHP route references resolve.
+- v0.6.0 version/schema/retaliation/Command Centre assertions passed.
+- Offensive launch-path scan confirms direct/autonomous/retaliation and staff attacks converge on shared FOB authority.
+- fob_raids/fob_strike_dispatches insert-path scan found no page-level settlement bypass.
+- Cross-shard authority remains intact; msw_fob_same_world() has no invasion caller.
+- No nested archives and no source_assets directory.
+- 44 inherited runtime images remain SHA-256 byte-identical to the pre-visual v0.6.0 candidate.
+- 23 supplied JPGs remain byte-identical to NewAssetsForMetalSlugWarzone.zip.
+- The only PHP file changed by the visual pass is public_html/includes/ui.php; gameplay-authority PHP remains byte-identical to the pre-visual v0.6.0 candidate.
+- Total runtime image count is now 67.
+
+RUNTIME ACCEPTANCE STILL REQUIRED
+The build container does not provide MySQL/MariaDB, so this package intentionally remains an XAMPP Test Candidate. Back up the accepted database, run _setup.php -> Update / Repair, require schema revision 8 and fob_retaliation_integrity OK, then complete docs/XAMPP_TEST_PLAN.md in the real XAMPP/MariaDB/browser environment before promoting to stable. The test plan now includes the Command Network visual/mobile/reduced-motion acceptance checks.

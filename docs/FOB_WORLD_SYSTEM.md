@@ -1,4 +1,24 @@
-# Global FOB World System — v0.5.0
+# Global FOB World System — v0.6.0
+
+## Integrated invasion command layer
+
+For a deployed commander, `fob.php` is now the strategic **Invasion Command Centre** rather than a redirect. It composes existing FOB authority into one coordinated surface:
+
+- global priority target matrix;
+- 2–4 member staff strike planner for repeated concurrent launches;
+- active outbound staff operations;
+- detected inbound staff operations;
+- one-use retaliation orders derived from incoming raid incidents;
+- recent outgoing After Action Reports;
+- live home recovery-shield state and the offensive protection doctrine.
+
+This is presentation/orchestration over existing server-owned ledgers. It does not introduce a client-side combat queue or alternate resource state. The Earth globe and shard screens remain the geographic reconnaissance layer below the command hub.
+
+## Retaliation incident binding
+
+An incoming `fob_raids` row where the current commander was the defender is a retaliation source incident. A retaliatory direct raid writes that source ID into nullable `fob_raids.retaliation_for_raid_id`. `UNIQUE uq_fob_retaliation_source(retaliation_for_raid_id)` ensures one source incident can be consumed by at most one retaliation.
+
+The server revalidates that the source incident's original defender is the current retaliator and its original attacker is the retaliation target. Normal target membership/world validation and target protection still apply. A protected target therefore cannot be bypassed merely because a retaliation authorization exists.
 
 ## Home deployment contract
 
@@ -43,7 +63,7 @@ v0.4.1's 144 irregular collision-safe anchor set remains authoritative. `msw_fob
 
 ## Global target authority
 
-v0.5.0 intentionally removes the old same-shard invasion restriction.
+v0.5.0 intentionally removed the old same-shard invasion restriction; v0.6.0 preserves that global target authority.
 
 A valid invasion target must satisfy all of the following:
 
@@ -61,7 +81,7 @@ The selected `world_id` is context/validation, not relocation authority. Editing
 
 `msw_fob_resolve_direct_raid()` revalidates the global target and then locks attacker/defender rows and resource ledgers. Attacker and defender power are snapshotted, the result is resolved server-side, and any successful transfer is an exact debit/credit operation.
 
-There is intentionally no attacker cooldown. The anti-drain rule is defender protection: every completed invasion attempt, including a failed attack, protects the defender temporarily.
+There is intentionally no attacker cooldown. Defender protection remains the anti-drain rule: every completed invasion attempt, including a failed attack, protects the defender temporarily. v0.6.0 also prevents protection from becoming an offensive staging shield: if the attacker is currently protected, a successfully committed direct invasion or retaliation atomically clears that attacker protection before settlement. A rejected/blocked attempt leaves it unchanged.
 
 Human direct invasion retains its established 8% transfer rate/caps. Autonomous direct invasion uses 3% with lower caps because autonomous commanders may now attack offline human bases.
 
@@ -77,6 +97,7 @@ Launch authority:
 - locks attacker/defender and selected units;
 - verifies ownership and current `dispatched_until` availability;
 - snapshots attacker/defender state;
+- atomically drops the attacker's active protection if this valid launch is being committed;
 - stores the **defender's world ID** in `fob_strike_dispatches`;
 - reserves every selected unit until the persisted `finish_at` timestamp.
 
@@ -113,7 +134,7 @@ For deployed users, `fob_globe.php` includes recent incoming defense results. Hu
 
 ## Regression contracts
 
-v0.5.0 must preserve:
+v0.6.0 must preserve:
 
 - exactly one persistent home membership per commander;
 - 144-slot capacity and collision-free irregular positions;
@@ -122,6 +143,9 @@ v0.5.0 must preserve:
 - no remote-shard browsing side effect on home membership;
 - no attacker raid cooldown;
 - defender protection after every completed attempt;
+- offensive protection break only after a valid direct/retaliation/staff launch commits;
+- exactly one retaliation per incoming source incident;
+- retaliation never bypasses current target protection;
 - transactionally exact resource debit/credit;
 - separate standard Dispatch and FOB strike ledgers;
 - shared staff reservation safety through `units.dispatched_until`;

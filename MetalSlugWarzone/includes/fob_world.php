@@ -180,9 +180,44 @@ function msw_fob_apply_protection(int $defenderId): string {
     return $until;
 }
 
-/** Resolve an immediate raid. The former attacker cooldown is intentionally absent. */
-function msw_fob_resolve_direct_raid(int $attackerId,int $defenderId,string $mode='direct'): int {
+/**
+ * Offensive doctrine: protection is a passive recovery shield, never an
+ * offensive staging shield. Once a protected commander successfully commits
+ * an invasion launch, their remaining protection is removed inside the same
+ * database transaction as that offensive action.
+ */
+function msw_fob_break_protection_for_offense_locked(int $commanderId): bool {
+    $st=msw_stmt('UPDATE users SET fob_protection_until=NULL WHERE id=? AND fob_protection_until IS NOT NULL AND fob_protection_until>NOW()','i',[$commanderId]);
+    return $st->affected_rows===1;
+}
+
+function msw_fob_commander_protection(int $uid): ?string {
+    $row=msw_one('SELECT fob_protection_until FROM users WHERE id=? LIMIT 1','i',[$uid]);
+    $until=(string)($row['fob_protection_until']??'');
+    return $until!==''&&strtotime($until)>time()?$until:null;
+}
+
+function msw_fob_retaliation_source(int $retaliatorId,int $sourceRaidId): ?array {
+    if($retaliatorId<1||$sourceRaidId<1)return null;
+    return msw_one(
+        "SELECT r.id source_raid_id,r.attacker_user_id target_id,r.result source_result,r.transfer_json,r.created_at attacked_at,a.username,a.base_power,a.base_grade,a.is_bot,a.fob_protection_until,m.world_id,m.skin_key,w.biome_key,w.shard_index,b.bot_index,rr.id retaliation_raid_id FROM fob_raids r JOIN users a ON a.id=r.attacker_user_id JOIN fob_world_memberships m ON m.user_id=a.id JOIN fob_worlds w ON w.id=m.world_id LEFT JOIN bot_commanders b ON b.user_id=a.id AND b.enabled=1 LEFT JOIN fob_raids rr ON rr.retaliation_for_raid_id=r.id WHERE r.id=? AND r.defender_user_id=? LIMIT 1",
+        'ii',[$sourceRaidId,$retaliatorId]
+    );
+}
+
+/**
+ * Resolve an immediate raid or one-use retaliation.
+ *
+ * There is no attacker-side cooldown. Instead, a commander who is currently
+ * protected voluntarily gives up that protection when an offensive action is
+ * successfully committed. Retaliation is bound to one incoming raid record
+ * and the unique database index prevents the same incident being consumed
+ * more than once.
+ */
+function msw_fob_resolve_direct_raid(int $attackerId,int $defenderId,string $mode='direct',?int $retaliationForRaidId=null): int {
     if($attackerId<1||$defenderId<1||$attackerId===$defenderId) throw new RuntimeException('Invalid FOB target.');
+    if(!in_array($mode,['direct','autonomous','retaliation'],true))$mode='direct';
+    if($mode==='retaliation'&&($retaliationForRaidId??0)<1) throw new RuntimeException('Retaliation authorization is missing.');
     if(!msw_fob_target_row($attackerId,$defenderId)) throw new RuntimeException('That FOB is not a valid global invasion target.');
 
     $db=msw_db();$db->begin_transaction();
@@ -192,6 +227,14 @@ function msw_fob_resolve_direct_raid(int $attackerId,int $defenderId,string $mod
         $users=[];foreach($lockedUsers as $row)$users[(int)$row['id']]=$row;
         $attacker=$users[$attackerId]??null;$defender=$users[$defenderId]??null;
         if(!$attacker||!$defender) throw new RuntimeException('FOB target unavailable.');
+
+        if($mode==='retaliation'){
+            $source=msw_one('SELECT id,attacker_user_id,defender_user_id FROM fob_raids WHERE id=? FOR UPDATE','i',[(int)$retaliationForRaidId]);
+            if(!$source||(int)$source['defender_user_id']!==$attackerId||(int)$source['attacker_user_id']!==$defenderId) throw new RuntimeException('That retaliation authorization is no longer valid.');
+            $used=msw_one('SELECT id FROM fob_raids WHERE retaliation_for_raid_id=? LIMIT 1 FOR UPDATE','i',[(int)$retaliationForRaidId]);
+            if($used) throw new RuntimeException('That incoming raid has already been retaliated against.');
+        }
+
         if(!empty($defender['fob_protection_until'])&&strtotime((string)$defender['fob_protection_until'])>time()) throw new RuntimeException('That FOB is under temporary post-invasion protection.');
 
         $resourceRows=msw_all('SELECT * FROM player_resources WHERE user_id IN (?,?) ORDER BY user_id FOR UPDATE','ii',[$low,$high]);
@@ -205,19 +248,30 @@ function msw_fob_resolve_direct_raid(int $attackerId,int $defenderId,string $mod
         $win=$ar>=$dr;
         $rate=$mode==='autonomous'?0.03:0.08;
         $caps=$mode==='autonomous'?['default'=>900,'precious_metal'=>150]:['default'=>2500,'precious_metal'=>400];
+
+        // The offensive commitment is now authoritative: if the attacker was
+        // protected, the shield is dropped in this same transaction.
+        $protectionBroken=msw_fob_break_protection_for_offense_locked($attackerId);
         $transfer=$win?msw_fob_resource_transfer($attackerId,$defenderId,$resources[$defenderId],$rate,$caps):['common_metal'=>0,'minor_metal'=>0,'precious_metal'=>0,'fuel'=>0,'biological'=>0];
 
-        // The defender is protected after every completed invasion attempt. There
-        // is deliberately no attacker-side cooldown in v0.4.x.
         $protectedUntil=msw_fob_apply_protection($defenderId);
         msw_stmt('UPDATE users SET last_fob_attack_at=NOW() WHERE id=?','i',[$attackerId]);
         $result=$win?'attacker_win':'defender_win';
-        $as['resolution']=['roll'=>$ar,'mode'=>$mode];
+        $as['resolution']=['roll'=>$ar,'mode'=>$mode,'attacker_protection_broken'=>$protectionBroken];
+        if($mode==='retaliation')$as['resolution']['retaliation_for_raid_id']=(int)$retaliationForRaidId;
         $ds['resolution']=['roll'=>$dr,'protected_until'=>$protectedUntil];
-        msw_stmt(
-            'INSERT INTO fob_raids(attacker_user_id,defender_user_id,attacker_snapshot_json,defender_snapshot_json,result,transfer_json) VALUES(?,?,?,?,?,?)',
-            'iissss',[$attackerId,$defenderId,json_encode($as,JSON_UNESCAPED_SLASHES),json_encode($ds,JSON_UNESCAPED_SLASHES),$result,json_encode($transfer,JSON_UNESCAPED_SLASHES)]
-        );
+        $attackerJson=json_encode($as,JSON_UNESCAPED_SLASHES);$defenderJson=json_encode($ds,JSON_UNESCAPED_SLASHES);$transferJson=json_encode($transfer,JSON_UNESCAPED_SLASHES);
+        if($mode==='retaliation'){
+            msw_stmt(
+                'INSERT INTO fob_raids(attacker_user_id,defender_user_id,attacker_snapshot_json,defender_snapshot_json,result,transfer_json,retaliation_for_raid_id) VALUES(?,?,?,?,?,?,?)',
+                'iissssi',[$attackerId,$defenderId,$attackerJson,$defenderJson,$result,$transferJson,(int)$retaliationForRaidId]
+            );
+        }else{
+            msw_stmt(
+                'INSERT INTO fob_raids(attacker_user_id,defender_user_id,attacker_snapshot_json,defender_snapshot_json,result,transfer_json) VALUES(?,?,?,?,?,?)',
+                'iissss',[$attackerId,$defenderId,$attackerJson,$defenderJson,$result,$transferJson]
+            );
+        }
         $raidId=(int)$db->insert_id;
         if((int)($attacker['is_bot']??0)===1){
             msw_stmt('UPDATE bot_commanders SET fob_attacks=fob_attacks+1,fob_wins=fob_wins+? WHERE user_id=?','ii',[$win?1:0,$attackerId]);
@@ -225,13 +279,16 @@ function msw_fob_resolve_direct_raid(int $attackerId,int $defenderId,string $mod
         $db->commit();
 
         if((int)($attacker['is_bot']??0)===0){
-            msw_console_event_for_user($attackerId,'FOB','RAID','FOB raid against '.(string)$defender['username'].' resolved: '.strtoupper(str_replace('_',' ',$result)).'.',[
-                'raid_id'=>$raidId,'defender_id'=>$defenderId,'defender'=>(string)$defender['username'],'result'=>$result,'materials_transferred'=>(int)array_sum($transfer),'world_mode'=>$mode,
+            $eventType=$mode==='retaliation'?'RETALIATION':'RAID';
+            $verb=$mode==='retaliation'?'FOB retaliation against ':'FOB raid against ';
+            msw_console_event_for_user($attackerId,'FOB',$eventType,$verb.(string)$defender['username'].' resolved: '.strtoupper(str_replace('_',' ',$result)).'.',[
+                'raid_id'=>$raidId,'defender_id'=>$defenderId,'defender'=>(string)$defender['username'],'result'=>$result,'materials_transferred'=>(int)array_sum($transfer),'world_mode'=>$mode,'protection_broken'=>$protectionBroken,'retaliation_for_raid_id'=>$mode==='retaliation'?(int)$retaliationForRaidId:null,
             ]);
         }
         if((int)($defender['is_bot']??0)===0){
-            msw_console_event_for_user($defenderId,'FOB','DEFENSE','Your FOB was invaded by '.(string)$attacker['username'].' and the defense resolved: '.strtoupper(str_replace('_',' ',$result)).'.',[
-                'raid_id'=>$raidId,'attacker_id'=>$attackerId,'attacker'=>(string)$attacker['username'],'attacker_is_ai'=>(bool)($attacker['is_bot']??0),'result'=>$result,'materials_transferred'=>(int)array_sum($transfer),'mode'=>$mode,
+            $message=$mode==='retaliation'?'A retaliation from '.(string)$attacker['username'].' reached your FOB: ':'Your FOB was invaded by '.(string)$attacker['username'].' and the defense resolved: ';
+            msw_console_event_for_user($defenderId,'FOB','DEFENSE',$message.strtoupper(str_replace('_',' ',$result)).'.',[
+                'raid_id'=>$raidId,'attacker_id'=>$attackerId,'attacker'=>(string)$attacker['username'],'attacker_is_ai'=>(bool)($attacker['is_bot']??0),'result'=>$result,'materials_transferred'=>(int)array_sum($transfer),'mode'=>$mode,'retaliation_for_raid_id'=>$mode==='retaliation'?(int)$retaliationForRaidId:null,
             ]);
         }
         return $raidId;
@@ -278,6 +335,11 @@ function msw_fob_launch_staff_dispatch(int $attackerId,int $defenderId,array $un
         $finish=date('Y-m-d H:i:s',time()+$duration);
         $membership=msw_fob_membership($attackerId);$targetMembership=msw_fob_membership($defenderId);if(!$membership||!$targetMembership) throw new RuntimeException('FOB world membership unavailable.');
 
+        // Reserving a valid staff strike is an offensive commitment. A protected
+        // attacker therefore gives up the remaining recovery shield at launch.
+        $protectionBroken=msw_fob_break_protection_for_offense_locked($attackerId);
+        $as['launch']=['mode'=>'staff_dispatch','attacker_protection_broken'=>$protectionBroken];
+
         msw_stmt(
             'INSERT INTO fob_strike_dispatches(attacker_user_id,defender_user_id,world_id,unit_ids_json,attacker_snapshot_json,defender_snapshot_json,snapshot_power,success_chance,started_at,finish_at) VALUES(?,?,?,?,?,?,?,?,NOW(),?)',
             'iiisssids',[$attackerId,$defenderId,(int)$targetMembership['world_id'],json_encode($unitIds),json_encode($as,JSON_UNESCAPED_SLASHES),json_encode($ds,JSON_UNESCAPED_SLASHES),$power,$chance,$finish]
@@ -288,7 +350,7 @@ function msw_fob_launch_staff_dispatch(int $attackerId,int $defenderId,array $un
 
         if((int)($attacker['is_bot']??0)===0){
             msw_console_event_for_user($attackerId,'FOB','DISPATCH','Staff invasion team dispatched to '.(string)$defender['username'].'.',[
-                'dispatch_id'=>$dispatchId,'defender_id'=>$defenderId,'staff_count'=>count($unitIds),'finish_at'=>$finish,
+                'dispatch_id'=>$dispatchId,'defender_id'=>$defenderId,'staff_count'=>count($unitIds),'finish_at'=>$finish,'protection_broken'=>$protectionBroken,
             ]);
         }
         return $dispatchId;
@@ -362,3 +424,56 @@ function msw_fob_dispatches_for_user(int $uid,int $limit=20): array {
 function msw_fob_pending_dispatch_for_target(int $attackerId,int $defenderId): ?array {
     return msw_one("SELECT * FROM fob_strike_dispatches WHERE attacker_user_id=? AND defender_user_id=? AND result='pending' ORDER BY id DESC LIMIT 1",'ii',[$attackerId,$defenderId]);
 }
+
+function msw_fob_command_targets(int $viewerId,int $limit=24,bool $openOnly=false): array {
+    if(!msw_fob_membership($viewerId))return [];
+    $limit=max(1,min(100,$limit));
+    $me=msw_one('SELECT base_power FROM users WHERE id=? LIMIT 1','i',[$viewerId]);
+    $power=(int)($me['base_power']??0);
+    $open=$openOnly?' AND (u.fob_protection_until IS NULL OR u.fob_protection_until<=NOW())':'';
+    return msw_all(
+        "SELECT u.id,u.username,u.base_power,u.base_grade,u.is_bot,u.fob_protection_until,m.world_id,m.skin_key,m.x,m.y,w.biome_key,w.shard_index,b.bot_index,ABS(CAST(u.base_power AS SIGNED)-?) power_gap FROM fob_world_memberships m JOIN users u ON u.id=m.user_id JOIN fob_worlds w ON w.id=m.world_id LEFT JOIN bot_commanders b ON b.user_id=u.id AND b.enabled=1 WHERE u.id<>? {$open} ORDER BY CASE WHEN u.fob_protection_until IS NULL OR u.fob_protection_until<=NOW() THEN 0 ELSE 1 END,u.is_bot ASC,power_gap ASC,u.base_power DESC,u.id ASC LIMIT {$limit}",
+        'ii',[$power,$viewerId]
+    );
+}
+
+function msw_fob_active_operations(int $uid,int $limit=20): array {
+    $limit=max(1,min(100,$limit));
+    return msw_all(
+        "SELECT d.*,u.username defender,u.base_grade defender_grade,u.is_bot defender_is_bot,w.biome_key,w.shard_index FROM fob_strike_dispatches d JOIN users u ON u.id=d.defender_user_id JOIN fob_worlds w ON w.id=d.world_id WHERE d.attacker_user_id=? AND d.result='pending' ORDER BY d.finish_at,d.id LIMIT {$limit}",
+        'i',[$uid]
+    );
+}
+
+function msw_fob_incoming_operations(int $uid,int $limit=12): array {
+    $limit=max(1,min(100,$limit));
+    return msw_all(
+        "SELECT d.*,u.username attacker,u.base_grade attacker_grade,u.is_bot attacker_is_bot,w.biome_key,w.shard_index FROM fob_strike_dispatches d JOIN users u ON u.id=d.attacker_user_id JOIN fob_worlds w ON w.id=d.world_id WHERE d.defender_user_id=? AND d.result='pending' ORDER BY d.finish_at,d.id LIMIT {$limit}",
+        'i',[$uid]
+    );
+}
+
+function msw_fob_retaliation_rows(int $uid,int $limit=16): array {
+    $limit=max(1,min(100,$limit));
+    return msw_all(
+        "SELECT r.id source_raid_id,r.attacker_user_id target_id,r.result source_result,r.transfer_json,r.created_at attacked_at,a.username,a.base_power,a.base_grade,a.is_bot,a.fob_protection_until,m.world_id,m.skin_key,w.biome_key,w.shard_index,b.bot_index,rr.id retaliation_raid_id,rr.result retaliation_result,rr.created_at retaliation_at FROM fob_raids r JOIN users a ON a.id=r.attacker_user_id JOIN fob_world_memberships m ON m.user_id=a.id JOIN fob_worlds w ON w.id=m.world_id LEFT JOIN bot_commanders b ON b.user_id=a.id AND b.enabled=1 LEFT JOIN fob_raids rr ON rr.retaliation_for_raid_id=r.id WHERE r.defender_user_id=? ORDER BY r.id DESC LIMIT {$limit}",
+        'i',[$uid]
+    );
+}
+
+function msw_fob_recent_outgoing_raids(int $uid,int $limit=12): array {
+    $limit=max(1,min(100,$limit));
+    return msw_all(
+        "SELECT r.*,u.username defender,u.base_grade defender_grade,u.is_bot defender_is_bot,m.world_id,w.biome_key,w.shard_index FROM fob_raids r JOIN users u ON u.id=r.defender_user_id LEFT JOIN fob_world_memberships m ON m.user_id=u.id LEFT JOIN fob_worlds w ON w.id=m.world_id WHERE r.attacker_user_id=? ORDER BY r.id DESC LIMIT {$limit}",
+        'i',[$uid]
+    );
+}
+
+function msw_fob_command_counts(int $uid): array {
+    $rows=msw_one(
+        "SELECT (SELECT COUNT(*) FROM fob_strike_dispatches WHERE attacker_user_id=? AND result='pending') active_outbound,(SELECT COUNT(*) FROM fob_strike_dispatches WHERE defender_user_id=? AND result='pending') active_inbound,(SELECT COUNT(*) FROM fob_raids r LEFT JOIN fob_raids rr ON rr.retaliation_for_raid_id=r.id WHERE r.defender_user_id=? AND rr.id IS NULL) retaliation_ready,(SELECT COUNT(*) FROM fob_raids WHERE attacker_user_id=?) total_raids",
+        'iiii',[$uid,$uid,$uid,$uid]
+    );
+    return $rows?:['active_outbound'=>0,'active_inbound'=>0,'retaliation_ready'=>0,'total_raids'=>0];
+}
+

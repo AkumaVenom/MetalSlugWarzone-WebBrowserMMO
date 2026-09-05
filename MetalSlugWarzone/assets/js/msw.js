@@ -320,3 +320,59 @@
     sync();
   });
 })();
+
+(()=>{
+  document.querySelectorAll('[data-command-target-select]').forEach(select=>{
+    const form=select.closest('form');
+    const world=form?form.querySelector('[data-command-world-input]'):null;
+    const sync=()=>{
+      const option=select.selectedOptions&&select.selectedOptions[0];
+      if(world&&option)world.value=option.dataset.world||'';
+    };
+    select.addEventListener('change',sync);sync();
+  });
+
+  document.querySelectorAll('form[data-breaks-protection="1"]').forEach(form=>{
+    form.addEventListener('submit',event=>{
+      if(form.dataset.protectionConfirmed==='1')return;
+      const ok=window.confirm('OFFENSIVE ACTION WARNING\n\nYour FOB is currently protected. Successfully committing this invasion or retaliation will immediately remove the remaining protection cooldown. Continue?');
+      if(!ok){event.preventDefault();return;}
+      form.dataset.protectionConfirmed='1';
+    });
+  });
+})();
+
+// v0.6.0 supplied-art visual integration. Presentation only: the selected operative is
+// mirrored into the current page hero and non-critical command surfaces reveal gently.
+(()=>{
+  const reduced=window.matchMedia&&window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  document.documentElement.classList.add('motion-ready');
+
+  const hero=document.querySelector('.hero');
+  const source=document.querySelector('.commander-chip img');
+  if(hero&&source&&!hero.querySelector('.hero-operative')){
+    const figure=document.createElement('span');
+    figure.className='hero-operative';
+    figure.setAttribute('aria-hidden','true');
+    const image=document.createElement('img');
+    image.src=source.currentSrc||source.src;
+    image.alt='';
+    figure.append(image);
+    hero.append(figure);
+  }
+
+  const nodes=[...document.querySelectorAll('.panel,.stat,.feature,.map-card,.fob-command-status,.fob-command-target,.fob-operation-row,.fob-retaliation-card')];
+  nodes.forEach(node=>node.classList.add('ui-reveal'));
+  if(reduced||!('IntersectionObserver' in window)){
+    nodes.forEach(node=>node.classList.add('is-visible'));
+    return;
+  }
+  const observer=new IntersectionObserver(entries=>{
+    for(const entry of entries){
+      if(!entry.isIntersecting)continue;
+      entry.target.classList.add('is-visible');
+      observer.unobserve(entry.target);
+    }
+  },{rootMargin:'0px 0px -24px 0px',threshold:.04});
+  nodes.forEach(node=>observer.observe(node));
+})();

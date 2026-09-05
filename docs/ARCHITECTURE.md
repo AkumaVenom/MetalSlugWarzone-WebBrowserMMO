@@ -1,8 +1,8 @@
-# Architecture — Metal Slug Warzone v0.5.0
+# Architecture — Metal Slug Warzone v0.6.0
 
 ## Authority model
 
-PHP/MySQL remains authoritative. The browser submits intent and renders returned state; it does not own movement coordinates, collision, staff movement, unit ownership, sector levels, inventory, battle state, FOB membership, target authority, bot state, resources or timers. v0.5.0 deliberately extends existing ledgers rather than creating client-owned shortcuts.
+PHP/MySQL remains authoritative. The browser submits intent and renders returned state; it does not own movement coordinates, collision, staff movement, unit ownership, sector levels, inventory, battle state, FOB membership, target authority, bot state, resources or timers. v0.6.0 continues that rule: the new FOB Command Centre composes existing ledgers and adds only a one-use retaliation link; it does not create client-owned shortcuts.
 
 ## Persistent autonomous commander model
 
@@ -98,6 +98,16 @@ The UI maps committed FX to CSS choreography: commander lunge, enemy impact, ene
 
 Security escorts and PvE medical consumables are intentionally not injected into competitive PvP balance.
 
+## FOB Command Centre orchestration
+
+`fob.php` is the primary deployed-FOB strategic surface. It reads global target candidates, available staff, pending outbound/inbound strike rows, incoming raid incidents and recent outgoing reports, then submits only normal direct-raid or staff-dispatch intent back to PHP authority.
+
+Parallel staff invasion support does not require a new queue table: each committed strike already owns a durable `fob_strike_dispatches` row and selected staff are reserved through `units.dispatched_until`. Repeated Command Centre launches simply create additional valid strike rows using different currently available staff.
+
+Retaliation adds a nullable self-ledger reference, `fob_raids.retaliation_for_raid_id`. It identifies the exact incoming incident that authorized a retaliation and is protected by a unique index. The attacker/defender relationship is revalidated before resolution, and the retaliation still goes through `msw_fob_resolve_direct_raid()` with the normal target-protection/resource-locking path.
+
+Protection is now explicitly passive recovery state. Direct raids, retaliation and staff-strike launch call a shared locked helper that clears the attacker's active protection only when the offense is being successfully committed.
+
 ## Global FOB topology
 
 Each commander still has one permanent `fob_world_memberships` row: biome, world/shard, FOB skin, slot and deterministic x/y are home identity. The v0.4.1 irregular 144-anchor layout remains unchanged.
@@ -133,17 +143,24 @@ Warzone position remains on `users.active_map/map_x/map_y/facing/last_seen`. Mot
 
 FOB deployment continues to bind `users.mother_base_key` to the chosen compatible FOB skin. Existing friend/Strike Force Mother Base visitation and server-authoritative collision remain unchanged.
 
-## Schema revision 7
+## Schema revision 8
 
-The current schema revision is **7**. v0.5.0 adds only:
+The current schema revision is **8**. v0.5.0 revision 7 added:
 
 - `security_backup_slots(user_id, slot_index, unit_id, created_at, updated_at)`;
 - primary key `(user_id,slot_index)`;
 - unique selected unit per user;
 - cascading FKs to `users` and `units`.
 
-All previous revision-6 FOB world/spatial structures remain. `_setup.php` Update / Repair is additive/idempotent and Confirm Installation now includes `security_backup_integrity` in addition to the existing autonomous population and FOB topology checks.
+v0.6.0 then adds only nullable `fob_raids.retaliation_for_raid_id` plus unique index `uq_fob_retaliation_source`. All previous FOB world/spatial, Security backup and gameplay structures remain. `_setup.php` Update / Repair is additive/idempotent and Confirm Installation now includes both `security_backup_integrity` and `fob_retaliation_integrity` in addition to the existing autonomous population and FOB topology checks.
 
 ## Local WorldServer console
 
 The v0.3.5 local-filesystem console architecture remains unchanged. It is not a network admin endpoint, ignores bot-originated console identity, suppresses movement/polling noise and fails silently if logging is unavailable. v0.5.0 adds human-visible FOB defense events only after authoritative raid settlement.
+
+
+## v0.6.0 supplied-art presentation layer
+
+The Command Network visual system remains strictly downstream of gameplay authority. `includes/ui.php` assigns a page identity class and emits semantic resource/stat classes; `assets/css/msw.css` maps those identities to the 23 supplied artwork files and owns palette, scan-line, hover, responsive and reduced-motion behavior. `assets/js/msw.js` may mirror the already-rendered selected-operative sprite into a hero and add intersection-based reveal classes, but it does not calculate rewards, eligibility, combat outcomes, invasion validity, protection state or persistence.
+
+No visual effect creates an alternate gameplay route. Forms, CSRF validation, MySQL row locks, dispatch reservations, raid settlement and exactly-once logic continue through the same PHP authority functions documented above. Disabling JavaScript or CSS therefore changes presentation only, not the command network's authoritative state transitions.

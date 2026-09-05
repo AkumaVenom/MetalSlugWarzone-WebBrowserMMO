@@ -1,10 +1,38 @@
-# Runtime Asset Manifest — v0.5.0
+# Runtime Asset Manifest — v0.6.0
 
 The XAMPP package is runtime-only. It contains no `source_assets/` tree and no nested development/source ZIP archives.
 
-## v0.5.0 asset delta
+## v0.6.0 asset delta
 
-**No image, sprite or map binary was added, regenerated, resized or modified for v0.5.0.** The combat-polish update uses CSS animation/choreography around the existing accepted operative/enemy/FOB sprites. Medical, Intel, Security and Support additions are systems/UI code rather than new art.
+The visual-polish continuation of v0.6.0 adds **23 user-supplied JPG artwork files** under `public_html/assets/artwork/`. They are copied byte-for-byte from `NewAssetsForMetalSlugWarzone.zip`: no resize, crop, recompression, paint-over or generated replacement is performed in the package.
+
+| Supplied runtime artwork | Native size | Integrated system |
+| --- | ---: | --- |
+| `MAINHEADER.jpg` | 1983×793 | Public landing/auth command-network presentation |
+| `CommandCentreHeader.jpg` | 2172×724 | Dashboard and global FOB command surfaces |
+| `CommandCentre.jpg` | 1408×768 | Command-centre ambient scene layer |
+| `ExtaCommanderScanner.jpg` | 1254×1254 | FOB/AI command intelligence ambient scene |
+| `SelectWarzoneHeader.jpg` | 1945×809 | Warzone selection / field deployment |
+| `SelectWarzone.jpg` | 1254×1254 | Warzone ambient scene |
+| `CombatMissionsHeader.jpg` | 1944×809 | Combat Missions / Side Operations |
+| `CombatMissions.jpg` | 1254×1254 | Combat mission ambient scene |
+| `BOSSOPERATIONSHeader.jpg` | 1944×809 | Boss Operations |
+| `BOSSOPERATIONS.jpg` | 1254×1254 | Boss-operation ambient scene |
+| `DispatchHeader.jpg` | 2153×730 | Dispatch / staff invasion dispatch |
+| `Dispatch.jpg` | 1254×1254 | Dispatch ambient scene |
+| `R&DHeader.jpg` | 1942×809 | Research & Development |
+| `R&D.jpg` | 1254×1254 | R&D ambient scene |
+| `NUCLEAEDETERRENCEHEADER.jpg` | 1942×809 | Strategic / deterrence systems |
+| `NUCLEAEDETERRENCE.jpg` | 1254×1254 | Strategic ambient scene |
+| `RankingHeader.jpg` | 1983×793 | Commander rankings |
+| `Ranking.jpg` | 1254×1254 | Ranking ambient scene |
+| `SlugHangerHeader.jpg` | 1774×887 | Mother Base / staff / hangar surfaces |
+| `SlugHanger.jpg` | 1254×1254 | Mother Base ambient scene |
+| `MessHallHeader.jpg` | 2172×724 | Community / social / Strike Force surfaces |
+| `MessHall.jpg` | 1254×1254 | Social ambient scene |
+| `AICOMMANDERS.jpg` | 1983×793 | AI Commanders / rival commanders / PvP command surfaces |
+
+Every supplied image is referenced by the production stylesheet. Existing accepted maps and sprites remain untouched.
 
 ## Mother Base / FOB maps
 
@@ -40,10 +68,10 @@ They remain 1:1 native pixels inside the bounded scrolling camera.
 | `assets/sprites/fob/Offshore Mother Base Bravo.png` | 256×171 | Sea FOB marker |
 | `assets/sprites/fob/Maritime Fortress Mother Base.png` | 256×171 | Sea FOB marker |
 
-The globe is reused in v0.5.0; no duplicate global-invasion image is introduced.
+The globe continues to be reused in v0.6.0 for actual world selection. The new Command Centre JPGs are presentation-layer command artwork only and do not replace or duplicate the authoritative globe/overview map assets.
 
 ## Existing accepted runtime art
 
 The accepted native warzone maps, six selectable player operatives, field enemies, bosses and Rebel Biker vehicle fallback remain unchanged. Autonomous commanders continue to reuse the accepted player-operative sprite catalog.
 
-No generated art is included.
+No generated art is included. The 23 new artwork files are user-supplied runtime assets and are preserved byte-for-byte.
