@@ -18,6 +18,7 @@ function msw_pvp_create_match(int $player1,int $player2,string $mode='live'): in
         'round'=>1,
         'log'=>[$mode==='snapshot'?'Commander snapshot battle established.':($mode==='live_ai'?'Live AI battle channel established.':'Live battle channel established.')],
         'fighters'=>[(string)$player1=>msw_commander_fighter($player1),(string)$player2=>msw_commander_fighter($player2)],
+        'fx'=>['seq'=>1,'kind'=>'contact','actor'=>0,'target'=>0,'hit'=>false,'damage'=>0],
         'ai_not_before'=>0,
     ];
     msw_stmt('INSERT INTO pvp_matches(player1_id,player2_id,match_mode,current_turn_user_id,state_json) VALUES(?,?,?,?,?)','iisis',[$player1,$player2,$mode,$player1,json_encode($state,JSON_UNESCAPED_SLASHES)]);
@@ -45,9 +46,10 @@ function msw_pvp_commit_turn(int $matchId,int $actorId,int $expectedVersion,stri
         $state=json_decode((string)$m['state_json'],true,512,JSON_THROW_ON_ERROR);
         if(!isset($state['fighters'][(string)$actorId],$state['fighters'][(string)$target]))throw new RuntimeException('PvP fighter snapshot is incomplete.');
         $me=&$state['fighters'][(string)$actorId];$foe=&$state['fighters'][(string)$target];
-        $moves=msw_move_catalog();$move=$moves[$moveKey]??$moves['rifle_burst'];
-        if(random_int(1,100)<=(int)$move['accuracy']){$damage=msw_pvp_damage($move,$me,$foe);$foe['hp']=max(0,(int)$foe['hp']-$damage);$state['log'][]=$me['name'].' used '.$move['name'].' for '.$damage.' damage.';}
+        $moves=msw_move_catalog();$move=$moves[$moveKey]??$moves['rifle_burst'];$hit=false;$damage=0;
+        if(random_int(1,100)<=(int)$move['accuracy']){$hit=true;$damage=msw_pvp_damage($move,$me,$foe);$foe['hp']=max(0,(int)$foe['hp']-$damage);$state['log'][]=$me['name'].' used '.$move['name'].' for '.$damage.' damage.';}
         else $state['log'][]=$me['name'].' missed with '.$move['name'].'.';
+        $state['fx']=['seq'=>(int)($state['fx']['seq']??0)+1,'kind'=>'attack','actor'=>$actorId,'target'=>$target,'hit'=>$hit,'damage'=>$damage,'move'=>(string)$moveKey];
         $status='active';$next=$target;
         if((int)$foe['hp']<=0){
             $status=$actorId===(int)$m['player1_id']?'player1_win':'player2_win';$next=$actorId;$state['log'][]=$me['name'].' secured the PvP victory.';

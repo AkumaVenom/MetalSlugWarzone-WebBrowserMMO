@@ -6,7 +6,7 @@ function msw_initialize_player(int $uid): void {
     foreach (msw_sectors() as $key => $_) {
         msw_stmt('INSERT IGNORE INTO base_sectors(user_id,sector_key) VALUES(?,?)', 'is', [$uid,$key]);
     }
-    foreach (['fulton'=>8,'fulton_plus'=>2,'cargo_fulton'=>1,'wormhole_fulton'=>0] as $item=>$qty) {
+    foreach (['fulton'=>8,'fulton_plus'=>2,'cargo_fulton'=>1,'wormhole_fulton'=>0,'field_medkit'=>0,'trauma_kit'=>0,'nanomed_injector'=>0] as $item=>$qty) {
         msw_stmt('INSERT IGNORE INTO inventory(user_id,item_key,quantity) VALUES(?,?,?)', 'isi', [$uid,$item,$qty]);
     }
 
@@ -32,6 +32,51 @@ function msw_initialize_player(int $uid): void {
 
 function msw_resources(int $uid): array {
     return msw_one('SELECT * FROM player_resources WHERE user_id=?', 'i', [$uid]) ?: [];
+}
+
+
+function msw_sector_levels(int $uid): array {
+    $levels=[];
+    foreach(msw_all('SELECT sector_key,level FROM base_sectors WHERE user_id=?','i',[$uid]) as $row) {
+        $levels[(string)$row['sector_key']]=max(1,(int)$row['level']);
+    }
+    foreach(array_keys(msw_sectors()) as $key) if(!isset($levels[$key])) $levels[$key]=1;
+    return $levels;
+}
+
+function msw_sector_level(int $uid,string $sector): int {
+    if(!isset(msw_sectors()[$sector])) return 1;
+    $row=msw_one('SELECT level FROM base_sectors WHERE user_id=? AND sector_key=?','is',[$uid,$sector]);
+    return max(1,(int)($row['level']??1));
+}
+
+function msw_requirements_met(int $uid,array $requirements,?array $levels=null): bool {
+    $levels=$levels??msw_sector_levels($uid);
+    foreach($requirements as $sector=>$required){
+        if(!isset(msw_sectors()[$sector])) return false;
+        if((int)($levels[$sector]??1)<max(1,(int)$required)) return false;
+    }
+    return true;
+}
+
+function msw_rd_recipe_requirements(array $recipe): array {
+    $requirements=(array)($recipe['requirements']??[]);
+    if(!$requirements && isset($recipe['rd'])) $requirements=['rd'=>(int)$recipe['rd']];
+    return $requirements;
+}
+
+function msw_rd_recipe_unlocked(int $uid,array $recipe,?array $levels=null): bool {
+    return msw_requirements_met($uid,msw_rd_recipe_requirements($recipe),$levels);
+}
+
+function msw_requirement_label(array $requirements): string {
+    $names=[];
+    foreach($requirements as $sector=>$level){
+        $sectorMeta=msw_sectors()[$sector]??null;
+        $label=$sectorMeta?(string)$sectorMeta['name']:strtoupper($sector);
+        $names[]=$label.' Lv '.max(1,(int)$level);
+    }
+    return implode(' · ',$names);
 }
 
 function msw_inventory(int $uid): array {
@@ -100,6 +145,38 @@ function msw_spend_resources(int $uid,array $cost): bool {
     }
 }
 
+function msw_manufacture_item(int $uid,string $item,int $qty,array $cost): bool {
+    if($uid<1 || $item==='' || $qty<=0) return false;
+    $allowed=['common_metal','minor_metal','precious_metal','fuel','biological'];
+    $normalized=[];
+    foreach($cost as $key=>$amount){
+        if(!in_array((string)$key,$allowed,true)) continue;
+        $amount=max(0,(int)$amount);
+        if($amount>0)$normalized[(string)$key]=$amount;
+    }
+    $db=msw_db();$db->begin_transaction();
+    try{
+        $row=msw_one('SELECT * FROM player_resources WHERE user_id=? FOR UPDATE','i',[$uid]);
+        if(!$row) throw new RuntimeException('Resource ledger missing.');
+        foreach($normalized as $key=>$amount){
+            if((int)($row[$key]??0)<$amount){$db->rollback();return false;}
+        }
+        foreach($normalized as $key=>$amount){
+            $st=msw_stmt("UPDATE player_resources SET {$key}={$key}-? WHERE user_id=? AND {$key}>=?",'iii',[$amount,$uid,$amount]);
+            if($st->affected_rows!==1) throw new RuntimeException('Manufacturing resource ledger changed during settlement.');
+        }
+        msw_stmt(
+            'INSERT INTO inventory(user_id,item_key,quantity) VALUES(?,?,?) ON DUPLICATE KEY UPDATE quantity=quantity+VALUES(quantity)',
+            'isi',[$uid,$item,$qty]
+        );
+        $db->commit();
+        return true;
+    }catch(Throwable $e){
+        try{$db->rollback();}catch(Throwable $_){}
+        throw $e;
+    }
+}
+
 function msw_recalculate_base(int $uid): void {
     $sectors=msw_sectors();
     $total=0;
@@ -129,6 +206,69 @@ function msw_sector_has_capacity_for_assignment(int $uid,string $sector,int $uni
     $capacity=(int)($meta['capacity']??10);
     $count=msw_one('SELECT COUNT(*) c FROM units WHERE owner_user_id=? AND assignment=? AND id<>?','isi',[$uid,$sector,$unitId]);
     return (int)($count['c']??0) < $capacity;
+}
+
+function msw_security_backup_capacity(int $uid): int {
+    return msw_sector_level($uid,'security')>=1 ? 2 : 0;
+}
+
+function msw_security_backup_slots(int $uid): array {
+    $rows=msw_all(
+        "SELECT s.slot_index,s.unit_id,u.callsign,u.source_enemy_key,u.unit_class,u.affinity_type,u.level,u.attack,u.defense,u.speed,u.combat,u.security,u.grade,u.assignment,u.dispatched_until FROM security_backup_slots s JOIN units u ON u.id=s.unit_id AND u.owner_user_id=s.user_id WHERE s.user_id=? ORDER BY s.slot_index",
+        'i',[$uid]
+    );
+    $out=[];foreach($rows as $row)$out[(int)$row['slot_index']]=$row;
+    return $out;
+}
+
+function msw_security_backup_candidates(int $uid): array {
+    return msw_all(
+        "SELECT id,callsign,source_enemy_key,unit_class,affinity_type,level,attack,defense,speed,combat,security,grade,dispatched_until FROM units WHERE owner_user_id=? AND assignment='security' AND unit_class IN ('infantry','heavy_infantry') ORDER BY security DESC,combat DESC,level DESC,id ASC",
+        'i',[$uid]
+    );
+}
+
+function msw_set_security_backup_slot(int $uid,int $slotIndex,int $unitId): void {
+    $capacity=msw_security_backup_capacity($uid);
+    if($slotIndex<1||$slotIndex>$capacity) throw new RuntimeException('That Security backup slot is not available.');
+    if($unitId<=0){
+        msw_stmt('DELETE FROM security_backup_slots WHERE user_id=? AND slot_index=?','ii',[$uid,$slotIndex]);
+        return;
+    }
+    $unit=msw_one("SELECT id,assignment,unit_class,dispatched_until FROM units WHERE id=? AND owner_user_id=?",'ii',[$unitId,$uid]);
+    if(!$unit) throw new RuntimeException('Security backup unit unavailable.');
+    if((string)$unit['assignment']!=='security') throw new RuntimeException('Only staff assigned to the Security Team can join the backup detail.');
+    if(!in_array((string)$unit['unit_class'],['infantry','heavy_infantry'],true)) throw new RuntimeException('Security backup party slots are reserved for personnel, not recovered vehicles or aircraft.');
+    if(!empty($unit['dispatched_until'])&&strtotime((string)$unit['dispatched_until'])>time()) throw new RuntimeException('A dispatched staff member cannot join the active backup detail.');
+    $db=msw_db();$db->begin_transaction();
+    try{
+        msw_stmt('DELETE FROM security_backup_slots WHERE user_id=? AND unit_id=?','ii',[$uid,$unitId]);
+        msw_stmt('INSERT INTO security_backup_slots(user_id,slot_index,unit_id) VALUES(?,?,?) ON DUPLICATE KEY UPDATE unit_id=VALUES(unit_id),updated_at=CURRENT_TIMESTAMP','iii',[$uid,$slotIndex,$unitId]);
+        $db->commit();
+    }catch(Throwable $e){$db->rollback();throw $e;}
+}
+
+function msw_clear_security_backup_for_unit(int $uid,int $unitId): void {
+    msw_stmt('DELETE FROM security_backup_slots WHERE user_id=? AND unit_id=?','ii',[$uid,$unitId]);
+}
+
+function msw_security_backup_fighters(int $uid): array {
+    $capacity=msw_security_backup_capacity($uid);
+    if($capacity<=0)return [];
+    $rows=msw_all(
+        "SELECT s.slot_index,u.id,u.callsign,u.source_enemy_key,u.unit_class,u.affinity_type,u.level,u.attack,u.defense,u.speed,u.combat,u.security,u.grade FROM security_backup_slots s JOIN units u ON u.id=s.unit_id AND u.owner_user_id=s.user_id WHERE s.user_id=? AND s.slot_index BETWEEN 1 AND ? AND u.assignment='security' AND u.unit_class IN ('infantry','heavy_infantry') AND (u.dispatched_until IS NULL OR u.dispatched_until<=NOW()) ORDER BY s.slot_index",
+        'ii',[$uid,$capacity]
+    );
+    $enemyCatalog=msw_enemy_catalog();$out=[];
+    foreach($rows as $row){
+        $enemy=$enemyCatalog[(string)$row['source_enemy_key']]??$enemyCatalog['rifle'];
+        $out[]=[
+            'slot'=>(int)$row['slot_index'],'unit_id'=>(int)$row['id'],'name'=>(string)$row['callsign'],'class'=>(string)$row['unit_class'],'type'=>(string)$row['affinity_type'],
+            'level'=>(int)$row['level'],'attack'=>max(6,(int)round(((int)$row['attack']*.34)+((int)$row['combat']*.16))),'defense'=>(int)$row['defense'],'speed'=>(int)$row['speed'],
+            'security'=>(int)$row['security'],'grade'=>(string)$row['grade'],'sprite'=>(string)$enemy['sprite'],
+        ];
+    }
+    return $out;
 }
 
 function msw_combat_units(int $uid): array {

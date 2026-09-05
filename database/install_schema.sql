@@ -117,6 +117,19 @@ CREATE TABLE IF NOT EXISTS units (
  INDEX idx_dispatch_state(owner_user_id,dispatched_until)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
+CREATE TABLE IF NOT EXISTS security_backup_slots (
+ user_id BIGINT UNSIGNED NOT NULL,
+ slot_index TINYINT UNSIGNED NOT NULL,
+ unit_id BIGINT UNSIGNED NOT NULL,
+ created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+ updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+ PRIMARY KEY(user_id,slot_index),
+ UNIQUE KEY uq_security_backup_unit(user_id,unit_id),
+ FOREIGN KEY(user_id) REFERENCES users(id) ON DELETE CASCADE,
+ FOREIGN KEY(unit_id) REFERENCES units(id) ON DELETE CASCADE,
+ INDEX idx_security_backup_unit(unit_id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
 CREATE TABLE IF NOT EXISTS mother_base_presence (
  user_id BIGINT UNSIGNED PRIMARY KEY,
  base_owner_user_id BIGINT UNSIGNED NOT NULL,
@@ -343,4 +356,4 @@ CREATE TABLE IF NOT EXISTS login_attempts (
  PRIMARY KEY(ip_hash,username_key)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
-INSERT INTO schema_meta(meta_key,meta_value) VALUES ("schema_revision","6") ON DUPLICATE KEY UPDATE meta_value=VALUES(meta_value);
+INSERT INTO schema_meta(meta_key,meta_value) VALUES ("schema_revision","7") ON DUPLICATE KEY UPDATE meta_value=VALUES(meta_value);

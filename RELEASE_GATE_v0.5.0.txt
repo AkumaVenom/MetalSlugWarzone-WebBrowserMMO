@@ -1,0 +1,31 @@
+METAL SLUG WARZONE v0.5.0 — XAMPP TEST CANDIDATE RELEASE GATE
+Build date: 2026-09-05
+Schema revision: 7
+
+IMPLEMENTED
+- Cargo Fulton unlock: R&D 5.
+- Wormhole Fulton unlock: R&D 8.
+- Functional Medical unlock chain: Combat Medkit / Trauma Kit / Nanomed Injector.
+- Functional Intel unlock chain: threat lens / weakness recommendation / Fulton forecast / countermeasure accuracy reduction.
+- Functional Security unlock chain: two persistent player-selected low-damage PvE escorts / accuracy / controlled damage ceiling.
+- Functional Support unlock chain: +15% / +25% battlefield medical healing.
+- Transactional R&D resource debit + inventory credit.
+- Unified animated PvE combat presentation plus PvP action choreography.
+- Global Earth -> continent -> populated shard -> cross-shard invasion flow.
+- Cross-shard immediate and 2–4 staff FOB invasions without changing home FOB membership.
+- More frequent autonomous FOB aggression; AI may target humans and commanders outside its home shard.
+- Modestly faster bounded autonomous progression/action cadence.
+- Human defender incoming raid history and local FOB DEFENSE console events.
+
+STATIC VALIDATION PASSED
+- PHP 8.4.23: all 57 public_html PHP files lint clean.
+- Node v22.16.0: assets/js/msw.js syntax clean.
+- CSS structural brace balance clean (597 blocks).
+- Catalog threshold/unlock assertions passed.
+- Version/schema/new-table/setup-health assertions passed.
+- Literal PHP include and static PHP page-link integrity passed.
+- No nested ZIPs and no source_assets directory.
+- 44 runtime image assets SHA-256 byte-identical to v0.4.1.
+
+RUNTIME ACCEPTANCE STILL REQUIRED
+This environment does not provide a local MySQL/MariaDB service, so this build intentionally remains an XAMPP Test Candidate. Back up the accepted database, run _setup.php -> Update / Repair, confirm schema 7 and health checks, then complete docs/XAMPP_TEST_PLAN.md in the real XAMPP/MariaDB/browser environment before promoting to stable.

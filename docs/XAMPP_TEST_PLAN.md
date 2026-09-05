@@ -1,121 +1,181 @@
-# XAMPP Runtime Acceptance Plan — v0.4.1 Polished FOB Spatial Distribution & Globe Alignment
+# XAMPP Runtime Acceptance Plan — v0.5.0 Combat Support, Global FOB Invasion & Competitive AI
 
-v0.4.1 is a non-destructive corrective update over the **v0.4.0 Sharded Global FOB World** baseline. Schema advances **5 → 6** to reflow existing FOB x/y coordinates from their unchanged slot identities. The same repair path also supports direct upgrades from v0.3.5/schema 4. Use **Update / Repair** for an existing database; do not Fresh Install unless deliberately testing a clean database.
+This is the release-blocking runtime plan for the v0.5.0 XAMPP candidate. Perform it against a backed-up copy of the accepted persistent database and use at least two human test accounts where multiplayer behavior is involved.
 
-## 1. Backup and schema migration — RELEASE BLOCKING
+## 1. Upgrade and schema integrity — RELEASE BLOCKING
 
-1. Back up the existing database (v0.4.0/schema 5 or earlier supported baseline).
-2. Replace runtime files with the v0.4.1 candidate while preserving the package structure.
-3. Open `_setup.php` locally and run **Update / Repair**.
+1. Back up the accepted database.
+2. Replace the runtime files with the v0.5.0 candidate while preserving the package layout.
+3. Open `_setup.php` locally and run **Update / Repair**. Do **not** Fresh Install.
 4. Run **Confirm Installation** and require:
-   - schema revision `6`;
-   - exactly 1,000 enabled persistent autonomous commanders;
-   - `fob_worlds`, `fob_world_memberships`, `fob_strike_dispatches` all `OK`;
-   - `autonomous_fob_memberships = OK · 1000 persistent unique slots`;
-   - `autonomous_fob_distribution` reports 200 bots in each of Continental / Forest / Desert / Arctic / Sea;
-   - `fob_slot_collision_guard = OK · zero duplicate world slots`;
-   - `fob_spatial_distribution = OK` and reports irregular collision-free anchors.
-5. Confirm existing human Commander XP, characters, resources, staff/vehicles, sector levels, standard dispatches, raid history, PvP/social state and inventory remain intact.
-6. Existing human accounts should have **no forced automatic FOB membership** until their owner makes the new globe choice.
+   - schema revision `7`;
+   - `security_backup_slots` present;
+   - `security_backup_integrity = OK · valid party support slots`;
+   - existing bot population/distribution checks remain OK;
+   - `fob_slot_collision_guard = OK`;
+   - `fob_spatial_distribution = OK`.
+5. Confirm existing human Commander XP, characters, resources, inventory, staff/vehicles, sector levels, home FOB biome/shard/slot/skin, dispatches, raid history, PvP and social state remain intact.
+6. Restart Apache/MySQL once and reconfirm the same state.
 
-## 2. New account FOB onboarding — RELEASE BLOCKING
+## 2. Fulton threshold rebalance — RELEASE BLOCKING
 
-1. Create a new account and choose a field operative.
-2. Confirm signup no longer asks for a Mother Base and sends the new commander directly to the Earth FOB deployment screen.
-3. Confirm the supplied 1254×1254 Earth overview is visible with five choices: **Continental, Forest, Desert, Arctic, Sea**. Verify each control is visually centered on its matching art region: Continental = gold Americas, Forest = green Eurasia, Desert = orange Africa, Arctic = polar ice, Sea = open ocean.
-4. Select each land biome in separate disposable accounts/tests and confirm the next screen exposes only its matching skin.
-5. Select **Sea** and confirm exactly three coherent choices appear: Offshore Alpha, Offshore Bravo and Maritime Fortress.
-6. Deploy a skin and confirm the account enters its native 2000×2000 overview world and the camera centers on the player's FOB.
+Use accounts/test staff arrangements that produce the required R&D levels.
 
-## 3. Existing account migration flow — RELEASE BLOCKING
+1. At R&D 4, confirm Fulton and Fulton+ are available, but Cargo and Wormhole are locked.
+2. Reach R&D 5 and confirm **Cargo Fulton Pack** unlocks immediately and manufactures quantity 2 for the displayed cost.
+3. In battle against a vehicle-class contact, confirm Cargo Fulton is accepted at R&D 5 and still rejects an invalid/unrecoverable class as before.
+4. At R&D 7, confirm Wormhole remains locked.
+5. Reach R&D 8 and confirm **Wormhole Fulton** unlocks and can recover valid personnel/vehicle/air classes according to the catalog.
+6. Confirm no client-side form modification can bypass a missing R&D level.
 
-1. For a v0.3.5 account, log in with a pre-update human commander and confirm the one-time globe flow still works. For an already deployed v0.4.0 account, confirm no new biome/skin selection is forced.
-2. Open **FOB**. Confirm the globe/skin deployment flow appears once.
-3. On another not-yet-deployed legacy account, open **Mother Base** and confirm it redirects to the same global deployment flow rather than silently using an incoherent legacy base. On an already deployed v0.4.0 account, record its `world_id`, `shard_index`, `slot_index` and `skin_key` before repair and confirm all four remain unchanged afterward.
-4. Complete deployment and confirm all existing staff, hardware, resources, sector levels, XP and historical raid records remain.
-5. Relog/restart browser and confirm the account returns directly to the same overview world, same shard, same FOB skin and same slot.
-6. Open Profile and confirm independent Mother Base redeployment is no longer offered; the Global FOB placement is presented as locked persistent identity.
+## 3. Medical Team consumables — RELEASE BLOCKING
 
-## 4. Shard placement and non-overlap — RELEASE BLOCKING
+1. Reach R&D 2 + Medical 2. Manufacture **Combat Medkit ×3** and confirm exact resource debit and persistent inventory credit.
+2. Damage the Commander in a PvE fight and use one Combat Medkit. Confirm 35 base HP is restored (subject to missing-HP cap), exactly one item is consumed, Security backup may act, then the living enemy receives its normal counter turn.
+3. Attempt to use a medical item at full HP. Confirm the action is refused and the item is **not consumed**.
+4. With R&D 5 + Medical 5, manufacture/use Trauma Kit and confirm 80 base healing.
+5. With R&D 8 + Medical 8, manufacture/use Nanomed Injector and confirm 160 base healing.
+6. Verify a sufficient R&D level without the required Medical level does not unlock the medical recipe/use, and vice versa.
+7. Relog and confirm remaining medical inventory persists.
 
-1. With several human accounts in one biome, confirm every FOB has a distinct position.
-2. Query `fob_world_memberships` and confirm no duplicate `(world_id,slot_index)` pair exists.
-3. Confirm every membership x/y equals `msw_fob_slot_position(slot_index, biome_key, shard_index)`, the icons are visually separated, and the population is visibly irregular rather than arranged in horizontal/vertical rows.
-4. Confirm the overview header reports the correct shard label (`FOREST-001`, `SEA-002`, etc.) and population/capacity.
-5. Capacity test in a disposable database: populate a biome to 144 memberships, then deploy one additional account. Confirm the server creates the next shard and places the new account there rather than overlapping shard 001.
-6. Confirm a commander cannot manually switch to another shard from the UI or by changing query parameters.
-7. Compare two partially populated shards of the same biome and confirm their visible anchor subsets are not identical; biome/shard permutation should alter the partial spatial pattern while remaining deterministic after reload.
-8. Reload/restart Apache and MySQL and confirm every FOB returns to the exact same irregular x/y position.
+## 4. Support Unit healing bonuses — RELEASE BLOCKING
 
-## 5. Same-shard target authority — RELEASE BLOCKING
+1. At Support 1–2, verify base medical values.
+2. At Support 3–5, verify displayed/effective healing is 115% of base before the missing-HP cap.
+3. At Support 6+, verify total healing is 125% of base.
+4. Confirm the browser cannot alter the multiplier by changing form values.
 
-1. Use two accounts in the same shard and confirm each appears on the other's overview map.
-2. Select the rival icon and confirm `fob_target.php` opens its correct commander/base/security details.
-3. Use an account in a different shard and attempt to substitute its user ID into `fob_target.php?id=...` or the attack POST. Confirm the target is rejected / not found.
-4. Confirm the classic Infiltration Network lists only rival FOBs in the current world instance.
+## 5. Security two-member backup detail — RELEASE BLOCKING
 
-## 6. Direct invasion cooldown removal + defender protection — RELEASE BLOCKING
+1. Assign at least three recovered personnel to the Security Team.
+2. Open Staff and select two different eligible infantry/heavy-infantry members into Security Escort Detail slots 1 and 2.
+3. Confirm a vehicle/air unit cannot be selected even if assigned to Security.
+4. Confirm the same unit cannot occupy both slots.
+5. Start a PvE battle and confirm both valid escorts appear beside the Commander.
+6. Attack for several rounds. Confirm escorts automatically provide occasional covering fire after the player's action, misses are possible, and their damage is visibly much lower than primary-commander output.
+7. Test a boss: confirm backup damage remains tightly capped and does not trivialize the boss.
+8. At Security 4, verify the 5 percentage-point assist-accuracy improvement through repeated controlled testing; at Security 7, verify only the modest non-boss damage-ceiling increase.
+9. Dispatch a selected escort through a mission/FOB strike. Confirm it is unavailable as active battle backup while dispatched.
+10. Reassign a selected escort away from Security and confirm its backup slot is cleared.
+11. Relog and confirm valid selected slots persist.
 
-1. Have attacker A and open defenders B and C in the same shard.
-2. A immediately infiltrates B and receives a normal After Action Report.
-3. Without waiting, A infiltrates C. Confirm there is **no attacker cooldown** blocking the second raid.
-4. Immediately try B again. Confirm B is blocked only because B has post-invasion protection.
-5. Test both an attacker-win and a defender-win result and confirm the invaded defender receives protection in either case.
-6. After protection expires, confirm B becomes attackable again.
-7. Verify successful transfers debit B and credit A atomically and failure transfers zero.
+## 6. Intel Team functional unlocks — RELEASE BLOCKING
 
-## 7. Staff FOB invasion dispatch — RELEASE BLOCKING
+1. Intel 1: confirm advanced tactical information is absent.
+2. Intel 2: confirm enemy ATK, DEF and SPD appear in PvE.
+3. Intel 4: confirm move-effectiveness information and the recommended attack appear; compare recommendation to the displayed enemy class/type multipliers.
+4. Intel 6: damage a recoverable enemy and confirm the exact current Fulton chance is shown **before** item commitment and changes when enemy HP changes.
+5. Intel 8: verify enemy counterattack accuracy uses the 6 percentage-point reduction. Confirm this is applied server-side rather than represented as a cosmetic badge only.
 
-1. Open an enemy FOB and select 2–4 available staff.
-2. Confirm fewer than 2 / more than 4 cannot be submitted; server validation must still reject malformed requests if browser controls are bypassed.
-3. Launch the strike and verify the Staff Strike Ledger shows target, team count, stored chance and countdown.
-4. While staff are en route, open standard `dispatch.php` and confirm those same units are unavailable because `units.dispatched_until` is shared.
-5. Reload pages and confirm the mission persists.
-6. For restart persistence, stop/restart Apache/MySQL before `finish_at`, then return after the timestamp and confirm the strike resolves exactly once.
-7. Confirm staff return (`dispatched_until` cleared), receive XP, and the result links to a normal FOB After Action Report.
-8. Launch a staff strike, then have a different commander invade/protect the target before the strike arrives. Confirm the arriving mission becomes `protected_abort`, transfers zero resources and safely returns the staff.
+## 7. Capability Matrix — RELEASE BLOCKING
 
-## 8. Standard Dispatch regression — RELEASE BLOCKING
+1. Open Mother Base and locate the Capability Matrix.
+2. Verify R&D, Medical, Intel, Security and Support milestones match the runtime thresholds in this plan.
+3. Raise/lower effective sector levels by staff assignment and recalculate the base; confirm ACTIVE/LOCKED states follow current persisted sector levels.
+4. Confirm this matrix does not expose nonexistent features or stale Cargo R&D 8 / Wormhole R&D 15 requirements.
 
-1. Run at least one normal `dispatch.php` mission from start to finish.
-2. Confirm its original mission catalog, slot count, success chance, reward, unit XP and return behavior remain unchanged.
-3. Confirm a unit on a normal Dispatch mission cannot be selected for an FOB staff invasion.
-4. Confirm `dispatch_missions` and `fob_strike_dispatches` remain separate ledgers.
-5. Expiry-boundary race test: let a standard mission reach `finish_at`, then immediately open an FOB target; confirm the due standard mission resolves before those units are offered for an FOB strike. Repeat in reverse with an FOB strike reaching `finish_at` and then opening standard Dispatch.
-6. With two browser tabs submitting near the same expiry boundary, confirm an older completion never clears the `dispatched_until` timestamp of a newer mission and no unit is simultaneously active in both ledgers.
+## 8. Unified PvE battle choreography — RELEASE BLOCKING
 
-## 9. Autonomous commander FOB integration — RELEASE BLOCKING
+Exercise one of each: field contact, mission, sidequest, rival commander and boss.
 
-1. Open AI Network and confirm the Autonomous FOB Distribution section reports five biomes and the expected shard counts/populations.
-2. In your own FOB shard, confirm AI FOB markers are visible and selectable.
-3. Infiltrate an AI FOB as a human and confirm normal raid/protection/resource behavior.
-4. Let bot simulation run and verify bot activities can record both immediate FOB infiltration and staff invasion deployment/return.
-5. Inspect bot staff while a bot strike is pending and confirm its selected units are reserved through `dispatched_until`.
-6. Confirm autonomous attack targets remain other bots only; no offline human resource loss should occur from background bot aggression.
+For each applicable fight verify:
 
-## 10. Mother Base coherence / visitation regression — RELEASE BLOCKING
+- initial contact enters cleanly;
+- player attacks produce a forward action/lunge and enemy hit reaction when hit;
+- enemy counterattacks animate the enemy and player impact appropriately;
+- Security covering fire visibly identifies the acting backup slot/member;
+- medical use produces healing feedback;
+- Fulton attempts produce extraction feedback and success animation when recovered;
+- combat log/result/state remains consistent with the animation after reload;
+- repeated clicks/version conflicts cannot duplicate a turn.
 
-1. Enter the physical Mother Base after global deployment and confirm its map exactly matches the selected overview FOB skin.
-2. Confirm staff/hardware projection, movement, collision and persistent positions still function.
-3. Friend/Strike Force visitation must still authorize correctly.
-4. Verify a Sea overview commander uses the selected Sea physical base; Forest/Desert/Arctic/Continental commanders use their corresponding land base.
+Enable OS/browser reduced-motion preference and confirm nonessential motion is suppressed while combat remains usable.
 
-## 11. Local WorldServer console regression — RELEASE BLOCKING
+## 9. PvP choreography regression — RELEASE BLOCKING
 
-1. Launch `serverconsole.bat` on the server PC.
-2. Confirm normal human page/action events still appear and bot events remain excluded.
-3. Confirm new FOB deployment, direct raid and staff dispatch actions produce concise `FOB` channel entries for human commanders.
-4. Confirm warzone/Mother Base movement and presence polling remain completely suppressed.
-5. Confirm no passwords, cookies, CSRF tokens, raw POST data or direct-message bodies enter `_server_console/events.ndjson`.
+1. Run human-v-human Live PvP if two accounts are available.
+2. Run Live AI and Commander Snapshot against an autonomous commander.
+3. Confirm each committed attack records and displays attacker motion / defender impact corresponding to the authoritative turn.
+4. Confirm PvP damage, version locking, match results and no-permanent-unit-death behavior remain unchanged.
+5. Confirm Security escorts and PvE medical items are not injected into PvP competitive balance.
 
-## 12. Runtime-only packaging
+## 10. Earth globe and cross-shard navigation — RELEASE BLOCKING
 
-Confirm the candidate contains:
+1. With a deployed commander, open **FOB** and confirm the Earth globe is now the Global Invasion Network rather than immediately forcing the home shard.
+2. Select each biome and confirm `fob_shards.php` lists its populated shards with population/capacity and human/AI composition.
+3. Open the commander's own shard and confirm it is marked HOME.
+4. Open a different populated shard, including a different biome if available. Confirm its native 2000×2000 overview renders and the page is marked REMOTE.
+5. Return/relog and confirm the commander's permanent home biome, shard, slot, skin and x/y did not change.
 
-- the runtime globe, five overview maps and seven overview FOB icons;
-- **no** `source_assets/` directory;
-- **no** nested/source ZIP archive, including the supplied overview-world development ZIP.
+## 11. Cross-shard human invasion — RELEASE BLOCKING
+
+1. Place human A and human B in different shard instances (preferably different biomes for a clear test).
+2. From A's globe, navigate to B's shard and select B's marker/target row.
+3. Confirm target details show the remote shard context.
+4. Launch an immediate invasion and verify a normal After Action Report is created.
+5. Confirm successful resource transfer is exact/atomic; a loss transfers zero.
+6. Confirm B receives defender protection after **either** result and cannot be immediately spammed.
+7. Without waiting on any attacker cooldown, have A attack a different open target and confirm it is allowed.
+8. Tamper with `world_id` so it does not match B's actual membership; confirm the target/attack is rejected.
+9. Confirm After Action Report return links lead to B's relevant shard without relocating A's home FOB.
+
+## 12. Cross-shard staff invasion — RELEASE BLOCKING
+
+1. From a remote target, select 2–4 available staff and launch a staff FOB strike.
+2. Confirm the strike ledger stores/links to the defender's remote world and the countdown persists across reload.
+3. Verify selected staff are unavailable to standard Dispatch and any other FOB strike while reserved.
+4. Restart Apache/MySQL before `finish_at`; return after due time and confirm exactly-once settlement.
+5. Verify staff XP/Commander XP and conditional reservation release.
+6. Protect the defender through another completed invasion before a second strike arrives; confirm the arriving strike becomes `protected_abort`, transfers zero and returns staff safely.
+7. Repeat the cross-ledger expiry-boundary race test with standard Dispatch to confirm an older completion never clears a newer reservation.
+
+## 13. Autonomous progression pace — RELEASE BLOCKING
+
+1. Record a sample of AI Commander levels/Base Power/ranking positions and activity timestamps.
+2. Generate normal game/network traffic for a sustained test interval and revisit the sample.
+3. Confirm bots act on persisted 10–26 second schedules, progress more visibly than the v0.4.1 baseline, and still do not execute multiple actions before their own `next_action_at` merely because extra browser tabs are opened.
+4. Confirm field wins/losses continue to use real Commander XP/resources, roster capacity, R&D, inventory and staff assignment; no artificial ranking number is written directly.
+5. Confirm pulse work stays bounded and normal page responsiveness remains acceptable with the full 1,000-bot population.
+
+## 14. Autonomous global/human FOB competition — RELEASE BLOCKING
+
+1. Observe AI Network/recent activity until autonomous direct raids and staff invasion deployments appear at a noticeably higher frequency than before.
+2. Verify AI attackers can choose targets outside their home shard.
+3. Keep a human test FOB open (not protected) and allow simulation to run until an autonomous commander attacks it.
+4. Confirm the human defense is recorded in `fob_raids`, appears in recent incoming defense history, and produces a local `FOB · DEFENSE` server-console event.
+5. If the AI wins an immediate autonomous raid, confirm transfer uses the reduced autonomous rate/caps rather than the larger human direct-raid transfer.
+6. Confirm human defender protection is applied and subsequent bots respect it until expiry.
+7. Confirm AI staff strikes against humans remain persistent/restart-safe and can protected-abort exactly like human-launched strikes.
+
+## 15. FOB spatial and Mother Base regression — RELEASE BLOCKING
+
+1. Confirm every membership still has a unique `(world_id,slot_index)` and its stored x/y matches the deterministic v0.4.1 irregular anchor mapping.
+2. Reload/restart and confirm all FOB markers return to the exact same positions.
+3. Fill a disposable 144-member shard and confirm the next deployment creates the next shard instead of overlapping.
+4. Enter physical Mother Base and confirm its map remains coherent with the permanent home FOB skin, not the most recently browsed remote shard.
+5. Confirm Mother Base movement/collision, staff/hardware projection and friend/Strike Force visitation remain correct.
+
+## 16. Existing systems regression — RELEASE BLOCKING
+
+Verify at least one successful cycle of each accepted foundation system:
+
+- standard Combat Unit Dispatch;
+- strategic/base project timer;
+- sidequest and mission rewards;
+- Fulton recovery persistence;
+- friends/direct messages/Strike Force access;
+- rankings;
+- local WorldServer console filtering/privacy;
+- six warzones with mandatory multiplayer presence and autonomous avatars.
+
+## 17. Runtime-only package check — RELEASE BLOCKING
+
+Confirm the candidate contains the accepted runtime artwork and contains:
+
+- no `source_assets/` directory;
+- no nested `.zip` development/source archive;
+- no unintended cache/temp/database dump files.
 
 ## Acceptance
 
-Promote v0.4.1 only after the real XAMPP/MariaDB/browser environment confirms correctly aligned globe controls, irregular persistent collision-free FOB placement, unchanged shard/slot ownership for upgraded v0.4.0 accounts, automatic next-shard creation, same-shard attack authority, no attacker cooldown, defender-only protection, restart-safe staff invasions, unchanged standard Dispatch behavior, and complete autonomous commander integration.
+Promote v0.5.0 only after the real XAMPP/MariaDB/browser environment passes all release-blocking sections. Static lint/build validation is necessary but does not replace multiplayer/database runtime acceptance.

@@ -2,7 +2,7 @@
 declare(strict_types=1);
 require_once __DIR__ . '/catalog.php';
 
-const MSW_SCHEMA_REVISION = 6;
+const MSW_SCHEMA_REVISION = 7;
 
 function msw_schema_statements(): array {
     return [
@@ -117,6 +117,18 @@ function msw_schema_statements(): array {
  INDEX idx_units_owner(owner_user_id,assignment),
  INDEX idx_active(owner_user_id,active_combat),
  INDEX idx_dispatch_state(owner_user_id,dispatched_until)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci",
+"CREATE TABLE IF NOT EXISTS security_backup_slots (
+ user_id BIGINT UNSIGNED NOT NULL,
+ slot_index TINYINT UNSIGNED NOT NULL,
+ unit_id BIGINT UNSIGNED NOT NULL,
+ created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+ updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+ PRIMARY KEY(user_id,slot_index),
+ UNIQUE KEY uq_security_backup_unit(user_id,unit_id),
+ FOREIGN KEY(user_id) REFERENCES users(id) ON DELETE CASCADE,
+ FOREIGN KEY(unit_id) REFERENCES units(id) ON DELETE CASCADE,
+ INDEX idx_security_backup_unit(unit_id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci",
 "CREATE TABLE IF NOT EXISTS mother_base_presence (
  user_id BIGINT UNSIGNED PRIMARY KEY,
@@ -420,7 +432,7 @@ function msw_seed_bot_population(mysqli $db,int $target=1000): void {
             $userStmt->execute();$uid=(int)$db->insert_id;
             $delay=5+(($i*7)%31);$botStmt->bind_param('iisi',$uid,$i,$personality,$delay);$botStmt->execute();
             $resourceStmt->bind_param('i',$uid);$resourceStmt->execute();
-            foreach(['fulton'=>20,'fulton_plus'=>4,'cargo_fulton'=>2,'wormhole_fulton'=>0] as $item=>$qty){$inventoryStmt->bind_param('isi',$uid,$item,$qty);$inventoryStmt->execute();}
+            foreach(['fulton'=>20,'fulton_plus'=>4,'cargo_fulton'=>2,'wormhole_fulton'=>0,'field_medkit'=>0,'trauma_kit'=>0,'nanomed_injector'=>0] as $item=>$qty){$inventoryStmt->bind_param('isi',$uid,$item,$qty);$inventoryStmt->execute();}
             foreach($sectors as $sector){$score=$sector==='combat'?68:0;$grade=$sector==='combat'?'E-':'E--';$sectorStmt->bind_param('isis',$uid,$sector,$score,$grade);$sectorStmt->execute();}
             foreach($seedUnits as $n=>$unit){
                 [$enemy,$callsign,$class,$type,$hp,$maxHp,$atk,$def,$spd,$combat,$rd,$support,$intel,$medical,$mess,$security]=$unit;

@@ -115,8 +115,8 @@ function msw_bot_restock_recovery(int $uid,string $item): bool {
         $st=msw_stmt('UPDATE users SET gmp=gmp-300 WHERE id=? AND gmp>=300','i',[$uid]);if($st->affected_rows!==1)return false;
         msw_add_item($uid,'fulton',8);return true;
     }
-    if($item==='cargo_fulton'&&msw_bot_rd_level($uid)>=8){
-        if(msw_spend_resources($uid,['common_metal'=>120,'minor_metal'=>60])){msw_add_item($uid,'cargo_fulton',2);return true;}
+    if($item==='cargo_fulton'&&msw_bot_rd_level($uid)>=5){
+        if(msw_manufacture_item($uid,'cargo_fulton',2,['common_metal'=>120,'minor_metal'=>60]))return true;
     }
     return false;
 }
@@ -125,7 +125,7 @@ function msw_bot_try_capture(int $uid,string $enemyKey,int $enemyLevel): bool {
     $enemy=msw_enemy_catalog()[$enemyKey]??null;if(!$enemy||empty($enemy['recruitable']))return false;
     if(msw_bot_roster_count($uid)>=max(12,(int)(msw_config('bot_roster_cap')??48)))return false;
     $vehicle=(string)$enemy['class']==='vehicle';$item=$vehicle?'cargo_fulton':'fulton';
-    if($vehicle&&msw_bot_rd_level($uid)<8)return false;
+    if($vehicle&&msw_bot_rd_level($uid)<5)return false;
     $inv=msw_inventory($uid);if((int)($inv[$item]??0)<1){if(!msw_bot_restock_recovery($uid,$item))return false;$inv=msw_inventory($uid);}
     if(!msw_consume_item($uid,$item,1))return false;
     $damagedRatio=random_int(18,45)/100.0;$classBase=$vehicle?0.10:0.20;$damageBonus=(1.0-$damagedRatio)*0.62;$bonus=$vehicle?0.08:0.00;
@@ -143,10 +143,10 @@ function msw_bot_field_action(int $uid,array $user): void {
     $winChance=max(45,min(95,76+($level*2)-((int)$map['level']*3)));
     $won=random_int(1,100)<=$winChance;
     msw_stmt('UPDATE bot_commanders SET field_battles=field_battles+1,last_enemy_key=? WHERE user_id=?','si',[$enemyKey,$uid]);
-    if(!$won){msw_level_up_user($uid,12);msw_bot_set_activity($uid,'Regrouping after '.$enemy['name'].' contact',$enemyKey);return;}
+    if(!$won){msw_level_up_user($uid,16);msw_bot_set_activity($uid,'Regrouping after '.$enemy['name'].' contact',$enemyKey);return;}
     msw_stmt('UPDATE bot_commanders SET field_wins=field_wins+1 WHERE user_id=?','i',[$uid]);
-    msw_grant_resources($uid,['gmp'=>random_int(180,420),'common_metal'=>random_int(35,95),'fuel'=>random_int(20,60)]);
-    msw_level_up_user($uid,random_int(45,80));
+    msw_grant_resources($uid,['gmp'=>random_int(210,470),'common_metal'=>random_int(40,105),'fuel'=>random_int(22,66)]);
+    msw_level_up_user($uid,random_int(55,90));
     $captured=msw_bot_try_capture($uid,$enemyKey,$enemyLevel);
     msw_bot_set_activity($uid,$captured?'Recovered '.$enemy['name'].' by Fulton':'Defeated '.$enemy['name'],$enemyKey);
 }
@@ -156,8 +156,8 @@ function msw_bot_manage_base(int $uid): void {
     foreach($reserves as $r)msw_bot_assign_unit($uid,(int)$r['id']);
     msw_bot_refresh_combat_team($uid);msw_recalculate_base($uid);
     $rd=msw_bot_rd_level($uid);$inv=msw_inventory($uid);
-    if($rd>=4&&(int)($inv['fulton_plus']??0)<2&&msw_spend_resources($uid,['common_metal'=>80,'minor_metal'=>35]))msw_add_item($uid,'fulton_plus',2);
-    if($rd>=8&&(int)($inv['cargo_fulton']??0)<2&&msw_spend_resources($uid,['common_metal'=>120,'minor_metal'=>60]))msw_add_item($uid,'cargo_fulton',2);
+    if($rd>=4&&(int)($inv['fulton_plus']??0)<2)msw_manufacture_item($uid,'fulton_plus',2,['common_metal'=>80,'minor_metal'=>35]);
+    if($rd>=5&&(int)($inv['cargo_fulton']??0)<2)msw_manufacture_item($uid,'cargo_fulton',2,['common_metal'=>120,'minor_metal'=>60]);
     msw_bot_set_activity($uid,'Reorganizing Mother Base staff');
 }
 
@@ -197,16 +197,29 @@ function msw_bot_dispatch_action(int $uid): void {
     }catch(Throwable $e){$db->rollback();throw $e;}
 }
 
+function msw_bot_pick_fob_target(int $attackerId): ?array {
+    $membership=msw_fob_membership($attackerId);if(!$membership)return null;
+    $humanBias=max(0,min(80,(int)(msw_config('bot_human_invasion_bias_percent')??28)));
+    $preferHuman=random_int(1,100)<=$humanBias;$preferLocal=random_int(1,100)<=35;
+    $attempts=[];
+    if($preferHuman&&$preferLocal)$attempts[]=['human'=>true,'local'=>true];
+    if($preferHuman)$attempts[]=['human'=>true,'local'=>false];
+    if($preferLocal)$attempts[]=['human'=>false,'local'=>true];
+    $attempts[]=['human'=>false,'local'=>false];
+    foreach($attempts as $a){
+        $where='m.user_id<>? AND (u.fob_protection_until IS NULL OR u.fob_protection_until<=NOW())';$types='i';$params=[$attackerId];
+        if($a['human']){$where.=' AND u.is_bot=0';}
+        if($a['local']){$where.=' AND m.world_id=?';$types.='i';$params[]=(int)$membership['world_id'];}
+        $target=msw_one("SELECT u.id,u.username,u.is_bot,m.world_id FROM fob_world_memberships m JOIN users u ON u.id=m.user_id WHERE {$where} ORDER BY RAND() LIMIT 1",$types,$params);
+        if($target)return $target;
+    }
+    return null;
+}
+
 function msw_bot_autonomous_fob_raid(int $attackerId): bool {
-    $membership=msw_fob_membership($attackerId);if(!$membership)return false;
-    $target=msw_one(
-        "SELECT u.id FROM fob_world_memberships m JOIN users u ON u.id=m.user_id JOIN bot_commanders b ON b.user_id=u.id AND b.enabled=1 WHERE m.world_id=? AND u.id<>? AND (u.fob_protection_until IS NULL OR u.fob_protection_until<=NOW()) ORDER BY RAND() LIMIT 1",
-        'ii',[(int)$membership['world_id'],$attackerId]
-    );
-    if(!$target)return false;
-    $defenderId=(int)$target['id'];
-    msw_fob_resolve_direct_raid($attackerId,$defenderId,'autonomous');
-    msw_bot_set_activity($attackerId,'Autonomous FOB infiltration resolved inside '.msw_fob_world_name($membership));
+    $membership=msw_fob_membership($attackerId);if(!$membership)return false;$target=msw_bot_pick_fob_target($attackerId);if(!$target)return false;
+    $defenderId=(int)$target['id'];msw_fob_resolve_direct_raid($attackerId,$defenderId,'autonomous');$targetWorld=msw_fob_world_row((int)$target['world_id']);
+    msw_bot_set_activity($attackerId,'Invaded '.((int)$target['is_bot']===0?'human commander ':'AI commander ').(string)$target['username'].' in '.($targetWorld?msw_fob_world_name($targetWorld):'global FOB network'));
     return true;
 }
 
@@ -218,17 +231,12 @@ function msw_bot_fob_dispatch_action(int $uid): bool {
     }
     $pending=msw_one("SELECT id,defender_user_id,finish_at FROM fob_strike_dispatches WHERE attacker_user_id=? AND result='pending' ORDER BY id DESC LIMIT 1",'i',[$uid]);
     if($pending){msw_bot_set_activity($uid,'Staff invasion team deployed to enemy FOB');return true;}
-    $membership=msw_fob_membership($uid);if(!$membership)return false;
-    $target=msw_one(
-        "SELECT u.id FROM fob_world_memberships m JOIN users u ON u.id=m.user_id JOIN bot_commanders b ON b.user_id=u.id AND b.enabled=1 WHERE m.world_id=? AND u.id<>? AND (u.fob_protection_until IS NULL OR u.fob_protection_until<=NOW()) ORDER BY RAND() LIMIT 1",
-        'ii',[(int)$membership['world_id'],$uid]
-    );
-    if(!$target)return false;
+    $membership=msw_fob_membership($uid);if(!$membership)return false;$target=msw_bot_pick_fob_target($uid);if(!$target)return false;
     $units=msw_all("SELECT id FROM units WHERE owner_user_id=? AND (dispatched_until IS NULL OR dispatched_until<=NOW()) ORDER BY combat DESC,level DESC,id ASC LIMIT 2",'i',[$uid]);
     if(count($units)<2)return false;
     $ids=array_map(fn($r)=>(int)$r['id'],$units);
     msw_fob_launch_staff_dispatch($uid,(int)$target['id'],$ids);
-    msw_bot_set_activity($uid,'Dispatched staff invasion team to enemy FOB');
+    $targetWorld=msw_fob_world_row((int)$target['world_id']);msw_bot_set_activity($uid,'Dispatched staff invasion team to '.(string)$target['username'].' in '.($targetWorld?msw_fob_world_name($targetWorld):'global FOB network'));
     return true;
 }
 
@@ -254,18 +262,18 @@ function msw_bot_simulate_one(int $uid): void {
     $bot=msw_bot_row($uid);if(!$bot)return;
     if(msw_fob_resolve_due_dispatches($uid,2)>0){msw_bot_set_activity($uid,'Staff FOB invasion mission resolved');return;}
     $roll=random_int(1,100);
-    if($roll<=50)msw_bot_move($uid,$user);
-    elseif($roll<=73)msw_bot_field_action($uid,$user);
-    elseif($roll<=82)msw_bot_manage_base($uid);
-    elseif($roll<=89)msw_bot_dispatch_action($uid);
-    elseif($roll<=94)msw_bot_fob_dispatch_action($uid);
-    elseif($roll<=98)msw_bot_autonomous_fob_raid($uid);
+    if($roll<=38)msw_bot_move($uid,$user);
+    elseif($roll<=66)msw_bot_field_action($uid,$user);
+    elseif($roll<=76)msw_bot_manage_base($uid);
+    elseif($roll<=84)msw_bot_dispatch_action($uid);
+    elseif($roll<=93)msw_bot_fob_dispatch_action($uid);
+    elseif($roll<=99)msw_bot_autonomous_fob_raid($uid);
     else msw_bot_autonomous_pvp($uid);
 }
 
 function msw_bot_simulation_pulse(?string $mapKey=null,int $budget=12): void {
     if(!(bool)(msw_config('bot_population_enabled')??true))return;
-    $budget=max(1,min(30,$budget));$where="b.enabled=1 AND b.next_action_at<=NOW() AND (b.lease_until IS NULL OR b.lease_until<NOW())";$types='';$params=[];
+    $mult=max(1.0,min(2.0,(float)(msw_config('bot_pulse_budget_multiplier')??1.0)));$budget=max(1,min(45,(int)ceil($budget*$mult)));$where="b.enabled=1 AND b.next_action_at<=NOW() AND (b.lease_until IS NULL OR b.lease_until<NOW())";$types='';$params=[];
     if($mapKey!==null&&$mapKey!==''){$where.=' AND u.active_map=?';$types='s';$params=[$mapKey];}
     $ids=msw_all("SELECT b.user_id FROM bot_commanders b JOIN users u ON u.id=b.user_id WHERE {$where} ORDER BY b.next_action_at,b.bot_index LIMIT {$budget}",$types,$params);
     foreach($ids as $row){$uid=(int)$row['user_id'];$claim=msw_stmt('UPDATE bot_commanders SET lease_until=DATE_ADD(NOW(),INTERVAL 8 SECOND) WHERE user_id=? AND enabled=1 AND (lease_until IS NULL OR lease_until<NOW())','i',[$uid]);if($claim->affected_rows!==1)continue;

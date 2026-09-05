@@ -564,8 +564,8 @@ function msw_fulton_catalog(): array {
     return [
         'fulton'=>['name'=>'Fulton Recovery','rd'=>1,'bonus'=>0.00,'classes'=>['infantry','heavy_infantry']],
         'fulton_plus'=>['name'=>'Fulton+ Balloon','rd'=>4,'bonus'=>0.12,'classes'=>['infantry','heavy_infantry']],
-        'cargo_fulton'=>['name'=>'Cargo Fulton','rd'=>8,'bonus'=>0.08,'classes'=>['infantry','heavy_infantry','vehicle']],
-        'wormhole_fulton'=>['name'=>'Wormhole Fulton','rd'=>15,'bonus'=>0.22,'classes'=>['infantry','heavy_infantry','vehicle','air']],
+        'cargo_fulton'=>['name'=>'Cargo Fulton','rd'=>5,'bonus'=>0.08,'classes'=>['infantry','heavy_infantry','vehicle']],
+        'wormhole_fulton'=>['name'=>'Wormhole Fulton','rd'=>8,'bonus'=>0.22,'classes'=>['infantry','heavy_infantry','vehicle','air']],
     ];
 }
 function msw_move_catalog(): array {
@@ -614,10 +614,57 @@ function msw_dispatch_catalog(): array {
 }
 function msw_rd_catalog(): array {
     return [
-        'fulton'=>['name'=>'Fulton Recovery Pack','rd'=>1,'cost'=>['common_metal'=>60,'fuel'=>40],'quantity'=>4,'desc'=>'Baseline personnel recovery system. Available from R&D Level 1 so early staff progression cannot deadlock.'],
-        'fulton_plus'=>['name'=>'Fulton+ Balloon Pack','rd'=>4,'cost'=>['common_metal'=>120,'fuel'=>80],'quantity'=>3,'desc'=>'Improved personnel recovery envelope.'],
-        'cargo_fulton'=>['name'=>'Cargo Fulton Pack','rd'=>8,'cost'=>['common_metal'=>260,'minor_metal'=>100,'fuel'=>160],'quantity'=>2,'desc'=>'Extends recovery to ground vehicles.'],
-        'wormhole_fulton'=>['name'=>'Wormhole Fulton','rd'=>15,'cost'=>['minor_metal'=>420,'precious_metal'=>120,'fuel'=>350],'quantity'=>1,'desc'=>'Advanced extraction for personnel, vehicles and aircraft.'],
+        'fulton'=>['name'=>'Fulton Recovery Pack','rd'=>1,'requirements'=>['rd'=>1],'cost'=>['common_metal'=>60,'fuel'=>40],'quantity'=>4,'desc'=>'Baseline personnel recovery system. Available from R&D Level 1 so early staff progression cannot deadlock.'],
+        'field_medkit'=>['name'=>'Combat Medkit','rd'=>2,'requirements'=>['rd'=>2,'medical'=>2],'cost'=>['common_metal'=>35,'biological'=>30],'quantity'=>3,'desc'=>'Single-use battlefield medical supply. Restores 35 Commander HP and consumes the action turn.'],
+        'fulton_plus'=>['name'=>'Fulton+ Balloon Pack','rd'=>4,'requirements'=>['rd'=>4],'cost'=>['common_metal'=>120,'fuel'=>80],'quantity'=>3,'desc'=>'Improved personnel recovery envelope.'],
+        'cargo_fulton'=>['name'=>'Cargo Fulton Pack','rd'=>5,'requirements'=>['rd'=>5],'cost'=>['common_metal'=>260,'minor_metal'=>100,'fuel'=>160],'quantity'=>2,'desc'=>'Extends recovery to ground vehicles.'],
+        'trauma_kit'=>['name'=>'Trauma Kit','rd'=>5,'requirements'=>['rd'=>5,'medical'=>5],'cost'=>['common_metal'=>70,'minor_metal'=>35,'biological'=>70],'quantity'=>2,'desc'=>'Advanced battlefield trauma supply. Restores 80 Commander HP and consumes the action turn.'],
+        'wormhole_fulton'=>['name'=>'Wormhole Fulton','rd'=>8,'requirements'=>['rd'=>8],'cost'=>['minor_metal'=>420,'precious_metal'=>120,'fuel'=>350],'quantity'=>1,'desc'=>'Advanced extraction for personnel, vehicles and aircraft.'],
+        'nanomed_injector'=>['name'=>'Nanomed Injector','rd'=>8,'requirements'=>['rd'=>8,'medical'=>8],'cost'=>['minor_metal'=>110,'precious_metal'=>35,'biological'=>140],'quantity'=>1,'desc'=>'Top-tier battlefield medical supply. Restores up to 160 Commander HP and benefits from Support Team field-logistics bonuses.'],
+    ];
+}
+
+function msw_battle_item_catalog(): array {
+    return [
+        'field_medkit'=>['name'=>'Combat Medkit','heal'=>35,'requirements'=>['medical'=>2,'rd'=>2]],
+        'trauma_kit'=>['name'=>'Trauma Kit','heal'=>80,'requirements'=>['medical'=>5,'rd'=>5]],
+        'nanomed_injector'=>['name'=>'Nanomed Injector','heal'=>160,'requirements'=>['medical'=>8,'rd'=>8]],
+    ];
+}
+
+/**
+ * Mother Base level-gated systems. Every entry below maps to a runtime effect,
+ * not a presentation-only badge. The Base screen uses this same catalog to
+ * explain what is active and what the next staff milestone will unlock.
+ */
+function msw_sector_unlock_catalog(): array {
+    return [
+        'rd'=>[
+            ['level'=>1,'name'=>'Personnel Fulton Fabrication','effect'=>'Manufacture standard Fulton Recovery Packs.'],
+            ['level'=>4,'name'=>'Fulton+ Envelope','effect'=>'Manufacture higher-success personnel recovery balloons.'],
+            ['level'=>5,'name'=>'Cargo Fulton Certification','effect'=>'Manufacture and deploy recovery systems for ground vehicles.'],
+            ['level'=>8,'name'=>'Wormhole Extraction','effect'=>'Manufacture the universal personnel / vehicle / aircraft extraction system.'],
+        ],
+        'medical'=>[
+            ['level'=>2,'name'=>'Combat Medkit Protocol','effect'=>'Manufacture and use Combat Medkits during PvE engagements.'],
+            ['level'=>5,'name'=>'Trauma Response Protocol','effect'=>'Manufacture and use 80 HP Trauma Kits during PvE engagements.'],
+            ['level'=>8,'name'=>'Nanomed Protocol','effect'=>'Manufacture and use 160 HP Nanomed Injectors during PvE engagements.'],
+        ],
+        'intel'=>[
+            ['level'=>2,'name'=>'Tactical Threat Lens','effect'=>'Reveal enemy attack, defense and speed during PvE battles.'],
+            ['level'=>4,'name'=>'Weakness Matrix','effect'=>'Show move effectiveness and a server-calculated recommended attack.'],
+            ['level'=>6,'name'=>'Fulton Forecast','effect'=>'Display the exact current extraction probability before committing a recovery item.'],
+            ['level'=>8,'name'=>'Countermeasure Analysis','effect'=>'Enemy PvE counterattack accuracy is reduced by 6 percentage points.'],
+        ],
+        'security'=>[
+            ['level'=>1,'name'=>'Security Escort Detail','effect'=>'Select up to two Security Team staff as automatic low-damage battle backup.'],
+            ['level'=>4,'name'=>'Covering Fire Drill','effect'=>'Security backup assist accuracy improves by 5 percentage points.'],
+            ['level'=>7,'name'=>'Controlled Burst Doctrine','effect'=>'Security backup damage ceiling improves slightly while remaining below primary-commander output.'],
+        ],
+        'support'=>[
+            ['level'=>3,'name'=>'Field Logistics','effect'=>'Battlefield medical items restore 15% additional HP.'],
+            ['level'=>6,'name'=>'Rapid Medical Resupply','effect'=>'Battlefield medical items restore a total 25% additional HP.'],
+        ],
     ];
 }
 

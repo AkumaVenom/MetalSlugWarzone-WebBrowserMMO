@@ -1,4 +1,39 @@
 # Changelog
+## v0.5.0 — Polished Combat Support, Global FOB Invasion & Competitive AI — XAMPP Test Candidate
+
+### Mother Base progression and manufacturing
+- Moved **Cargo Fulton** from R&D 8 to **R&D 5** and **Wormhole Fulton** from R&D 15 to **R&D 8** while preserving standard Fulton at R&D 1 and Fulton+ at R&D 4.
+- Added server-authoritative multi-sector R&D requirements and three persistent medical consumables: Combat Medkit (R&D 2 + Medical 2, 35 HP), Trauma Kit (R&D 5 + Medical 5, 80 HP), and Nanomed Injector (R&D 8 + Medical 8, 160 HP).
+- Added functional Intel milestones at levels 2/4/6/8, Security milestones at 1/4/7, and Support medical-logistics bonuses at 3/6.
+- Added a live Mother Base **Capability Matrix** so active/locked sector systems are visible from the same catalog that controls gameplay.
+
+### Combat support and battle presentation
+- Added `security_backup_slots` and a Staff UI for selecting up to two Security-assigned infantry/heavy-infantry escorts. Dispatched staff are excluded automatically and reassignment away from Security clears the slot.
+- Security escorts provide automatic covering fire after player actions with deliberately reduced attack scaling, conservative hit chance and a per-hit enemy-max-HP ceiling; bosses use an even lower ceiling.
+- Added in-battle medical item use with atomic inventory consumption, full-HP waste prevention, turn consumption, Support Team healing multipliers and normal enemy counterplay.
+- Added Intel threat-stat reveal, move-effectiveness/recommendation display, exact Fulton forecast, and level-8 enemy accuracy countermeasure.
+- Added shared PvE action FX metadata and CSS choreography for field contacts, missions, sidequests, rival commanders and bosses: attack lunge, hit reaction, enemy counter, Security covering fire, heal pulse and extraction feedback. PvP now records/renders matching turn-action animation. `prefers-reduced-motion` is honored.
+
+### Global FOB invasion network
+- Converted the deployed commander's Earth globe into a **Global Invasion Network**. Players can select a biome, inspect populated shard instances and enter any selected shard without changing their permanent home FOB membership.
+- Added `fob_shards.php` as the populated-shard directory and made `fob_world.php`, target inspection, direct raids, infiltration lists and staff strikes world-context aware.
+- Removed same-shard target authority for invasion only: a valid attacker must still own a FOB membership, but the defender may occupy any valid populated shard. Defender protection and transactionally locked resource transfer remain authoritative.
+- Cross-shard staff strikes persist the defender's target `world_id`, reuse the shared `units.dispatched_until` reservation contract and keep restart-safe exactly-once settlement.
+- Added recent incoming defense visibility on the globe and WorldServer `FOB · DEFENSE` events for human defenders.
+
+### Autonomous commander pacing and competition
+- Tightened persisted bot action scheduling from 12–32 seconds to **10–26 seconds** and introduced a **1.25× bounded pulse budget multiplier**.
+- Modestly increased field combat XP/resource progression so the 1,000 persistent commanders develop at a more visible pace without bypassing the real roster, R&D, inventory or dispatch systems.
+- Increased autonomous FOB action weighting to about **15%** of decisions (staff + direct combined).
+- Expanded autonomous FOB target selection from same-shard bots to valid commanders across the global shard network, including human commanders. A **28% human-target preference** is applied when eligible targets exist.
+- Reduced autonomous direct-raid resource transfer to 3% with lower caps to offset the new ability to pressure human bases. Existing defender post-invasion protection remains the anti-drain boundary.
+
+### Schema, compatibility and validation
+- Schema revision advances **6 → 7** with additive `security_backup_slots` (`PRIMARY KEY(user_id,slot_index)`, unique selected unit per user, cascading user/unit FKs).
+- `_setup.php` requires the new table and reports `security_backup_integrity`; Update / Repair remains non-destructive and idempotent.
+- Existing users, characters, inventory quantities, resources, staff/hardware, sector progression, FOB home world/slot/coordinates/skin, dispatches, raid history, PvP, social state and autonomous identities remain preserved.
+- Updated README, architecture, FOB authority, security, asset manifest, build validation and XAMPP release-blocking acceptance documentation for v0.5.0.
+
 
 ## v0.4.1 — Polished FOB Spatial Distribution & Globe Alignment — XAMPP Test Candidate
 

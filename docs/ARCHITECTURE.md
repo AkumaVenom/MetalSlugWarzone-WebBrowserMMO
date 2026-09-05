@@ -1,138 +1,149 @@
-# Architecture — Metal Slug Warzone v0.4.1
+# Architecture — Metal Slug Warzone v0.5.0
 
 ## Authority model
 
-PHP/MySQL remains authoritative. Browsers submit intent and render returned state; they do not own coordinates, collision, staff movement, bot state, unit ownership, access relationships, battle state, resources or timers.
+PHP/MySQL remains authoritative. The browser submits intent and renders returned state; it does not own movement coordinates, collision, staff movement, unit ownership, sector levels, inventory, battle state, FOB membership, target authority, bot state, resources or timers. v0.5.0 deliberately extends existing ledgers rather than creating client-owned shortcuts.
 
 ## Persistent autonomous commander model
 
-Autonomous commanders are first-class game identities rather than browser-only NPC markers:
+Autonomous commanders remain first-class game identities:
 
 - `users.is_bot=1` identifies an autonomous commander while retaining the same operative, Commander XP, resources, Base Power, active-map and Mother Base fields used by humans.
-- `bot_commanders` adds stable `bot_index`, behavior personality, current activity, counters and persisted `next_action_at` / lease timestamps.
-- Production population is exactly 1,000 stable indexes. Update / Repair seeds only missing indexes and does not recreate existing bot identities.
-- Bot authentication is impossible through the normal login path: `login.php` requires `is_bot=0` before password verification.
-- Bots use the same `units`, `player_resources`, `inventory`, `base_sectors`, `fob_raids` and `pvp_matches` ledgers as human players instead of parallel fake inventories.
+- `bot_commanders` provides the stable `bot_index`, activity/counter state and persisted `next_action_at` / lease timestamps.
+- Production population remains exactly 1,000 stable indexes. Update / Repair seeds only missing production identities and never recreates valid persistent bot progression.
+- Bot authentication remains blocked through the normal login path.
+- Bots use the normal `units`, `player_resources`, `inventory`, `base_sectors`, `dispatch_missions`, `fob_strike_dispatches`, `fob_raids` and `pvp_matches` ledgers instead of parallel fake state.
 
-Fresh seeding round-robins the six warzones and spatially samples the entire legal 36-pixel seed lattice. The expected initial population is 167/167/167/167/166/166 with unique legal positions on each map.
+Fresh seeding remains balanced across all six warzones and uses the accepted legal collision lattice. Per-warzone operative variety remains deterministic and all six accepted player skins are represented within each large autonomous population.
 
-## Bounded autonomous scheduling
+## Bounded autonomous scheduling and v0.5 pacing
 
-This PHP/XAMPP architecture does not launch 1,000 background PHP workers. Autonomous activity is request-driven and bounded:
+The XAMPP/PHP runtime does not create 1,000 background workers. Simulation remains request-driven, persisted and bounded:
 
-1. each bot persists `next_action_at`;
-2. a gameplay/presence request selects only a small due batch;
-3. the selected row receives a short database lease before simulation;
-4. one action resolves and writes a new future `next_action_at`;
-5. failures are logged and receive a longer backoff.
+1. each bot has a persisted `next_action_at`;
+2. a gameplay/presence/network request selects a bounded due batch;
+3. selected bots receive short database leases;
+4. one autonomous action is committed per lease;
+5. the next action time is persisted before later pulses can service that bot again.
 
-Warzone presence polling advances a local batch plus a smaller global batch. This keeps the viewed map responsive while also allowing bots in other warzones to progress. Multiple browsers may increase how many *due* bots are serviced, but cannot make one bot act before its own persisted schedule.
+v0.5.0 tightens normal action spacing from 12–32 seconds to 10–26 seconds and applies a bounded 1.25× pulse-budget multiplier, with a hard pulse cap of 45. Field-combat XP/resources are modestly increased. These changes make the shared rankings evolve faster without allowing extra browser tabs to bypass a commander's own persisted schedule.
 
-## Autonomous gameplay loop
+Autonomous action weighting now gives FOB aggression roughly 15% of action decisions (staff invasion plus immediate raid combined). Target selection can prefer local competition or search globally; when eligible targets exist, a configured 28% bias can prefer human defenders. Defender protection is always respected.
 
-A due bot can:
+## Mother Base sector systems
 
-- move one accepted 18-pixel step through the exact server collision path;
-- resolve a field contact, gain resources/Commander XP and attempt Fulton recovery;
-- assign staff/recalculate Mother Base/R&D and restock recovery equipment by spending real state;
-- start and later resolve a real persisted Combat Unit dispatch through `dispatch_missions`, using the same MySQL `finish_at`, success-chance, reward, unit-XP and unit-return contracts as the player system;
-- perform an autonomous FOB raid against another bot;
-- resolve an autonomous bot-v-bot PvP exercise.
+`base_sectors` remains the authoritative level source. `msw_sector_unlock_catalog()` is the canonical description of runtime milestones and the Mother Base Capability Matrix renders that same catalog.
 
-Recovered contacts create normal persistent `units` rows. Roster capacity is bounded. Human-class recoveries consume Fulton equipment; vehicle recovery requires the same Cargo Fulton/R&D threshold used by players. Autonomous assignment prioritizes qualifying R&D staff until Cargo Fulton capability is legitimately reachable, then returns to aptitude-based assignment.
+### R&D
 
-Because bot units are normal roster rows, the accepted physical Mother Base projection can place their personnel/hardware using the same garrison system when required.
+- Lv1: standard Fulton manufacturing/recovery.
+- Lv4: Fulton+.
+- Lv5: Cargo Fulton, including ground-vehicle recovery.
+- Lv8: Wormhole Fulton, including aircraft recovery.
 
-## Warzone presence
+`msw_fulton_catalog()` controls battle capability and `msw_rd_catalog()` controls manufacturing. Both are checked server-side.
 
-`msw_presence()` merges mandatory human presence with enabled bot commanders on the current map. Bots do not expire through human `last_seen` TTL semantics; their persistent `active_map/map_x/map_y/facing` state represents their assigned live presence.
+### Medical
 
-The browser polls every three seconds. Remote avatars are keyed by user ID and updated in place instead of being destroyed/recreated each poll, which is important when roughly 166–167 autonomous commanders share a map.
+Medical consumables use multi-sector recipe requirements and are real persistent inventory items:
 
-## PvP modes
+- Combat Medkit: R&D 2 + Medical 2; base 35 HP.
+- Trauma Kit: R&D 5 + Medical 5; base 80 HP.
+- Nanomed Injector: R&D 8 + Medical 8; base 160 HP.
 
-`pvp_matches.match_mode` supports:
+`msw_use_battle_item()` revalidates requirements, refuses a full-HP use before consumption, atomically consumes one inventory unit, applies healing, advances the player's action, then permits normal Security backup/enemy response flow.
 
-- `live` — existing human-v-human version-locked turns;
-- `live_ai` — human-v-bot live turns with the bot turn committed server-side after a short response delay;
-- `snapshot` — human-v-bot immutable commander snapshot battle with immediate server AI response;
-- `ai_sim` — autonomous bot-v-bot resolved simulation stored in the same PvP ledger.
+### Intel
 
-The selected Metal Slug operative and Commander stats are snapshotted at match creation. A bot never needs a browser session or synthetic authentication cookie to take its turn.
+Intel is not display-only:
 
-## FOB economy
+- Lv2 reveals enemy ATK/DEF/SPD.
+- Lv4 reveals type effectiveness and a server-calculated recommended move.
+- Lv6 reveals the exact current Fulton success forecast before use.
+- Lv8 reduces the normal PvE enemy counterattack accuracy by 6 percentage points.
 
-Human-to-bot FOB infiltration uses the accepted transactionally locked snapshot/resource-transfer path. Bot defenders therefore expose actual Base Power, active Combat Unit, Security Team and resource stock.
+### Security backup party
 
-Autonomous bot raids deliberately target other bots only. This keeps the autonomous economy active without silently draining offline human accounts. Bot-v-bot raids still use row locks, attacker cooldown, defender protection, immutable snapshots and exact debit/credit resource transfer.
+Schema revision 7 adds `security_backup_slots`, a two-slot persistent selection layer over existing owned `units` rows. A valid escort must:
+
+- belong to the player;
+- be assigned to `security`;
+- be `infantry` or `heavy_infantry`;
+- not be actively dispatched.
+
+The Staff page manages the slots. Reassigning a selected unit away from Security clears its backup selection. At battle synchronization, only currently valid rows are projected into the fight.
+
+Backup output is deliberately constrained. The derived backup attack is substantially reduced from the unit's normal stats, assist accuracy starts around 60%, and each hit is capped to a small percentage of enemy maximum HP (with a lower boss ceiling). Security Lv4 adds 5 percentage points of assist accuracy; Security Lv7 raises the non-boss controlled-damage ceiling slightly. The primary commander remains the dominant damage source.
+
+### Support
+
+Support Lv3 raises medical-item healing to 115% of base and Support Lv6 to 125% total. This multiplier is applied in the authoritative battle engine, not calculated by the browser.
+
+## Unified PvE battle flow and animation contract
+
+Field contacts, normal missions, sidequests, rival commander fights and bosses all use `battle.php` and the shared encounter state in `battle_engine.php`. v0.5.0 adds a small `fx` snapshot to each committed action so rendering can describe the action that actually occurred without granting the client combat authority.
+
+The PvE sequence is:
+
+1. the player attacks, heals or attempts Fulton recovery;
+2. if the enemy is still active, selected Security escorts may provide controlled covering fire;
+3. if the encounter remains active, the enemy executes its counterattack;
+4. committed state/version is persisted using the existing encounter concurrency contract.
+
+The UI maps committed FX to CSS choreography: commander lunge, enemy impact, enemy counter-lunge, commander impact, Security covering fire, medical pulse and Fulton extraction feedback. Initial contact also animates. `prefers-reduced-motion` disables the nonessential motion.
+
+## PvP modes and choreography
+
+`pvp_matches.match_mode` continues to support `live`, `live_ai`, `snapshot` and `ai_sim`. PvP state now also stores the last committed action FX so the match screen can animate the attacking and impacted sides. Combat settlement remains server-side/version-locked; the animation is presentation of persisted turn state, not a client simulation.
+
+Security escorts and PvE medical consumables are intentionally not injected into competitive PvP balance.
+
+## Global FOB topology
+
+Each commander still has one permanent `fob_world_memberships` row: biome, world/shard, FOB skin, slot and deterministic x/y are home identity. The v0.4.1 irregular 144-anchor layout remains unchanged.
+
+v0.5.0 separates **home identity** from **invasion browsing**. A deployed commander can use the same Earth globe to:
+
+1. choose one of the five biome/continent theatres;
+2. list populated `fob_worlds` for that biome;
+3. open a selected remote or home shard;
+4. inspect and attack valid occupants.
+
+Viewing or attacking a remote shard never rewrites the attacker's membership, Mother Base skin or slot.
+
+`msw_fob_target_row()` now authorizes a target globally: the attacker must have a valid membership, the target must have a valid membership, the IDs must differ, and an optional selected `world_id` must match the target. The former same-world requirement is intentionally removed from invasion targeting only.
+
+## FOB economy and protection
+
+Immediate human raids keep the accepted transactionally locked resource transfer and defender post-invasion protection. There remains no attacker-side cooldown.
+
+Autonomous commanders may now invade human or AI defenders across shards. Because offline humans can be pressured, autonomous direct raids use a deliberately smaller 3% transfer rate with lower caps than a human immediate invasion. Defender protection still applies after every completed invasion attempt, win or loss, and therefore remains the principal anti-drain boundary.
+
+Human defenders receive a local server-console `FOB · DEFENSE` event after resolved direct or staff attacks. Incoming reports remain visible through the normal shared `fob_raids` ledger.
+
+## Cross-shard staff invasion dispatch
+
+FOB staff strikes remain separate from standard Combat Unit Dispatch while sharing `units.dispatched_until` as the authoritative reservation field. Launch performs ownership/availability revalidation under row locks and persists the **target defender's world ID** in `fob_strike_dispatches`.
+
+Completion remains MySQL-timestamp-driven and exactly-once. A protected defender causes `protected_abort`, returns reserved staff and transfers no resources. A resolved strike writes the normal `fob_raids` after-action report. The existing conditional reservation release protects against a stale mission completion clearing a newer reservation.
 
 ## Physical-space separation
 
-Two multiplayer physical-space systems continue to coexist:
+Warzone position remains on `users.active_map/map_x/map_y/facing/last_seen`. Mother Base visitor position remains in `mother_base_presence`. Global FOB shard browsing is a strategic UI and does not relocate either physical-space presence system.
 
-- **Warzones:** authoritative position is stored on `users.active_map/map_x/map_y/facing/last_seen`.
-- **Mother Bases:** authoritative visitor position is stored in `mother_base_presence` with `base_owner_user_id`, `base_key`, native-map coordinates, facing and heartbeat.
+FOB deployment continues to bind `users.mother_base_key` to the chosen compatible FOB skin. Existing friend/Strike Force Mother Base visitation and server-authoritative collision remain unchanged.
 
-Entering a Mother Base clears human warzone presence. Deploying to a warzone deletes human Mother Base presence. Autonomous commanders do not receive interactive browser visitor sessions.
+## Schema revision 7
 
-## Mother Base selection and garrison projection
+The current schema revision is **7**. v0.5.0 adds only:
 
-`users.mother_base_key` selects one entry from `msw_mother_base_catalog()`. `units` remains the authoritative roster and `mother_base_unit_positions` remains a derived spatial layer keyed by `unit_id`.
+- `security_backup_slots(user_id, slot_index, unit_id, created_at, updated_at)`;
+- primary key `(user_id,slot_index)`;
+- unique selected unit per user;
+- cascading FKs to `users` and `units`.
 
-Personnel use persistent local-anchor roaming with slow server timestamps/collision; vehicle/air hardware remains stationary. Friend/Strike Force visitation remains authorized through `msw_mb_access_relation()` and is revalidated on page entry, movement and presence polling.
+All previous revision-6 FOB world/spatial structures remain. `_setup.php` Update / Repair is additive/idempotent and Confirm Installation now includes `security_backup_integrity` in addition to the existing autonomous population and FOB topology checks.
 
-## Schema revision 4
+## Local WorldServer console
 
-v0.3.0 adds non-destructively:
-
-- `users.is_bot`
-- `bot_commanders`
-- `pvp_matches.match_mode`
-
-It preserves all revision-3 Mother Base visitation tables/state. `_setup.php` Update / Repair additionally seeds/repairs the exact production autonomous population without deleting human progression.
-
-
-## v0.3.1 warzone label presentation
-
-Autonomous commander presence still uses the same keyed server payload and DOM entities as v0.3.0. Presentation is compact-only: the anchor stores the full identity in `data-full-label`/`aria-label`, renders `AI` through CSS at rest, and expands the full identity only when the AI tag is hovered/focused or its immediately adjacent bot operative sprite is hovered. No label state is authoritative gameplay state.
-
-
-## v0.3.3 per-warzone autonomous operative assignment
-
-`bot_index` remains the durable autonomous identity, but skin assignment is deliberately **decoupled from the round-robin warzone slot**. Fresh seeding uses the bot's local ordinal inside its assigned map plus a map offset to rotate through `msw_character_catalog()`. Update / Repair performs the same concept against the current persisted population: bots are ordered by `active_map` then `bot_index`, and each map gets its own independent six-skin rotation. This guarantees all six player operatives coexist inside every 166–167-bot warzone instead of producing one skin per map. Only `users.character_key` is reconciled; presence, profiles, snapshots and Live AI PvP automatically resolve the corrected sprite through the existing character catalog.
-
-
-## v0.3.4 level-1 recovery manufacturing
-
-`msw_fulton_catalog()` remains the authoritative capability/target-class table used by combat recovery, while `msw_rd_catalog()` remains the authoritative manufacturing table. v0.3.4 aligns those two layers for the baseline recovery item by exposing `fulton` as an **R&D 1** recipe. The item is still consumed by the normal server-side inventory path and the battle engine still revalidates R&D level and target class before recovery. Higher Fulton tiers remain independently gated at R&D 4/8/15. No schema state is added; existing R&D Team level is immediately sufficient to expose the basic recipe.
-
-
-## v0.3.5 local WorldServer console
-
-The administration console is deliberately separated from browser authority. `public_html/includes/server_console.php` emits a compact NDJSON activity record to the package-root `_server_console/events.ndjson`; normal deployments expose only `public_html`, so the feed is not part of the web document tree. `_server_console/.htaccess` denies HTTP access as an additional safeguard if a broader document root is ever misconfigured. There is no console PHP page, JSON API, SSE endpoint or WebSocket listener.
-
-`msw_console_register_request_traffic()` runs after authentication/bootstrap and registers a shutdown observer only for a real logged-in human account. It captures identity before shutdown, then writes a `WEB` event only when the request completes below HTTP 400 and did not terminate through a fatal PHP error. Movement/presence/state-poll routes are rejected before any identity lookup or write.
-
-Gameplay events use `msw_console_event_for_user()`. That helper independently revalidates `users.is_bot=0`, clips metadata to bounded scalar values, refuses suppressed routes and never persists raw request payloads. Explicit action hooks are placed only after successful authoritative state changes or committed gameplay actions. Technical exceptions continue through the existing browser/game flows and are not converted into console events.
-
-The writer uses an application-level lock plus append locking. At 8 MiB the active feed rotates to `.1`, retaining `.1` through `.3`. Logging is fail-silent by design: filesystem/encoding/locking problems cannot abort or roll back gameplay transactions. `serverconsole.bat` launches `serverconsole.ps1`, which reads the file locally with read/write sharing, detects rotation, renders category colors and never reads Apache/PHP/MySQL error logs.
-
-
-## v0.4.x sharded global FOB authority
-
-The primary FOB surface is now a persistent spatial layer rather than a global query of every commander. `fob_worlds` identifies a biome plus sequential shard index, while `fob_world_memberships` gives each user exactly one world, one coherent skin and one authoritative slot. The browser renders these rows but cannot choose coordinates or world IDs.
-
-A shard has 144 authoritative slot identities. Ownership is protected by a unique `(world_id,slot_index)` key. In v0.4.1, `msw_fob_slot_position()` maps each slot through a biome/shard-specific deterministic permutation of 144 irregular collision-validated native-map anchors instead of the former visible 12×12 grid. Human deployment uses a per-biome MySQL advisory lock while it chooses/creates the first non-full shard, preventing a count/select race under simultaneous account deployments. When no shard has capacity, the next `shard_index` is inserted automatically.
-
-FOB skin keys intentionally reuse `users.mother_base_key`. This makes one selection authoritative for both the global overview icon and the physical Mother Base map. After a membership exists, profile-based Mother Base redeployment is disabled. Existing v0.3.5 human progression is not auto-moved; those commanders make the new selection once. Autonomous commanders are reconciled idempotently during schema repair.
-
-Immediate raids use `msw_fob_resolve_direct_raid()`. The old attacker cooldown is no longer a precondition. Same-shard membership, target post-invasion protection, user/resource row locks, Base Power/Security/Combat Unit snapshots, and exact debit/credit transfer remain server-authoritative. Every completed attempt sets defender protection.
-
-`fob_strike_dispatches` is separate from `dispatch_missions`, but both reserve staff through `units.dispatched_until`. This keeps the existing standard Dispatch system unchanged while providing an FOB-specific persistent mission ledger. Staff invasions snapshot both sides at launch, then settle on/after `finish_at`; resolution clears the same reserved units exactly once.
-
-Autonomous commanders occupy the same membership table and icon catalog. Their direct and staff-dispatch raids are constrained to bot targets in the same FOB shard, so the background economy evolves without silently attacking offline human accounts.
-
-
-### Cross-ledger staff reservation authority
-
-Standard Combat Unit Dispatch and FOB staff invasions intentionally share `units.dispatched_until`. `includes/dispatch_authority.php` centralizes standard mission completion, while FOB resolution uses the same reservation-release rule: due missions are settled before either surface offers staff again, selected IDs are normalized/locked deterministically, and an older completion clears `dispatched_until` only when that reservation has not been replaced by a newer mission. This preserves mutual exclusion across simultaneous tabs and expiry-boundary requests without merging the two mission ledgers.
+The v0.3.5 local-filesystem console architecture remains unchanged. It is not a network admin endpoint, ignores bot-originated console identity, suppresses movement/polling noise and fails silently if logging is unavailable. v0.5.0 adds human-visible FOB defense events only after authoritative raid settlement.

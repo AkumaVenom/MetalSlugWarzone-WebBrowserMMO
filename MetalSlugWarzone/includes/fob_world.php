@@ -118,11 +118,28 @@ function msw_fob_same_world(int $a,int $b): bool {
     return $row!==null;
 }
 
-function msw_fob_target_row(int $viewerId,int $targetId): ?array {
-    return msw_one(
-        'SELECT u.id,u.username,u.base_power,u.base_grade,u.is_bot,u.fob_protection_until,m.world_id,m.skin_key,m.x,m.y,w.biome_key,w.shard_index,b.bot_index FROM fob_world_memberships me JOIN fob_world_memberships m ON m.world_id=me.world_id JOIN users u ON u.id=m.user_id JOIN fob_worlds w ON w.id=m.world_id LEFT JOIN bot_commanders b ON b.user_id=u.id AND b.enabled=1 WHERE me.user_id=? AND m.user_id=? AND m.user_id<>me.user_id LIMIT 1',
-        'ii',[$viewerId,$targetId]
+function msw_fob_world_directory(int $viewerId,?string $biomeKey=null): array {
+    $viewer=msw_fob_membership($viewerId);if(!$viewer)return [];
+    $where=$biomeKey!==null?'WHERE w.biome_key=?':'';$types=$biomeKey!==null?'is':'i';
+    return msw_all(
+        "SELECT w.id,w.biome_key,w.shard_index,w.capacity,COUNT(m.user_id) population,SUM(CASE WHEN u.is_bot=0 THEN 1 ELSE 0 END) humans,SUM(CASE WHEN u.is_bot=1 THEN 1 ELSE 0 END) ai,SUM(CASE WHEN m.user_id<>? AND (u.fob_protection_until IS NULL OR u.fob_protection_until<=NOW()) THEN 1 ELSE 0 END) open_targets FROM fob_worlds w LEFT JOIN fob_world_memberships m ON m.world_id=w.id LEFT JOIN users u ON u.id=m.user_id {$where} GROUP BY w.id,w.biome_key,w.shard_index,w.capacity HAVING population>0 ORDER BY w.biome_key,w.shard_index",
+        $types,$biomeKey!==null?[$viewerId,$biomeKey]:[$viewerId]
     );
+}
+
+function msw_fob_targets_in_world(int $viewerId,int $worldId,int $limit=144): array {
+    if(!msw_fob_membership($viewerId)||!msw_fob_world_row($worldId))return [];$limit=max(1,min(500,$limit));
+    return msw_all(
+        "SELECT u.id,u.username,u.base_power,u.base_grade,u.fob_protection_until,u.is_bot,m.skin_key,m.x,m.y,m.world_id,b.bot_index FROM fob_world_memberships m JOIN users u ON u.id=m.user_id LEFT JOIN bot_commanders b ON b.user_id=u.id AND b.enabled=1 WHERE m.world_id=? AND u.id<>? ORDER BY u.is_bot ASC,u.base_power DESC,u.id LIMIT {$limit}",
+        'ii',[$worldId,$viewerId]
+    );
+}
+
+function msw_fob_target_row(int $viewerId,int $targetId,?int $worldId=null): ?array {
+    if($viewerId<1||$targetId<1||$viewerId===$targetId)return null;
+    $sql='SELECT u.id,u.username,u.base_power,u.base_grade,u.is_bot,u.fob_protection_until,m.world_id,m.skin_key,m.x,m.y,w.biome_key,w.shard_index,b.bot_index FROM fob_world_memberships me JOIN fob_world_memberships m ON m.user_id=? JOIN users u ON u.id=m.user_id JOIN fob_worlds w ON w.id=m.world_id LEFT JOIN bot_commanders b ON b.user_id=u.id AND b.enabled=1 WHERE me.user_id=? AND m.user_id<>me.user_id';
+    if($worldId!==null&&$worldId>0)return msw_one($sql.' AND m.world_id=? LIMIT 1','iii',[$targetId,$viewerId,$worldId]);
+    return msw_one($sql.' LIMIT 1','ii',[$targetId,$viewerId]);
 }
 
 function msw_fob_snapshot_locked(int $id,?array $specificUnitIds=null): array {
@@ -166,7 +183,7 @@ function msw_fob_apply_protection(int $defenderId): string {
 /** Resolve an immediate raid. The former attacker cooldown is intentionally absent. */
 function msw_fob_resolve_direct_raid(int $attackerId,int $defenderId,string $mode='direct'): int {
     if($attackerId<1||$defenderId<1||$attackerId===$defenderId) throw new RuntimeException('Invalid FOB target.');
-    if(!msw_fob_same_world($attackerId,$defenderId)) throw new RuntimeException('That FOB is not present in your overview-world instance.');
+    if(!msw_fob_target_row($attackerId,$defenderId)) throw new RuntimeException('That FOB is not a valid global invasion target.');
 
     $db=msw_db();$db->begin_transaction();
     try{
@@ -186,8 +203,8 @@ function msw_fob_resolve_direct_raid(int $attackerId,int $defenderId,string $mod
         $ar=(int)$attacker['base_power']+($teamPower*10)+random_int(0,900);
         $dr=(int)$defender['base_power']+($security*12)+random_int(0,900);
         $win=$ar>=$dr;
-        $rate=$mode==='autonomous'?0.05:0.08;
-        $caps=$mode==='autonomous'?['default'=>1600,'precious_metal'=>250]:['default'=>2500,'precious_metal'=>400];
+        $rate=$mode==='autonomous'?0.03:0.08;
+        $caps=$mode==='autonomous'?['default'=>900,'precious_metal'=>150]:['default'=>2500,'precious_metal'=>400];
         $transfer=$win?msw_fob_resource_transfer($attackerId,$defenderId,$resources[$defenderId],$rate,$caps):['common_metal'=>0,'minor_metal'=>0,'precious_metal'=>0,'fuel'=>0,'biological'=>0];
 
         // The defender is protected after every completed invasion attempt. There
@@ -212,6 +229,11 @@ function msw_fob_resolve_direct_raid(int $attackerId,int $defenderId,string $mod
                 'raid_id'=>$raidId,'defender_id'=>$defenderId,'defender'=>(string)$defender['username'],'result'=>$result,'materials_transferred'=>(int)array_sum($transfer),'world_mode'=>$mode,
             ]);
         }
+        if((int)($defender['is_bot']??0)===0){
+            msw_console_event_for_user($defenderId,'FOB','DEFENSE','Your FOB was invaded by '.(string)$attacker['username'].' and the defense resolved: '.strtoupper(str_replace('_',' ',$result)).'.',[
+                'raid_id'=>$raidId,'attacker_id'=>$attackerId,'attacker'=>(string)$attacker['username'],'attacker_is_ai'=>(bool)($attacker['is_bot']??0),'result'=>$result,'materials_transferred'=>(int)array_sum($transfer),'mode'=>$mode,
+            ]);
+        }
         return $raidId;
     }catch(Throwable $e){$db->rollback();throw $e;}
 }
@@ -228,7 +250,7 @@ function msw_fob_launch_staff_dispatch(int $attackerId,int $defenderId,array $un
     // A finished standard dispatch remains authoritative until resolved; settle it
     // before these same staff rows can be reserved by the FOB strike ledger.
     msw_dispatch_resolve_due_for_user($attackerId,20,null);
-    if(!msw_fob_same_world($attackerId,$defenderId)) throw new RuntimeException('That FOB is not present in your overview-world instance.');
+    if(!msw_fob_target_row($attackerId,$defenderId)) throw new RuntimeException('That FOB is not a valid global invasion target.');
     $unitIds=array_values(array_unique(array_filter(array_map('intval',$unitIds),fn($id)=>$id>0)));sort($unitIds,SORT_NUMERIC);
     if(count($unitIds)<2||count($unitIds)>4) throw new RuntimeException('Select between 2 and 4 available staff for an FOB dispatch invasion.');
 
@@ -254,11 +276,11 @@ function msw_fob_launch_staff_dispatch(int $attackerId,int $defenderId,array $un
         $chance=max(.12,min(.93,.50+(($attack-$defense)/4200)));
         $duration=max(30,(int)(msw_config('fob_staff_dispatch_seconds')??120));
         $finish=date('Y-m-d H:i:s',time()+$duration);
-        $membership=msw_fob_membership($attackerId);if(!$membership) throw new RuntimeException('FOB world membership unavailable.');
+        $membership=msw_fob_membership($attackerId);$targetMembership=msw_fob_membership($defenderId);if(!$membership||!$targetMembership) throw new RuntimeException('FOB world membership unavailable.');
 
         msw_stmt(
             'INSERT INTO fob_strike_dispatches(attacker_user_id,defender_user_id,world_id,unit_ids_json,attacker_snapshot_json,defender_snapshot_json,snapshot_power,success_chance,started_at,finish_at) VALUES(?,?,?,?,?,?,?,?,NOW(),?)',
-            'iiisssids',[$attackerId,$defenderId,(int)$membership['world_id'],json_encode($unitIds),json_encode($as,JSON_UNESCAPED_SLASHES),json_encode($ds,JSON_UNESCAPED_SLASHES),$power,$chance,$finish]
+            'iiisssids',[$attackerId,$defenderId,(int)$targetMembership['world_id'],json_encode($unitIds),json_encode($as,JSON_UNESCAPED_SLASHES),json_encode($ds,JSON_UNESCAPED_SLASHES),$power,$chance,$finish]
         );
         $dispatchId=(int)$db->insert_id;
         foreach($unitIds as $unitId)msw_stmt('UPDATE units SET dispatched_until=? WHERE id=? AND owner_user_id=?','sii',[$finish,$unitId,$attackerId]);
@@ -317,6 +339,11 @@ function msw_fob_resolve_due_dispatches(int $attackerId,int $limit=8): int {
             if((int)($attacker['is_bot']??0)===0){
                 msw_console_event_for_user($attackerId,'FOB','DISPATCH_RESOLVE','Staff FOB invasion against '.(string)$defender['username'].' resolved: '.strtoupper(str_replace('_',' ',$result)).'.',[
                     'dispatch_id'=>(int)$mission['id'],'raid_id'=>$raidId,'result'=>$result,'materials_transferred'=>(int)array_sum($transfer),
+                ]);
+            }
+            if((int)($defender['is_bot']??0)===0){
+                msw_console_event_for_user($defenderId,'FOB','DEFENSE','A staff invasion from '.(string)$attacker['username'].' reached your FOB: '.strtoupper(str_replace('_',' ',$result)).'.',[
+                    'dispatch_id'=>(int)$mission['id'],'raid_id'=>$raidId,'attacker_id'=>$attackerId,'attacker_is_ai'=>(bool)($attacker['is_bot']??0),'result'=>$result,'materials_transferred'=>(int)array_sum($transfer),
                 ]);
             }
         }catch(Throwable $e){$db->rollback();throw $e;}

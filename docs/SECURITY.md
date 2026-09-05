@@ -1,92 +1,78 @@
-# Security and Exploit-Resistance Contract — v0.4.1
+# Security and Exploit-Resistance Contract — v0.5.0
 
-This candidate treats all browser state as untrusted and does not give autonomous commanders login sessions.
+The development target is local XAMPP, but gameplay state is still designed around server authority, validation and transactional persistence.
 
 ## Existing controls preserved
 
-- Prepared mysqli statements for user-controlled database values.
-- Password hashing with `password_hash()` / `password_verify()` for human accounts.
-- CSRF protection and same-origin POST validation.
-- Authentication session regeneration, HttpOnly/SameSite cookies and automatic Secure cookies on HTTPS.
-- Login throttling, CSP, frame denial, content-type hardening and restricted permissions.
-- Server ownership checks for units, battles, PvP, raids, friends/messages and progression.
-- Versioned/locked battle state and transactionally locked resource transfers.
-- Movement rate limiting and full-path server collision.
-- Loopback-only `_setup.php`.
+- Authenticated sessions and CSRF validation protect state-changing human POST actions.
+- Password authentication remains isolated from autonomous commander accounts (`is_bot=1`).
+- Resources, inventory, roster ownership, movement, collisions, combat outcomes, progression, dispatch timers and FOB settlement are computed/read server-side.
+- MySQL row locking and transactional ledgers are used where concurrent requests could duplicate rewards, consume inventory twice or transfer the same resources inconsistently.
+- User-supplied IDs are re-resolved against ownership/authorization rules instead of trusting page form contents.
+- The local `_setup.php` remains loopback-oriented; Fresh Install is destructive and must never be used as an upgrade shortcut.
 
-## Autonomous commander security contracts
+## v0.5.0 medical item authority
 
-- Bots are explicitly persisted as `users.is_bot=1`; normal login requires `is_bot=0` before password verification.
-- Bot passwords are not usable credentials and bots never receive authenticated browser sessions.
-- Client requests cannot submit bot coordinates, activity counters, next-action timestamps, resources, recovered units, FOB result or AI move selection as authority.
-- Autonomous action scheduling is selected server-side from due rows and protected by short database leases. Concurrent presence requests cannot claim the same bot simultaneously.
-- `next_action_at` is written by the server after every action/backoff, preventing repeated browser polling from directly accelerating one bot.
-- Bot movement uses the same authoritative map bounds/collision/path sampling as human movement.
-- Bot recovery validates actual roster capacity, inventory, R&D level and equipment consumption before creating a persistent unit.
-- Bot FOB attacks use transactions/row locks and exact debit-credit resource settlement. Bots autonomously target bots only; offline human stocks are not silently farmed by the simulation.
-- Live AI / Snapshot PvP accepts only a valid human participant and a real bot identity. Bot moves are selected/committed server-side against the current match version.
-- Bot identities are excluded from friend requests and direct-message recipient selection because they cannot consent/respond through a player session.
+The browser submits only an item key. `msw_use_battle_item()` resolves the key against `msw_battle_item_catalog()`, rechecks persisted R&D/Medical levels, checks current HP, and calls the atomic inventory-consumption path. Full HP is rejected before consumption. Healing amount and Support Team multiplier are calculated by PHP and the action advances through the same encounter version/turn transaction as attacks.
 
-## Population/repair safety
+Manufacturing is independently validated against `msw_rd_catalog()`: required sector levels and resource costs are checked from persistent state before inventory is credited.
 
-- Stable `bot_index` values 1–1000 make seeding idempotent.
-- `bot_index` is authoritative rather than username text. If a pre-v0.3.0 human account already owns a default AI-style username, seeding preserves the human row and allocates a deterministic alternate bot username instead of overwriting/renaming the player or rolling back the population migration.
-- Update / Repair creates only missing indexes and re-enables the production range; it does not recreate existing bot progression.
-- Any historical bot indexes above the configured production population are disabled rather than destructively deleted.
-- `_setup.php` Confirm Installation verifies exact enabled/distinct population and balanced six-warzone distribution.
+## v0.5.0 Security backup authority
 
-## Mother Base security contracts preserved
+`security_backup_slots` stores only server-validated owned `unit_id` values. Setting a slot requires:
 
-- A Mother Base owner ID supplied by the browser is never trusted as authorization.
-- Owner/friend/Strike Force access is re-read from the database on page entry, movement and presence polling.
-- Movement coordinates are read from server persistence; clients submit only intent.
-- Staff coordinates/roaming timers are server-owned and row-locked.
-- Vehicles are classified server-side and cannot be made mobile by browser state.
+- slot 1 or 2 within current Security capacity;
+- an owned unit;
+- current assignment to Security;
+- personnel class (`infantry` / `heavy_infantry`);
+- no active dispatch reservation.
+
+The database prevents the same unit occupying both slots. Battle startup/synchronization rechecks assignment/class/dispatch status, so stale or manually altered browser controls cannot force an ineligible unit into combat. Reassignment away from Security clears the selected slot.
+
+Backup attack scaling, accuracy and damage ceilings are calculated on the server. A browser cannot submit backup damage or a successful assist result.
+
+## Intel and Support authority
+
+Intel information is exposed only when persisted Intel level reaches the required milestone. The recommended move and Fulton probability are calculated from authoritative combat state. Intel 8 enemy-accuracy modification and Support medical multipliers are applied inside the battle engine, not accepted from client values.
+
+## Global FOB target authority
+
+Cross-shard invasion deliberately widens target eligibility, but it does not weaken membership validation.
+
+- The attacker must possess a valid `fob_world_memberships` row.
+- The target must possess a valid membership and cannot equal the attacker.
+- When a page/form includes `world_id`, the target's actual membership must match it.
+- Remote shard browsing never updates the attacker's membership.
+- Defender protection is checked again inside the locked raid/dispatch transaction.
+- Direct raids and staff dispatch launches require CSRF validation on human POST surfaces.
+- Resource transfer remains an atomic debit/credit operation under locked resource rows.
+
+The old same-world restriction was an intentional gameplay rule, not the core authorization boundary. v0.5.0 replaces it with authenticated global membership + target-world consistency validation.
+
+## Autonomous attacks on humans
+
+Autonomous commanders may now target human defenders because that is an explicit v0.5.0 gameplay feature. They still use the same protected-state and resource ledgers. Autonomous direct raids use a lower 3% transfer rate and lower caps than human immediate raids to reduce unattended economic impact. Defender protection applies after every completed attempt, including a bot loss.
+
+Bots still cannot authenticate as humans, issue social consent actions or write human-only server-console identity events. Human defenders may receive a local `FOB · DEFENSE` event generated after settlement; no bot session is synthesized.
+
+## Staff reservation race guard
+
+FOB strikes and standard Dispatch missions share `units.dispatched_until`. Both launch paths settle due work before reuse, selected units are re-read under locks, and completion clears a reservation only when the stored timestamp is not newer than the finishing mission. A stale completion therefore cannot erase a later reservation from either ledger.
+
+## Population and migration safety
+
+The 1,000 production bot indexes remain stable. Update / Repair creates missing schema objects/identities and reconciles supported metadata without deleting human progression. v0.5.0 schema revision 7 adds `security_backup_slots` only; existing FOB world identity/coordinates and prior gameplay ledgers remain intact.
+
+`_setup.php` Confirm Installation checks the expected schema revision and `security_backup_integrity` plus the inherited autonomous population, FOB membership, duplicate-slot and irregular-spatial checks.
+
+## Mother Base / physical-space security
+
+Owner/friend/Strike Force Mother Base access continues to be re-read from persistent relationships. Movement coordinates are server-owned and clients submit movement intent. Staff roaming and collision remain authoritative. Global FOB browsing does not grant physical Mother Base visitation privileges.
+
+## Local WorldServer console
+
+The console remains local-filesystem-only and outside `public_html`. It does not store passwords, cookies, sessions, CSRF tokens, raw POST payloads or direct-message bodies; movement/presence polling is suppressed. Logging failure cannot abort gameplay.
 
 ## Internet-facing deployment
 
-Use HTTPS, a least-privilege DB account, hardened Apache/PHP configuration, centralized rate limiting, monitoring/audit logs, backups and an appropriate reverse proxy/WAF. The default local XAMPP configuration is intended for development/testing, not direct public exposure.
-
-
-## v0.3.1 presentation-only note
-
-Compact AI labels do not reduce server identity or authorization checks. Full bot IDs/callsigns remain sourced from authenticated presence responses, profile URLs remain server-generated, and label hover metadata is presentation-only. Bot login isolation and all v0.3.0 authority boundaries are unchanged.
-
-
-## v0.3.3 per-warzone variety migration safety
-
-The skin reconciliation operates only on `users` rows joined to production `bot_commanders` indexes 1–1000 and updates only `users.character_key`. Human accounts are never selected. Existing bot identity/progression/resource/roster/position/FOB/PvP data is not recreated. The assignment is deterministic for the current persisted warzone grouping and is executed inside the same population transaction, so a failed Update / Repair cannot commit only part of the skin reconciliation.
-
-
-## v0.3.4 R&D manufacturing authority
-
-Making the basic Fulton recipe available at R&D 1 does not move authority to the browser. `rd.php` continues to resolve the submitted recipe against `msw_rd_catalog()`, verify the persisted R&D sector level, debit persistent resources through the locked resource ledger, and only then add inventory. Battle recovery independently validates the selected item against `msw_fulton_catalog()`, R&D level, target class and inventory consumption. Higher-tier unlock thresholds are unchanged.
-
-
-## v0.3.5 local console security contract
-
-- The console has **no network administration endpoint**. `serverconsole.bat`/PowerShell consume a local file on the server filesystem.
-- The activity feed is stored outside `public_html`; `_server_console/.htaccess` also denies HTTP access as defense in depth.
-- Every event requires a database-backed human identity with `users.is_bot=0`. Autonomous commanders never receive console visibility merely because they share gameplay tables.
-- Movement/presence/poll endpoints are suppressed before event writing: `map_move.php`, `map_presence.php`, `mother_base_move.php`, `mother_base_presence.php`, and `pvp_state.php`.
-- Passwords, password hashes, session IDs/cookies, CSRF tokens, request bodies, raw POST arrays and direct-message contents are never written.
-- The logger does not ingest or mirror PHP, Apache, MySQL/MariaDB or operating-system error logs. HTTP 4xx/5xx shutdown traffic and fatal PHP terminations are skipped by the traffic observer.
-- Logger exceptions/filesystem failures are swallowed intentionally, so observability cannot become a gameplay availability dependency or transaction rollback trigger.
-- File writes are lock-protected and automatically rotated at 8 MiB to bound disk growth.
-- Remote player IP addresses are shown because the requested console is a server-operator traffic surface; the data remains local to the server filesystem and is not exposed back to players.
-
-
-## v0.4.x FOB world security / authority
-
-- The client never submits a world ID, shard index, slot index or x/y placement during initial FOB deployment. It submits only the catalog-validated biome and compatible skin; placement is chosen server-side.
-- A unique database key on `(world_id,slot_index)` is the final collision guard, while a short per-biome MySQL advisory lock serializes the select/create/assign critical section.
-- Enemy target actions are revalidated against the attacker's current `fob_world_memberships.world_id`; changing a query-string user ID cannot attack a commander in another shard.
-- Direct raids and staff dispatch launches require CSRF validation on human POST surfaces.
-- Staff IDs are normalized to positive unique integers and re-read under `FOR UPDATE` ownership/availability checks before reservation.
-- Resource transfer remains an atomic debit/credit operation under locked resource ledgers.
-- Defender post-invasion protection is checked after user rows are locked. There is intentionally no attacker-side cooldown in v0.4.x.
-
-
-### Cross-ledger reservation race guard
-
-FOB strikes and standard Dispatch missions share one staff reservation column by design. Both launch surfaces settle due work before allowing reuse, selected staff are revalidated under row locks, and completion uses a conditional reservation release keyed to the completed mission's `finish_at`. A stale completion therefore cannot erase a newer reservation created by the other mission system.
+For public hosting, use HTTPS, least-privilege database credentials, hardened Apache/PHP settings, centralized rate limiting, secure backup/restore procedures, monitoring/audit controls and an appropriate reverse proxy/WAF. Default XAMPP is a development/test stack, not a hardened production edge configuration.

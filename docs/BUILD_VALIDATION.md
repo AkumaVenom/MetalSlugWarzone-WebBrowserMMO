@@ -1,34 +1,66 @@
-# Build Validation — v0.4.1 Polished FOB Spatial Distribution & Globe Alignment
+# Build Validation — v0.5.0 Polished Combat Support, Global FOB Invasion & Competitive AI
 
-Parent baseline: **v0.4.0 Polished Sharded Global FOB World — supplied/accepted test-candidate baseline**  
-Schema revision: **6**  
-Candidate type: **Runtime-only XAMPP test candidate**
+## Static release gate completed
 
-Static release-gate validation completed on the candidate source tree:
+The v0.5.0 candidate was validated in the build container after implementation and documentation updates.
 
-- **56/56 PHP files** pass `php -l` under PHP 8.4.23.
-- **1/1 JavaScript file** passes `node --check` under Node 22.16.0.
-- CSS structure remains balanced at **481 opening / 481 closing braces**.
-- All **63 literal `__DIR__` include/require references** found by the release scanner resolve.
-- All **78 literal `msw_url()` path prefixes** found by the release scanner resolve to present runtime routes/assets.
-- Application version is **0.4.1** and both PHP schema authority and standalone install SQL report **schema revision 6**.
-- Fresh-install SQL still contains **25 top-level statements** under the quote-aware statement scanner.
-- FOB world capacity remains **144** and the database still owns exclusivity through `UNIQUE(world_id,slot_index)`.
-- The new irregular layout contains exactly **144/144 unique anchors**.
-- Anchor geometry produces **0 overlap pairs** under the validated **136×96 center-clearance envelope**, while the desktop marker footprint is 128×86.
-- Biome/shard permutation was validated for Continental, Forest, Desert, Arctic and Sea across shard indices 001–003; all tested 57-member partial-layout hashes are distinct while each full 144-slot mapping remains bijective.
-- Globe hotspots are centralized in `msw_fob_globe_hotspots()` at normalized source coordinates: Arctic **50/14**, Continental **27/35**, Forest **70.5/34**, Desert **62.5/55.5**, Sea **49.5/76.5**.
-- Human placement, autonomous bot seeding and schema repair all call the same biome/shard-aware `msw_fob_slot_position()` authority.
-- Update / Repair contains the v0.4.1 reflow pass that preserves `user_id`, `world_id`, `skin_key` and `slot_index` while recalculating only stored x/y.
-- Confirm Installation now validates `fob_spatial_distribution` in addition to the inherited slot uniqueness and autonomous population checks.
-- All **44 runtime image assets** are byte-identical to the v0.4.0 package; v0.4.1 modifies no artwork.
-- All **13 FOB runtime assets** remain present at exact supplied dimensions: globe **1254×1254**, five overview maps **2000×2000**, seven FOB icons **256×171**.
-- Package tree contains **0 nested/source archives** and **0 `source_assets/` directories**.
-- Immediate raid authority still contains no attacker-cooldown gate; defender post-invasion protection remains authoritative.
-- Staff FOB strike, standard Dispatch, autonomous commander, Mother Base coherence, PvP/social and local WorldServer-console code paths were not structurally replaced by this hotfix.
+- PHP runtime used for syntax validation: **PHP 8.4.23**.
+- All **57 PHP files** under `public_html/` pass `php -l` with zero syntax errors.
+- `public_html/assets/js/msw.js` passes `node --check` under Node **v22.16.0**.
+- `public_html/assets/css/msw.css` passes structural brace-balance validation (**597 blocks**).
+- Literal `require` / `require_once` paths were checked and all referenced files exist.
+- Static `msw_url('*.php')` page references were checked and all referenced PHP pages exist.
+- Pure combat-support assertions passed for Support healing multipliers, Intel move recommendation, and Security escort damage ceilings across repeated non-boss/boss samples.
+- FOB slot mapping assertions confirmed 144 unique deterministic positions for each tested biome/shard combination.
+- Cross-shard authority scan confirmed `msw_fob_same_world()` has no invasion callers; the helper remains only as inherited utility code.
+- No nested `.zip` archive exists inside the candidate.
+- No `source_assets/` directory exists inside the candidate.
+- All **44 runtime image assets** are SHA-256 byte-identical to the accepted v0.4.1 baseline. v0.5.0 adds no image binary.
+
+## Version and schema assertions
+
+Validated directly against the candidate sources:
+
+- `public_html/config/app.php` reports application version **0.5.0**.
+- `public_html/includes/schema.php` defines `MSW_SCHEMA_REVISION = 7`.
+- `database/install_schema.sql` records schema revision **7**.
+- Runtime schema and fresh-install SQL both define `security_backup_slots`.
+- `_setup.php` requires `security_backup_slots` and exposes `security_backup_integrity` in Confirm Installation.
+- Security integrity checks reject invalid slot indexes, missing/cross-owner units, non-Security assignments and non-personnel classes.
+
+## Catalog and gameplay invariant assertions
+
+The authoritative catalog was executed directly and assertions passed for:
+
+- standard Fulton = R&D 1;
+- Fulton+ = R&D 4;
+- Cargo Fulton = **R&D 5**;
+- Wormhole Fulton = **R&D 8**;
+- Combat Medkit = R&D 2 + Medical 2;
+- Trauma Kit = R&D 5 + Medical 5;
+- Nanomed Injector = R&D 8 + Medical 8;
+- four Intel milestones and three Security milestones present.
+
+Static integration checks also confirmed the candidate contains:
+
+- `msw_manufacture_item()` transactional manufacturing path;
+- `msw_use_battle_item()` medical combat path;
+- `msw_security_backup_fighters()` Security escort projection;
+- action FX classes used by the battle UI;
+- `msw_fob_world_directory()` global shard directory authority;
+- `fob_shards.php` linked from the deployed Earth globe.
+
+## Transaction/persistence changes reviewed
+
+- R&D material debit and inventory credit now settle in one `msw_manufacture_item()` database transaction. Existing bot material-based restocking uses the same atomic helper.
+- Medical item consumption occurs inside the existing encounter row/version transaction.
+- Security backup selection is persisted in schema revision 7 and runtime revalidates assignment/class/dispatch eligibility before use.
+- Cross-shard staff strikes persist the target defender's `world_id` while the attacker's home membership remains untouched.
+- Direct/staff FOB settlement retains row locking, exact resource debit/credit and defender protection.
+- Autonomous human-target raids use the same raid ledger and protection rules, with a reduced autonomous direct-transfer rate/caps.
 
 ## Runtime acceptance boundary
 
-This environment can validate source integrity, deterministic FOB geometry and package structure, but it cannot substitute for the user's live Apache + MariaDB/MySQL + browser stack. Database migration execution, real concurrent SQL behavior, actual browser positioning/scrolling and restart persistence must therefore be accepted on the XAMPP server PC.
+A local MySQL/MariaDB service is not available inside the build container, so this gate does **not** claim database/browser acceptance. The package therefore remains correctly labeled **XAMPP Test Candidate**.
 
-For an existing v0.4.0 database, back it up, replace the runtime files, run **Update / Repair** to advance **schema 5 → 6**, then run **Confirm Installation** and require `fob_spatial_distribution = OK`. Complete every release-blocking scenario in `docs/XAMPP_TEST_PLAN.md` before promoting v0.4.1 from test candidate to stable.
+Before promoting the build, back up the accepted database, run `_setup.php` **Update / Repair** to schema 7, run **Confirm Installation**, and complete every release-blocking scenario in `docs/XAMPP_TEST_PLAN.md` using the actual XAMPP/MariaDB/browser environment.
