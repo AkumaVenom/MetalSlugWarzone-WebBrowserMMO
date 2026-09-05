@@ -9,6 +9,20 @@ This is not a traditional side-scrolling Metal Slug game.
 
 You enter large explorable warzones, move freely in four directions, encounter enemy soldiers and vehicles, battle them in a turn-based combat system, weaken them, and recover them using Fulton technology. Every successful recovery can strengthen your army, improve your Mother Base, unlock better technology, and increase your power in the global commander rankings.
 
+Smooth Movement & Battle Animations on PC
+
+If character movement or battle animations appear to jump instantly between positions instead of moving smoothly, Windows may have system animations disabled.
+
+Windows 11:
+Go to Settings → Accessibility → Visual effects and turn Animation effects ON.
+
+Windows 10:
+Go to Settings → Ease of Access → Display and turn Show animations in Windows ON.
+
+After changing the setting, refresh or restart your web browser.
+
+Metal Slug Warzone respects your operating system’s reduced-motion accessibility setting, so disabling Windows animations may also disable or reduce in-game movement and battle animations.
+
 ---
 
 # WHY PLAY METAL SLUG WARZONE?
