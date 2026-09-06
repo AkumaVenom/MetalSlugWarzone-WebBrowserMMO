@@ -16,13 +16,13 @@ if(msw_is_post()){
     }elseif(strlen($password)<10 || strlen($password)>200){
         $error='Password must contain 10–200 characters.';
     }elseif(!isset($characters[$character])){
-        $error='Invalid operative selection.';
+        $error='Choose one of the available field operatives.';
     }else{
         $db=msw_db();
         $db->begin_transaction();
         try{
             $hash=password_hash($password,PASSWORD_DEFAULT);
-            if($hash===false) throw new RuntimeException('Password hashing unavailable.');
+            if($hash===false) throw new RuntimeException('Account security is unavailable right now. Check the game server setup and try again.');
             msw_stmt('INSERT INTO users(username,password_hash,character_key) VALUES(?,?,?)','sss',[$name,$hash,$character]);
             $uid=(int)$db->insert_id;
             msw_initialize_player($uid);
@@ -32,7 +32,7 @@ if(msw_is_post()){
             msw_redirect('fob_globe.php');
         }catch(mysqli_sql_exception $e){
             $db->rollback();
-            $error=$e->getCode()===1062?'That username is already deployed.':'Account creation failed.';
+            $error=$e->getCode()===1062?'That commander name is already taken.':'Account creation failed.';
         }catch(Throwable $e){
             $db->rollback();
             $error='Account creation failed.';
@@ -43,20 +43,20 @@ if(msw_is_post()){
 msw_header('Create Commander');
 ?>
 <div class="authbox">
-<?php msw_panel('Create Commander Identity','ENLISTMENT'); ?>
+<?php msw_panel('Create Your Commander','ENLISTMENT'); ?>
 <?php if($error): ?><div class="alert error"><?=msw_e($error)?></div><?php endif; ?>
 <form method="post">
     <?=msw_csrf_field()?>
     <div class="field"><label>Commander Username</label><input name="username" maxlength="24" required autocomplete="username"></div>
     <div class="field"><label>Password</label><input type="password" name="password" minlength="10" maxlength="200" required autocomplete="new-password"></div>
-    <label>Field Operative Skin</label>
+    <label>Starting Operative</label>
     <div class="character-grid">
     <?php foreach(msw_character_catalog() as $key=>$entry): ?>
         <label class="char-card"><input type="radio" name="character" value="<?=msw_e($key)?>" <?=$key==='marco'?'checked':''?>><img src="<?=msw_e(msw_url($entry['sprite']))?>" alt=""><b><?=msw_e($entry['name'])?></b><small><?=msw_e($entry['game'])?></small></label>
     <?php endforeach; ?>
     </div>
-    <div class="alert info" style="margin-top:18px">After account creation, Global FOB Deployment will open automatically. You will choose a continent type on the Earth overview, then select only a base skin coherent with that environment.</div>
-    <div class="actions" style="margin-top:16px"><button>Create Account</button><a class="btn secondary" href="<?=msw_e(msw_url('login.php'))?>">Existing Commander</a></div>
+    <div class="alert info" style="margin-top:18px">After creating your commander, you will deploy your first Global FOB. Choose a region on the Earth map, then pick the Mother Base style you want for that environment.</div>
+    <div class="actions" style="margin-top:16px"><button>Create Account</button><a class="btn secondary" href="<?=msw_e(msw_url('login.php'))?>">Already Enlisted</a></div>
 </form>
 <?php msw_panel_end(); ?>
 </div>

@@ -1,11 +1,20 @@
-# XAMPP Runtime Acceptance Plan — v0.6.0 Advanced FOB Invasion Command Centre & Retaliation
+# XAMPP Runtime Acceptance Plan — v0.6.1 Production Gamer Readability Pass
 
-This is the release-blocking runtime plan for the v0.6.0 XAMPP candidate. Perform it against a backed-up copy of the accepted persistent database and use at least two human test accounts where multiplayer behavior is involved.
+This v0.6.1 candidate inherits the accepted v0.6.0 gameplay/schema test matrix below and adds a full-site player-copy review. This is the release-blocking runtime plan for the v0.6.1 XAMPP candidate. Perform it against a backed-up copy of the accepted persistent database and use at least two human test accounts where multiplayer behavior is involved.
+
+
+## 0. Production copy and visual-regression review — RELEASE BLOCKING
+
+1. Browse the landing/login/signup flow and every main navigation surface. Confirm instructions read as player-facing game copy rather than implementation notes.
+2. Verify Command, Warzone, Mother Base, Staff, Missions, Bosses, Dispatch, R&D, Strategic, PvP, AI Commanders, Community, Rankings and all FOB pages for readable headings, buttons, helper text, warnings and empty states.
+3. In PvP, Dispatch and FOB history/results, confirm stored states render as natural labels such as **Quick AI Duel**, **In Progress**, **Attacker Victory** and **Defense Held** rather than raw backend keys.
+4. Confirm the accepted v0.6.0 UI scale, spacing, artwork placement, scan-line animation and responsive layout have not changed or become oversized.
+5. Confirm maps, sprites and supplied JPG artwork render exactly as before and that no new/generated image assets are present.
 
 ## 1. Upgrade and schema integrity — RELEASE BLOCKING
 
 1. Back up the accepted database.
-2. Replace the runtime files with the v0.6.0 candidate while preserving the package layout.
+2. Replace the runtime files with the v0.6.1 candidate while preserving the package layout.
 3. Open `_setup.php` locally and run **Update / Repair**. Do **not** Fresh Install.
 4. Run **Confirm Installation** and require:
    - schema revision `8`;

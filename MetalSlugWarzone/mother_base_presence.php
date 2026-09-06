@@ -3,8 +3,8 @@ declare(strict_types=1);
 require __DIR__.'/includes/bootstrap.php';
 header('Content-Type: application/json; charset=utf-8');header('Cache-Control: no-store');
 $me=msw_require_user();$uid=(int)$me['id'];$ownerId=max(1,(int)($_GET['owner']??0));
-if(!msw_mb_can_visit($uid,$ownerId)){http_response_code(403);echo json_encode(['error'=>'Mother Base access revoked.']);exit;}
-$owner=msw_one('SELECT id,mother_base_key FROM users WHERE id=?','i',[$ownerId]);if(!$owner){http_response_code(404);echo json_encode(['error'=>'Mother Base unavailable.']);exit;}
+if(!msw_mb_can_visit($uid,$ownerId)){http_response_code(403);echo json_encode(['error'=>'You no longer have access to this Mother Base.']);exit;}
+$owner=msw_one('SELECT id,mother_base_key FROM users WHERE id=?','i',[$ownerId]);if(!$owner){http_response_code(404);echo json_encode(['error'=>'That Mother Base is unavailable.']);exit;}
 $baseKey=(string)$owner['mother_base_key'];if(!isset(msw_mother_base_catalog()[$baseKey]))$baseKey='land_dirt';
 $presence=msw_mb_presence_row($uid);
 if(!$presence || (int)$presence['base_owner_user_id']!==$ownerId || (string)$presence['base_key']!==$baseKey){echo json_encode(['reload'=>msw_url('mother_base.php?owner='.$ownerId)]);exit;}

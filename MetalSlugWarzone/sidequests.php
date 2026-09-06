@@ -25,10 +25,10 @@ msw_header('Field Contracts','missions.php');
 msw_alert(msw_flash());
 msw_resource_strip($uid);
 ?>
-<section class="hero"><div class="eyebrow">OPTIONAL FIELD CONTRACTS</div><h1>SIDE <span>OPERATIONS</span></h1><p>Short repeatable contracts layer extra objectives onto the warzone loop. These engagements use the same server-owned combat and Fulton systems, while victories can return resources and recovery equipment.</p></section>
+<section class="hero"><div class="eyebrow">OPTIONAL FIELD CONTRACTS</div><h1>SIDE <span>OPERATIONS</span></h1><p>Take on short repeatable contracts for extra fights and rewards. These battles use your normal combat and Fulton gear, with victories paying out resources and recovery equipment.</p></section>
 <div class="grid g3" style="margin-top:18px">
 <?php foreach($catalog as $key=>$contract): $done=$progress[$key]??null; ?>
-<article class="panel"><div class="panel-body"><span class="badge">Threat <?=$contract['level']?></span><h3><?=msw_e($contract['name'])?></h3><p><?=msw_e($contract['brief'])?></p><p><small>Clears <?=intval($done['clears']??0)?><?php if(!empty($done['last_cleared_at'])): ?> · Last <?=msw_e($done['last_cleared_at'])?><?php endif; ?></small></p><form method="post"><?=msw_csrf_field()?><input type="hidden" name="sidequest" value="<?=msw_e($key)?>"><button>Accept Contract</button></form></div></article>
+<article class="panel"><div class="panel-body"><span class="badge">Threat <?=$contract['level']?></span><h3><?=msw_e($contract['name'])?></h3><p><?=msw_e($contract['brief'])?></p><p><small>Clears <?=intval($done['clears']??0)?><?php if(!empty($done['last_cleared_at'])): ?> · Last <?=msw_e($done['last_cleared_at'])?><?php endif; ?></small></p><form method="post"><?=msw_csrf_field()?><input type="hidden" name="sidequest" value="<?=msw_e($key)?>"><button>Start Contract</button></form></div></article>
 <?php endforeach; ?>
 </div>
 <?php msw_footer(); ?>

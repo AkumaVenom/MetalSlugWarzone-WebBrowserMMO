@@ -614,13 +614,13 @@ function msw_dispatch_catalog(): array {
 }
 function msw_rd_catalog(): array {
     return [
-        'fulton'=>['name'=>'Fulton Recovery Pack','rd'=>1,'requirements'=>['rd'=>1],'cost'=>['common_metal'=>60,'fuel'=>40],'quantity'=>4,'desc'=>'Baseline personnel recovery system. Available from R&D Level 1 so early staff progression cannot deadlock.'],
-        'field_medkit'=>['name'=>'Combat Medkit','rd'=>2,'requirements'=>['rd'=>2,'medical'=>2],'cost'=>['common_metal'=>35,'biological'=>30],'quantity'=>3,'desc'=>'Single-use battlefield medical supply. Restores 35 Commander HP and consumes the action turn.'],
-        'fulton_plus'=>['name'=>'Fulton+ Balloon Pack','rd'=>4,'requirements'=>['rd'=>4],'cost'=>['common_metal'=>120,'fuel'=>80],'quantity'=>3,'desc'=>'Improved personnel recovery envelope.'],
-        'cargo_fulton'=>['name'=>'Cargo Fulton Pack','rd'=>5,'requirements'=>['rd'=>5],'cost'=>['common_metal'=>260,'minor_metal'=>100,'fuel'=>160],'quantity'=>2,'desc'=>'Extends recovery to ground vehicles.'],
-        'trauma_kit'=>['name'=>'Trauma Kit','rd'=>5,'requirements'=>['rd'=>5,'medical'=>5],'cost'=>['common_metal'=>70,'minor_metal'=>35,'biological'=>70],'quantity'=>2,'desc'=>'Advanced battlefield trauma supply. Restores 80 Commander HP and consumes the action turn.'],
-        'wormhole_fulton'=>['name'=>'Wormhole Fulton','rd'=>8,'requirements'=>['rd'=>8],'cost'=>['minor_metal'=>420,'precious_metal'=>120,'fuel'=>350],'quantity'=>1,'desc'=>'Advanced extraction for personnel, vehicles and aircraft.'],
-        'nanomed_injector'=>['name'=>'Nanomed Injector','rd'=>8,'requirements'=>['rd'=>8,'medical'=>8],'cost'=>['minor_metal'=>110,'precious_metal'=>35,'biological'=>140],'quantity'=>1,'desc'=>'Top-tier battlefield medical supply. Restores up to 160 Commander HP and benefits from Support Team field-logistics bonuses.'],
+        'fulton'=>['name'=>'Fulton Recovery Pack','rd'=>1,'requirements'=>['rd'=>1],'cost'=>['common_metal'=>60,'fuel'=>40],'quantity'=>4,'desc'=>'Standard Fulton gear for recovering enemy personnel. Available from R&D Lv 1.'],
+        'field_medkit'=>['name'=>'Combat Medkit','rd'=>2,'requirements'=>['rd'=>2,'medical'=>2],'cost'=>['common_metal'=>35,'biological'=>30],'quantity'=>3,'desc'=>'Single-use combat medicine. Restores 35 Commander HP and uses your turn.'],
+        'fulton_plus'=>['name'=>'Fulton+ Balloon Pack','rd'=>4,'requirements'=>['rd'=>4],'cost'=>['common_metal'=>120,'fuel'=>80],'quantity'=>3,'desc'=>'Improved Fulton balloons with a higher personnel recovery chance.'],
+        'cargo_fulton'=>['name'=>'Cargo Fulton Pack','rd'=>5,'requirements'=>['rd'=>5],'cost'=>['common_metal'=>260,'minor_metal'=>100,'fuel'=>160],'quantity'=>2,'desc'=>'Heavy-duty Fulton gear that can recover ground vehicles.'],
+        'trauma_kit'=>['name'=>'Trauma Kit','rd'=>5,'requirements'=>['rd'=>5,'medical'=>5],'cost'=>['common_metal'=>70,'minor_metal'=>35,'biological'=>70],'quantity'=>2,'desc'=>'Advanced combat medicine. Restores 80 Commander HP and uses your turn.'],
+        'wormhole_fulton'=>['name'=>'Wormhole Fulton','rd'=>8,'requirements'=>['rd'=>8],'cost'=>['minor_metal'=>420,'precious_metal'=>120,'fuel'=>350],'quantity'=>1,'desc'=>'Top-tier recovery system for personnel, vehicles and aircraft.'],
+        'nanomed_injector'=>['name'=>'Nanomed Injector','rd'=>8,'requirements'=>['rd'=>8,'medical'=>8],'cost'=>['minor_metal'=>110,'precious_metal'=>35,'biological'=>140],'quantity'=>1,'desc'=>'Top-tier combat medicine. Restores up to 160 Commander HP and gains extra healing from Support Team bonuses.'],
     ];
 }
 
@@ -652,14 +652,14 @@ function msw_sector_unlock_catalog(): array {
         ],
         'intel'=>[
             ['level'=>2,'name'=>'Tactical Threat Lens','effect'=>'Reveal enemy attack, defense and speed during PvE battles.'],
-            ['level'=>4,'name'=>'Weakness Matrix','effect'=>'Show move effectiveness and a server-calculated recommended attack.'],
-            ['level'=>6,'name'=>'Fulton Forecast','effect'=>'Display the exact current extraction probability before committing a recovery item.'],
-            ['level'=>8,'name'=>'Countermeasure Analysis','effect'=>'Enemy PvE counterattack accuracy is reduced by 6 percentage points.'],
+            ['level'=>4,'name'=>'Weakness Matrix','effect'=>'Show move effectiveness and recommend your strongest attack for the matchup.'],
+            ['level'=>6,'name'=>'Fulton Forecast','effect'=>'Show the current Fulton recovery chance before you use the item.'],
+            ['level'=>8,'name'=>'Countermeasure Analysis','effect'=>'Enemy counterattack accuracy is reduced by 6%.'],
         ],
         'security'=>[
-            ['level'=>1,'name'=>'Security Escort Detail','effect'=>'Select up to two Security Team staff as automatic low-damage battle backup.'],
-            ['level'=>4,'name'=>'Covering Fire Drill','effect'=>'Security backup assist accuracy improves by 5 percentage points.'],
-            ['level'=>7,'name'=>'Controlled Burst Doctrine','effect'=>'Security backup damage ceiling improves slightly while remaining below primary-commander output.'],
+            ['level'=>1,'name'=>'Security Escort Detail','effect'=>'Choose up to two Security Team soldiers to provide automatic light covering fire.'],
+            ['level'=>4,'name'=>'Covering Fire Drill','effect'=>'Security backup accuracy improves by 5%.'],
+            ['level'=>7,'name'=>'Controlled Burst Doctrine','effect'=>'Security backup shots deal slightly more damage while staying weaker than your Commander.'],
         ],
         'support'=>[
             ['level'=>3,'name'=>'Field Logistics','effect'=>'Battlefield medical items restore 15% additional HP.'],

@@ -36,11 +36,11 @@ msw_header($map['name'],'map_select.php');
 ?>
 <div class="warzone-toolbar">
     <a class="btn secondary" href="<?=msw_e(msw_url('map_select.php'))?>">← Change Warzone</a>
-    <span class="badge live-dot">Presence: Always Online</span>
+    <span class="badge live-dot">Multiplayer: Live</span>
     <span class="badge">Native <?=intval($map['w'])?> × <?=intval($map['h'])?></span>
     <span class="badge">WASD / Arrow Keys</span>
-    <span class="badge">Server Collision: Active</span>
-    <span class="badge ai-badge">AI Commanders: <?=number_format((int)$botPopulation['total'])?> Persistent</span>
+    <span class="badge">Terrain Collision: On</span>
+    <span class="badge ai-badge">AI Rivals: <?=number_format((int)$botPopulation['total'])?> Active</span>
 </div>
 <div class="warzone-layout">
     <section class="warzone-console">
@@ -61,13 +61,13 @@ msw_header($map['name'],'map_select.php');
                 <span class="map-label" data-local-label style="left:<?=$x?>px;top:<?=$y?>px"><?=msw_e($user['username'])?> · YOU</span>
             </div>
         </div>
-        <div class="warzone-scroll-hint"><span>◀</span><span>Native-size v3 battlefield · camera follows your operative</span><span>▶</span></div>
+        <div class="warzone-scroll-hint"><span>◀</span><span>Full-size battlefield · camera follows your operative</span><span>▶</span></div>
     </section>
     <aside class="map-sidebar">
         <section class="map-control-panel">
             <div class="eyebrow">FIELD MOVEMENT</div>
             <h2>MOVE OPERATIVE</h2>
-            <p>Keyboard movement and the command pad remain available outside the scrolling battlefield at all times.</p>
+            <p>Move with WASD, the Arrow Keys, or the command pad. Your camera follows your operative across the battlefield.</p>
             <div class="map-controls" aria-label="Movement controls">
                 <button type="button" class="up" data-move="up" aria-label="Move up">▲</button>
                 <button type="button" class="left" data-move="left" aria-label="Move left">◀</button>

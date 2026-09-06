@@ -44,9 +44,9 @@ function msw_fob_lock_name(string $biomeKey): string {
 
 function msw_fob_assign_user(int $uid,string $biomeKey,string $skinKey): array {
     $biomes=msw_fob_biome_catalog();
-    if(!isset($biomes[$biomeKey])) throw new RuntimeException('Invalid FOB continent type.');
-    if(!msw_fob_skin_is_valid_for_biome($skinKey,$biomeKey)) throw new RuntimeException('That FOB skin is not compatible with the selected continent.');
-    if(!isset(msw_mother_base_catalog()[$skinKey])) throw new RuntimeException('FOB skin is unavailable.');
+    if(!isset($biomes[$biomeKey])) throw new RuntimeException('Choose one of the available FOB regions.');
+    if(!msw_fob_skin_is_valid_for_biome($skinKey,$biomeKey)) throw new RuntimeException('That Mother Base style does not match this region.');
+    if(!isset(msw_mother_base_catalog()[$skinKey])) throw new RuntimeException('That Mother Base style is unavailable.');
 
     $existing=msw_fob_membership($uid);
     if($existing) return $existing;
@@ -54,7 +54,7 @@ function msw_fob_assign_user(int $uid,string $biomeKey,string $skinKey): array {
     $db=msw_db();
     $lockName=msw_fob_lock_name($biomeKey);
     $lock=msw_one('SELECT GET_LOCK(?,8) acquired','s',[$lockName]);
-    if((int)($lock['acquired']??0)!==1) throw new RuntimeException('FOB placement network is busy. Retry the deployment.');
+    if((int)($lock['acquired']??0)!==1) throw new RuntimeException('FOB deployment is busy right now. Try again.');
 
     try{
         $db->begin_transaction();
@@ -62,10 +62,10 @@ function msw_fob_assign_user(int $uid,string $biomeKey,string $skinKey): array {
             $again=msw_one('SELECT user_id FROM fob_world_memberships WHERE user_id=? FOR UPDATE','i',[$uid]);
             if($again){
                 $db->commit();
-                return msw_fob_membership($uid)??throw new RuntimeException('FOB placement lookup failed.');
+                return msw_fob_membership($uid)??throw new RuntimeException('Your FOB placement could not be loaded. Try again.');
             }
             $owner=msw_one('SELECT id,is_bot FROM users WHERE id=? FOR UPDATE','i',[$uid]);
-            if(!$owner) throw new RuntimeException('Commander unavailable.');
+            if(!$owner) throw new RuntimeException('That Commander is unavailable.');
 
             $worlds=msw_all('SELECT id,biome_key,shard_index,capacity FROM fob_worlds WHERE biome_key=? ORDER BY shard_index FOR UPDATE','s',[$biomeKey]);
             $world=null;
@@ -84,7 +84,7 @@ function msw_fob_assign_user(int $uid,string $biomeKey,string $skinKey): array {
             $worldId=(int)$world['id'];$capacity=(int)$world['capacity'];
             $occupied=[];
             foreach(msw_all('SELECT slot_index FROM fob_world_memberships WHERE world_id=? ORDER BY slot_index','i',[$worldId]) as $row)$occupied[(int)$row['slot_index']]=true;
-            if(count($occupied)>=$capacity) throw new RuntimeException('FOB world filled during placement. Retry deployment.');
+            if(count($occupied)>=$capacity) throw new RuntimeException('That FOB shard filled up during deployment. Try again and a new slot will be assigned.');
 
             $start=(int)(sprintf('%u',crc32($uid.'|'.$biomeKey))%max(1,$capacity));
             $step=37; // coprime with 144, therefore visits every slot before repeating.
@@ -93,7 +93,7 @@ function msw_fob_assign_user(int $uid,string $biomeKey,string $skinKey): array {
                 $candidate=($start+($i*$step))%$capacity;
                 if(!isset($occupied[$candidate])){$slot=$candidate;break;}
             }
-            if($slot<0) throw new RuntimeException('No legal FOB slot is available in this world.');
+            if($slot<0) throw new RuntimeException('No free FOB slot is available in this shard.');
             [$x,$y]=msw_fob_slot_position($slot,$biomeKey,(int)$world['shard_index']);
 
             msw_stmt('INSERT INTO fob_world_memberships(user_id,world_id,skin_key,slot_index,x,y) VALUES(?,?,?,?,?,?)','iisiii',[$uid,$worldId,$skinKey,$slot,$x,$y]);
@@ -109,7 +109,7 @@ function msw_fob_assign_user(int $uid,string $biomeKey,string $skinKey): array {
     }
 
     $membership=msw_fob_membership($uid);
-    if(!$membership) throw new RuntimeException('FOB placement was not persisted.');
+    if(!$membership) throw new RuntimeException('Your FOB deployment could not be saved. Please try again.');
     return $membership;
 }
 
@@ -144,7 +144,7 @@ function msw_fob_target_row(int $viewerId,int $targetId,?int $worldId=null): ?ar
 
 function msw_fob_snapshot_locked(int $id,?array $specificUnitIds=null): array {
     $user=msw_one('SELECT id,username,base_power,base_grade,mother_base_key,is_bot FROM users WHERE id=?','i',[$id]);
-    if(!$user) throw new RuntimeException('FOB commander unavailable.');
+    if(!$user) throw new RuntimeException('That FOB Commander is unavailable.');
     if($specificUnitIds===null){
         $team=msw_all("SELECT id,callsign,unit_class,level,combat,security,grade FROM units WHERE owner_user_id=? AND active_combat=1 AND (dispatched_until IS NULL OR dispatched_until<=NOW()) ORDER BY combat DESC,id ASC LIMIT 4 FOR UPDATE",'i',[$id]);
     }else{
@@ -215,10 +215,10 @@ function msw_fob_retaliation_source(int $retaliatorId,int $sourceRaidId): ?array
  * more than once.
  */
 function msw_fob_resolve_direct_raid(int $attackerId,int $defenderId,string $mode='direct',?int $retaliationForRaidId=null): int {
-    if($attackerId<1||$defenderId<1||$attackerId===$defenderId) throw new RuntimeException('Invalid FOB target.');
+    if($attackerId<1||$defenderId<1||$attackerId===$defenderId) throw new RuntimeException('Choose a valid enemy FOB.');
     if(!in_array($mode,['direct','autonomous','retaliation'],true))$mode='direct';
-    if($mode==='retaliation'&&($retaliationForRaidId??0)<1) throw new RuntimeException('Retaliation authorization is missing.');
-    if(!msw_fob_target_row($attackerId,$defenderId)) throw new RuntimeException('That FOB is not a valid global invasion target.');
+    if($mode==='retaliation'&&($retaliationForRaidId??0)<1) throw new RuntimeException('This retaliation order is no longer available.');
+    if(!msw_fob_target_row($attackerId,$defenderId)) throw new RuntimeException('That FOB cannot be attacked right now.');
 
     $db=msw_db();$db->begin_transaction();
     try{
@@ -226,20 +226,20 @@ function msw_fob_resolve_direct_raid(int $attackerId,int $defenderId,string $mod
         $lockedUsers=msw_all('SELECT * FROM users WHERE id IN (?,?) ORDER BY id FOR UPDATE','ii',[$low,$high]);
         $users=[];foreach($lockedUsers as $row)$users[(int)$row['id']]=$row;
         $attacker=$users[$attackerId]??null;$defender=$users[$defenderId]??null;
-        if(!$attacker||!$defender) throw new RuntimeException('FOB target unavailable.');
+        if(!$attacker||!$defender) throw new RuntimeException('That FOB target is unavailable.');
 
         if($mode==='retaliation'){
             $source=msw_one('SELECT id,attacker_user_id,defender_user_id FROM fob_raids WHERE id=? FOR UPDATE','i',[(int)$retaliationForRaidId]);
-            if(!$source||(int)$source['defender_user_id']!==$attackerId||(int)$source['attacker_user_id']!==$defenderId) throw new RuntimeException('That retaliation authorization is no longer valid.');
+            if(!$source||(int)$source['defender_user_id']!==$attackerId||(int)$source['attacker_user_id']!==$defenderId) throw new RuntimeException('That retaliation order is no longer available.');
             $used=msw_one('SELECT id FROM fob_raids WHERE retaliation_for_raid_id=? LIMIT 1 FOR UPDATE','i',[(int)$retaliationForRaidId]);
-            if($used) throw new RuntimeException('That incoming raid has already been retaliated against.');
+            if($used) throw new RuntimeException('You have already used the retaliation for that raid.');
         }
 
-        if(!empty($defender['fob_protection_until'])&&strtotime((string)$defender['fob_protection_until'])>time()) throw new RuntimeException('That FOB is under temporary post-invasion protection.');
+        if(!empty($defender['fob_protection_until'])&&strtotime((string)$defender['fob_protection_until'])>time()) throw new RuntimeException('That FOB is protected by a temporary shield.');
 
         $resourceRows=msw_all('SELECT * FROM player_resources WHERE user_id IN (?,?) ORDER BY user_id FOR UPDATE','ii',[$low,$high]);
         $resources=[];foreach($resourceRows as $row)$resources[(int)$row['user_id']]=$row;
-        if(!isset($resources[$attackerId],$resources[$defenderId])) throw new RuntimeException('Resource ledger unavailable.');
+        if(!isset($resources[$attackerId],$resources[$defenderId])) throw new RuntimeException('Raid resources could not be loaded. Please try again.');
 
         $as=msw_fob_snapshot_locked($attackerId);$ds=msw_fob_snapshot_locked($defenderId);
         $teamPower=(int)array_sum(array_column($as['team'],'combat'));$security=(int)($ds['security']['score']??0);
@@ -307,9 +307,9 @@ function msw_fob_launch_staff_dispatch(int $attackerId,int $defenderId,array $un
     // A finished standard dispatch remains authoritative until resolved; settle it
     // before these same staff rows can be reserved by the FOB strike ledger.
     msw_dispatch_resolve_due_for_user($attackerId,20,null);
-    if(!msw_fob_target_row($attackerId,$defenderId)) throw new RuntimeException('That FOB is not a valid global invasion target.');
+    if(!msw_fob_target_row($attackerId,$defenderId)) throw new RuntimeException('That FOB cannot be attacked right now.');
     $unitIds=array_values(array_unique(array_filter(array_map('intval',$unitIds),fn($id)=>$id>0)));sort($unitIds,SORT_NUMERIC);
-    if(count($unitIds)<2||count($unitIds)>4) throw new RuntimeException('Select between 2 and 4 available staff for an FOB dispatch invasion.');
+    if(count($unitIds)<2||count($unitIds)>4) throw new RuntimeException('Choose 2 to 4 available staff members for the strike team.');
 
     $db=msw_db();$db->begin_transaction();
     try{
@@ -317,13 +317,13 @@ function msw_fob_launch_staff_dispatch(int $attackerId,int $defenderId,array $un
         $lockedUsers=msw_all('SELECT * FROM users WHERE id IN (?,?) ORDER BY id FOR UPDATE','ii',[$low,$high]);$users=[];
         foreach($lockedUsers as $row)$users[(int)$row['id']]=$row;
         $attacker=$users[$attackerId]??null;$defender=$users[$defenderId]??null;
-        if(!$attacker||!$defender) throw new RuntimeException('FOB target unavailable.');
-        if(!empty($defender['fob_protection_until'])&&strtotime((string)$defender['fob_protection_until'])>time()) throw new RuntimeException('That FOB is under temporary post-invasion protection.');
+        if(!$attacker||!$defender) throw new RuntimeException('That FOB target is unavailable.');
+        if(!empty($defender['fob_protection_until'])&&strtotime((string)$defender['fob_protection_until'])>time()) throw new RuntimeException('That FOB is protected by a temporary shield.');
 
         $in=implode(',',array_map('intval',$unitIds));
         $units=msw_all("SELECT id,callsign,unit_class,level,combat,security,grade,dispatched_until FROM units WHERE owner_user_id=? AND id IN ({$in}) ORDER BY id FOR UPDATE",'i',[$attackerId]);
-        if(count($units)!==count($unitIds)) throw new RuntimeException('One or more selected staff members are unavailable.');
-        foreach($units as $unit)if(!empty($unit['dispatched_until'])&&strtotime((string)$unit['dispatched_until'])>time()) throw new RuntimeException('One or more selected staff members are already deployed.');
+        if(count($units)!==count($unitIds)) throw new RuntimeException('One or more selected staff members are unavailable right now.');
+        foreach($units as $unit)if(!empty($unit['dispatched_until'])&&strtotime((string)$unit['dispatched_until'])>time()) throw new RuntimeException('One or more selected staff members are already away on a mission.');
 
         $as=msw_fob_snapshot_locked($attackerId,$unitIds);$ds=msw_fob_snapshot_locked($defenderId);
         $power=0;foreach($units as $unit)$power+=(int)$unit['combat']*10+(int)$unit['level']*3;
@@ -333,7 +333,7 @@ function msw_fob_launch_staff_dispatch(int $attackerId,int $defenderId,array $un
         $chance=max(.12,min(.93,.50+(($attack-$defense)/4200)));
         $duration=max(30,(int)(msw_config('fob_staff_dispatch_seconds')??120));
         $finish=date('Y-m-d H:i:s',time()+$duration);
-        $membership=msw_fob_membership($attackerId);$targetMembership=msw_fob_membership($defenderId);if(!$membership||!$targetMembership) throw new RuntimeException('FOB world membership unavailable.');
+        $membership=msw_fob_membership($attackerId);$targetMembership=msw_fob_membership($defenderId);if(!$membership||!$targetMembership) throw new RuntimeException('FOB deployment data could not be loaded. Please try again.');
 
         // Reserving a valid staff strike is an offensive commitment. A protected
         // attacker therefore gives up the remaining recovery shield at launch.
@@ -369,7 +369,7 @@ function msw_fob_resolve_due_dispatches(int $attackerId,int $limit=8): int {
             $defenderId=(int)$mission['defender_user_id'];$low=min($attackerId,$defenderId);$high=max($attackerId,$defenderId);
             $lockedUsers=msw_all('SELECT * FROM users WHERE id IN (?,?) ORDER BY id FOR UPDATE','ii',[$low,$high]);$users=[];foreach($lockedUsers as $u)$users[(int)$u['id']]=$u;
             $attacker=$users[$attackerId]??null;$defender=$users[$defenderId]??null;
-            if(!$attacker||!$defender) throw new RuntimeException('FOB dispatch commander unavailable.');
+            if(!$attacker||!$defender) throw new RuntimeException('One of the FOB commanders is unavailable.');
             $unitIds=array_values(array_unique(array_filter(array_map('intval',json_decode((string)$mission['unit_ids_json'],true)?:[]),fn($id)=>$id>0)));sort($unitIds,SORT_NUMERIC);
 
             if(!empty($defender['fob_protection_until'])&&strtotime((string)$defender['fob_protection_until'])>time()){
@@ -380,7 +380,7 @@ function msw_fob_resolve_due_dispatches(int $attackerId,int $limit=8): int {
             }
 
             $rr=msw_all('SELECT * FROM player_resources WHERE user_id IN (?,?) ORDER BY user_id FOR UPDATE','ii',[$low,$high]);$resources=[];foreach($rr as $r)$resources[(int)$r['user_id']]=$r;
-            if(!isset($resources[$attackerId],$resources[$defenderId])) throw new RuntimeException('FOB dispatch resource ledger unavailable.');
+            if(!isset($resources[$attackerId],$resources[$defenderId])) throw new RuntimeException('Strike-team resources could not be loaded. Please try again.');
 
             $chance=max(0.0,min(1.0,(float)$mission['success_chance']));
             $win=(random_int(1,10000)/10000)<=$chance;

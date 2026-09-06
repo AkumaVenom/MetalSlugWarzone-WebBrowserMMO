@@ -124,7 +124,7 @@ function msw_spend_resources(int $uid,array $cost): bool {
     $db->begin_transaction();
     try {
         $row=msw_one('SELECT * FROM player_resources WHERE user_id=? FOR UPDATE','i',[$uid]);
-        if(!$row) throw new RuntimeException('Resource ledger missing.');
+        if(!$row) throw new RuntimeException('Your base resources could not be loaded. Please try again.');
         foreach($cost as $key=>$amount) {
             if(in_array($key,$allowed,true) && (int)$row[$key] < max(0,(int)$amount)) {
                 $db->rollback();
@@ -157,13 +157,13 @@ function msw_manufacture_item(int $uid,string $item,int $qty,array $cost): bool 
     $db=msw_db();$db->begin_transaction();
     try{
         $row=msw_one('SELECT * FROM player_resources WHERE user_id=? FOR UPDATE','i',[$uid]);
-        if(!$row) throw new RuntimeException('Resource ledger missing.');
+        if(!$row) throw new RuntimeException('Your base resources could not be loaded. Please try again.');
         foreach($normalized as $key=>$amount){
             if((int)($row[$key]??0)<$amount){$db->rollback();return false;}
         }
         foreach($normalized as $key=>$amount){
             $st=msw_stmt("UPDATE player_resources SET {$key}={$key}-? WHERE user_id=? AND {$key}>=?",'iii',[$amount,$uid,$amount]);
-            if($st->affected_rows!==1) throw new RuntimeException('Manufacturing resource ledger changed during settlement.');
+            if($st->affected_rows!==1) throw new RuntimeException('Your resources changed while crafting. Nothing was spent; try again.');
         }
         msw_stmt(
             'INSERT INTO inventory(user_id,item_key,quantity) VALUES(?,?,?) ON DUPLICATE KEY UPDATE quantity=quantity+VALUES(quantity)',
@@ -230,16 +230,16 @@ function msw_security_backup_candidates(int $uid): array {
 
 function msw_set_security_backup_slot(int $uid,int $slotIndex,int $unitId): void {
     $capacity=msw_security_backup_capacity($uid);
-    if($slotIndex<1||$slotIndex>$capacity) throw new RuntimeException('That Security backup slot is not available.');
+    if($slotIndex<1||$slotIndex>$capacity) throw new RuntimeException('That Security backup slot is still locked.');
     if($unitId<=0){
         msw_stmt('DELETE FROM security_backup_slots WHERE user_id=? AND slot_index=?','ii',[$uid,$slotIndex]);
         return;
     }
     $unit=msw_one("SELECT id,assignment,unit_class,dispatched_until FROM units WHERE id=? AND owner_user_id=?",'ii',[$unitId,$uid]);
-    if(!$unit) throw new RuntimeException('Security backup unit unavailable.');
-    if((string)$unit['assignment']!=='security') throw new RuntimeException('Only staff assigned to the Security Team can join the backup detail.');
-    if(!in_array((string)$unit['unit_class'],['infantry','heavy_infantry'],true)) throw new RuntimeException('Security backup party slots are reserved for personnel, not recovered vehicles or aircraft.');
-    if(!empty($unit['dispatched_until'])&&strtotime((string)$unit['dispatched_until'])>time()) throw new RuntimeException('A dispatched staff member cannot join the active backup detail.');
+    if(!$unit) throw new RuntimeException('That Security soldier is unavailable.');
+    if((string)$unit['assignment']!=='security') throw new RuntimeException('Only soldiers assigned to the Security Team can be used as battle backup.');
+    if(!in_array((string)$unit['unit_class'],['infantry','heavy_infantry'],true)) throw new RuntimeException('Battle backup slots can only use soldiers, not vehicles or aircraft.');
+    if(!empty($unit['dispatched_until'])&&strtotime((string)$unit['dispatched_until'])>time()) throw new RuntimeException('That staff member is away on a mission and cannot join your backup squad yet.');
     $db=msw_db();$db->begin_transaction();
     try{
         msw_stmt('DELETE FROM security_backup_slots WHERE user_id=? AND unit_id=?','ii',[$uid,$unitId]);
@@ -421,7 +421,7 @@ function msw_user_progress(array $user): array {
 
 function msw_commander_fighter(int $uid): array {
     $user=msw_one('SELECT id,username,character_key,level,xp,command_rank FROM users WHERE id=?','i',[$uid]);
-    if(!$user) throw new RuntimeException('Commander profile unavailable.');
+    if(!$user) throw new RuntimeException('That Commander profile is unavailable.');
     $characters=msw_character_catalog();
     $character=$characters[$user['character_key']]??reset($characters);
     $level=max(1,(int)$user['level']);

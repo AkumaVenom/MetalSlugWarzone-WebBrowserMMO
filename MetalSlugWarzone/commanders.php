@@ -25,10 +25,10 @@ msw_header('Rival Commanders','missions.php');
 msw_alert(msw_flash());
 msw_resource_strip($uid);
 ?>
-<section class="hero"><div class="eyebrow">RIVAL COMMAND DUELS</div><h1>COMMANDER <span>BATTLES</span></h1><p>Trainer-style NPC command battles provide fixed named rivals and repeatable tactical tests. Their deployed units cannot be Fulton extracted during the duel, keeping command battles distinct from wild recoverable contacts.</p></section>
+<section class="hero"><div class="eyebrow">RIVAL COMMAND DUELS</div><h1>COMMANDER <span>BATTLES</span></h1><p>Face named rival commanders in repeatable tactical duels. Their deployed units cannot be Fulton recovered, so these fights are about beating the commander—not recruiting the squad.</p></section>
 <div class="grid g3" style="margin-top:18px">
 <?php foreach($catalog as $key=>$rival): $enemy=msw_enemy_catalog()[$rival['enemy']];$done=$progress[$key]??null; ?>
-<article class="panel"><div class="panel-body"><img class="rival-sprite" src="<?=msw_e(msw_url($enemy['sprite']))?>" alt=""><span class="badge">Threat <?=$rival['level']?></span><h3><?=msw_e($rival['name'])?></h3><small><?=msw_e($rival['title'])?></small><p><?=msw_e($rival['brief'])?></p><p>Victories: <b><?=intval($done['clears']??0)?></b></p><form method="post"><?=msw_csrf_field()?><input type="hidden" name="commander" value="<?=msw_e($key)?>"><button>Issue Challenge</button></form></div></article>
+<article class="panel"><div class="panel-body"><img class="rival-sprite" src="<?=msw_e(msw_url($enemy['sprite']))?>" alt=""><span class="badge">Threat <?=$rival['level']?></span><h3><?=msw_e($rival['name'])?></h3><small><?=msw_e($rival['title'])?></small><p><?=msw_e($rival['brief'])?></p><p>Victories: <b><?=intval($done['clears']??0)?></b></p><form method="post"><?=msw_csrf_field()?><input type="hidden" name="commander" value="<?=msw_e($key)?>"><button>Challenge Commander</button></form></div></article>
 <?php endforeach; ?>
 </div>
 <?php msw_footer(); ?>

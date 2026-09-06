@@ -40,7 +40,7 @@ function msw_db(): mysqli {
         $db->query("SET SESSION sql_mode='STRICT_TRANS_TABLES,ERROR_FOR_DIVISION_BY_ZERO,NO_ENGINE_SUBSTITUTION'");
     } catch (mysqli_sql_exception $e) {
         http_response_code(503);
-        exit('Database unavailable. On a local installation, open _setup.php first.');
+        exit('Game database is not ready. On XAMPP, open _setup.php on this PC first.');
     }
     return $db;
 }
@@ -74,14 +74,14 @@ function msw_csrf(): string {
 }
 function msw_csrf_field(): string { return '<input type="hidden" name="csrf" value="' . msw_e(msw_csrf()) . '">'; }
 function msw_verify_post(): void {
-    if (!msw_is_post()) { http_response_code(405); exit('Method Not Allowed'); }
+    if (!msw_is_post()) { http_response_code(405); exit('That action is not available from this page.'); }
     $token = (string)($_POST['csrf'] ?? '');
-    if ($token === '' || !hash_equals(msw_csrf(), $token)) { http_response_code(419); exit('Session validation failed.'); }
+    if ($token === '' || !hash_equals(msw_csrf(), $token)) { http_response_code(419); exit('Your session expired. Refresh the page and try again.'); }
     $origin = $_SERVER['HTTP_ORIGIN'] ?? '';
     if ($origin !== '') {
         $host = $_SERVER['HTTP_HOST'] ?? '';
         $ohost = parse_url($origin, PHP_URL_HOST) ?: '';
-        if ($host === '' || strcasecmp(preg_replace('/:\d+$/', '', $host), (string)$ohost) !== 0) { http_response_code(403); exit('Origin rejected.'); }
+        if ($host === '' || strcasecmp(preg_replace('/:\d+$/', '', $host), (string)$ohost) !== 0) { http_response_code(403); exit('This action was blocked for security. Return to the game and try again.'); }
     }
 }
 

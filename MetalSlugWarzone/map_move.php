@@ -11,7 +11,7 @@ msw_verify_post();
 $active=msw_active_encounter($uid);
 if($active){
     http_response_code(409);
-    echo json_encode(['error'=>'Active engagement requires resolution.','battle'=>msw_url('battle.php?id='.(int)$active['id'])]);
+    echo json_encode(['error'=>'Finish your current battle before moving again.','battle'=>msw_url('battle.php?id='.(int)$active['id'])]);
     exit;
 }
 
@@ -23,7 +23,7 @@ if($previous>0 && (($now-$previous)*1000)<$minimumMs){
     $retryMs=max(10,$minimumMs-$elapsed);
     http_response_code(429);
     header('Retry-After: 1');
-    echo json_encode(['error'=>'Movement request rate exceeded.','retry_ms'=>$retryMs]);
+    echo json_encode(['error'=>'You are moving too quickly. Try again.','retry_ms'=>$retryMs]);
     exit;
 }
 $_SESSION['last_move_request_at']=$now;
@@ -31,7 +31,7 @@ $_SESSION['last_move_request_at']=$now;
 $direction=(string)($_POST['direction']??'');
 if(!in_array($direction,['up','down','left','right'],true)){
     http_response_code(400);
-    echo json_encode(['error'=>'Bad direction']);
+    echo json_encode(['error'=>'That move is not valid.']);
     exit;
 }
 
@@ -39,7 +39,7 @@ $maps=msw_map_catalog();
 $key=(string)($user['active_map']??'');
 if(!isset($maps[$key])){
     http_response_code(409);
-    echo json_encode(['error'=>'Not deployed']);
+    echo json_encode(['error'=>'Choose a warzone before moving.']);
     exit;
 }
 

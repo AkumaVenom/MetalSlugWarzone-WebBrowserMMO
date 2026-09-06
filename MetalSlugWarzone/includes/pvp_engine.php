@@ -9,14 +9,14 @@ function msw_pvp_damage(array $move,array $attacker,array $target): int {
 }
 
 function msw_pvp_create_match(int $player1,int $player2,string $mode='live'): int {
-    if($player1<=0||$player2<=0||$player1===$player2) throw new RuntimeException('Invalid PvP participants.');
+    if($player1<=0||$player2<=0||$player1===$player2) throw new RuntimeException('Choose a valid PvP opponent.');
     $allowed=['live','live_ai','snapshot'];if(!in_array($mode,$allowed,true))$mode='live';
     $u1=msw_one('SELECT id,is_bot FROM users WHERE id=?','i',[$player1]);$u2=msw_one('SELECT id,is_bot FROM users WHERE id=?','i',[$player2]);
-    if(!$u1||!$u2)throw new RuntimeException('PvP participant unavailable.');
+    if(!$u1||!$u2)throw new RuntimeException('That PvP opponent is unavailable.');
     if((int)$u2['is_bot']===0&&$mode!=='live')$mode='live';
     $state=[
         'round'=>1,
-        'log'=>[$mode==='snapshot'?'Commander snapshot battle established.':($mode==='live_ai'?'Live AI battle channel established.':'Live battle channel established.')],
+        'log'=>[$mode==='snapshot'?'Quick AI duel started.':($mode==='live_ai'?'Live AI battle started.':'Live PvP battle started.')],
         'fighters'=>[(string)$player1=>msw_commander_fighter($player1),(string)$player2=>msw_commander_fighter($player2)],
         'fx'=>['seq'=>1,'kind'=>'contact','actor'=>0,'target'=>0,'hit'=>false,'damage'=>0],
         'ai_not_before'=>0,
@@ -38,13 +38,13 @@ function msw_pvp_commit_turn(int $matchId,int $actorId,int $expectedVersion,stri
     $db=msw_db();$db->begin_transaction();
     try{
         $m=msw_one('SELECT * FROM pvp_matches WHERE id=? FOR UPDATE','i',[$matchId]);
-        if(!$m||$m['status']!=='active')throw new RuntimeException('PvP match is no longer active.');
-        if((int)$m['current_turn_user_id']!==$actorId)throw new RuntimeException('It is not that commander\'s turn.');
-        if($expectedVersion>0&&(int)$m['version']!==$expectedVersion)throw new RuntimeException('PvP state changed before the turn was committed.');
-        if($actorId!==(int)$m['player1_id']&&$actorId!==(int)$m['player2_id'])throw new RuntimeException('Commander is not a match participant.');
+        if(!$m||$m['status']!=='active')throw new RuntimeException('This PvP battle has already ended.');
+        if((int)$m['current_turn_user_id']!==$actorId)throw new RuntimeException('Wait for your turn before attacking.');
+        if($expectedVersion>0&&(int)$m['version']!==$expectedVersion)throw new RuntimeException('The battle changed before your attack landed. The latest turn will be loaded.');
+        if($actorId!==(int)$m['player1_id']&&$actorId!==(int)$m['player2_id'])throw new RuntimeException('You are not part of this PvP battle.');
         $target=$actorId===(int)$m['player1_id']?(int)$m['player2_id']:(int)$m['player1_id'];
         $state=json_decode((string)$m['state_json'],true,512,JSON_THROW_ON_ERROR);
-        if(!isset($state['fighters'][(string)$actorId],$state['fighters'][(string)$target]))throw new RuntimeException('PvP fighter snapshot is incomplete.');
+        if(!isset($state['fighters'][(string)$actorId],$state['fighters'][(string)$target]))throw new RuntimeException('The PvP battle could not be loaded correctly.');
         $me=&$state['fighters'][(string)$actorId];$foe=&$state['fighters'][(string)$target];
         $moves=msw_move_catalog();$move=$moves[$moveKey]??$moves['rifle_burst'];$hit=false;$damage=0;
         if(random_int(1,100)<=(int)$move['accuracy']){$hit=true;$damage=msw_pvp_damage($move,$me,$foe);$foe['hp']=max(0,(int)$foe['hp']-$damage);$state['log'][]=$me['name'].' used '.$move['name'].' for '.$damage.' damage.';}
@@ -52,7 +52,7 @@ function msw_pvp_commit_turn(int $matchId,int $actorId,int $expectedVersion,stri
         $state['fx']=['seq'=>(int)($state['fx']['seq']??0)+1,'kind'=>'attack','actor'=>$actorId,'target'=>$target,'hit'=>$hit,'damage'=>$damage,'move'=>(string)$moveKey];
         $status='active';$next=$target;
         if((int)$foe['hp']<=0){
-            $status=$actorId===(int)$m['player1_id']?'player1_win':'player2_win';$next=$actorId;$state['log'][]=$me['name'].' secured the PvP victory.';
+            $status=$actorId===(int)$m['player1_id']?'player1_win':'player2_win';$next=$actorId;$state['log'][]=$me['name'].' won the PvP battle!';
             $winner=msw_level_up_user($actorId,180);$loser=msw_level_up_user($target,45);
             $state['log'][]=$me['name'].' gained +'.(int)$winner['gained'].' Command XP.';$state['log'][]=$foe['name'].' gained +'.(int)$loser['gained'].' Command XP.';
             if(!empty($winner['leveled']))$state['log'][]=$me['name'].' advanced to Lv '.(int)$winner['after_level'].'!';

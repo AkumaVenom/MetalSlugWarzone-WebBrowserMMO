@@ -18,12 +18,12 @@ if(msw_is_post()){
     }else{
         $recent=msw_one('SELECT COUNT(*) c FROM direct_messages WHERE sender_user_id=? AND created_at>=DATE_SUB(NOW(),INTERVAL 60 SECOND)','i',[$uid]);
         if((int)($recent['c']??0)>=20){
-            msw_flash('Transmission rate limit reached. Try again shortly.','warning');
+            msw_flash('You are sending messages too quickly. Try again in a moment.','warning');
         }else{
             msw_stmt('INSERT INTO direct_messages(sender_user_id,receiver_user_id,body) VALUES(?,?,?)','iis',[$uid,(int)$target['id'],$body]);
             $messageLength=mb_strlen($body);
             msw_console_event_for_user($uid,'SOCIAL','MESSAGE','Direct message sent to '.(string)$target['username'].'.',['recipient_id'=>(int)$target['id'],'recipient'=>(string)$target['username'],'characters'=>$messageLength]);
-            msw_flash('Transmission sent.','success');
+            msw_flash('Message sent.','success');
         }
     }
     msw_redirect('messages.php?to='.urlencode($selected));
@@ -51,13 +51,13 @@ msw_alert(msw_flash());
 <div class="grid g2">
 <section><?php msw_panel('Secure Comms','FRIENDS'); ?>
 <div class="actions"><?php foreach($friends as $friend): ?><a class="btn small secondary" href="<?=msw_e(msw_url('messages.php?to='.urlencode($friend['username'])))?>"><?=msw_e($friend['username'])?></a><?php endforeach; ?></div>
-<?php if(!$friends): ?><div class="empty">Establish a friend link before opening direct comms.</div><?php endif; ?>
+<?php if(!$friends): ?><div class="empty">Add a commander as a friend before sending private messages.</div><?php endif; ?>
 <?php msw_panel_end(); ?></section>
 <section><?php msw_panel($target?'Channel: '.$target['username']:'Select a Commander','DIRECT MESSAGE'); ?>
 <?php if($target): ?>
 <div class="battle-log" style="max-height:360px"><?php foreach(array_reverse($thread) as $message): ?><div><b><?=msw_e($message['sender'])?>:</b> <?=msw_e($message['body'])?> <small><?=msw_e($message['created_at'])?></small></div><?php endforeach; ?></div>
 <form method="post" style="margin-top:10px"><?=msw_csrf_field()?><input type="hidden" name="to" value="<?=msw_e($target['username'])?>"><textarea name="body" maxlength="1000" rows="4" required placeholder="Transmission…"></textarea><button style="margin-top:8px">Send Message</button></form>
-<?php else: ?><div class="empty">Choose an established friend to open a persistent message channel.</div><?php endif; ?>
+<?php else: ?><div class="empty">Choose a friend to open your private conversation.</div><?php endif; ?>
 <?php msw_panel_end(); ?></section>
 </div>
 <?php msw_footer(); ?>

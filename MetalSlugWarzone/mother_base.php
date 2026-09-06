@@ -42,9 +42,9 @@ msw_header($ownerId===$uid?'Your Mother Base':$owner['username'].' Mother Base',
 <div class="warzone-toolbar mother-base-toolbar">
     <a class="btn secondary" href="<?=msw_e(msw_url('base.php'))?>">← Base Management</a>
     <?php if($ownerId!==$uid):?><a class="btn secondary" href="<?=msw_e(msw_url('profile.php?id='.$ownerId))?>">Commander Profile</a><?php endif;?>
-    <span class="badge live-dot">Shared Base Presence: Online</span>
+    <span class="badge live-dot">Shared Base: Online</span>
     <span class="badge">Native <?=intval($base['w'])?> × <?=intval($base['h'])?></span>
-    <span class="badge">Server Collision: Active</span>
+    <span class="badge">Terrain Collision: On</span>
 </div>
 <div class="warzone-layout mother-base-layout">
     <section class="warzone-console mother-base-console">
@@ -75,12 +75,12 @@ msw_header($ownerId===$uid?'Your Mother Base':$owner['username'].' Mother Base',
                 <span class="map-label base-local-label" data-base-local-label style="left:<?=$x?>px;top:<?=$y?>px"><?=msw_e($me['username'])?> · YOU</span>
             </div>
         </div>
-        <div class="warzone-scroll-hint"><span>◀</span><span>Native-size Mother Base · live staff simulation · camera follows your operative</span><span>▶</span></div>
+        <div class="warzone-scroll-hint"><span>◀</span><span>Full-size Mother Base · live staff patrols · camera follows your operative</span><span>▶</span></div>
     </section>
     <aside class="map-sidebar mother-base-sidebar">
         <section class="map-control-panel">
             <div class="eyebrow">BASE MOVEMENT</div><h2>WALK THE PLATFORM</h2>
-            <p>Move through the open ground with WASD/Arrow keys. Buildings, walls, machinery, cliffs and ocean edges are authoritative blockers.</p>
+            <p>Move with WASD or the Arrow Keys. Buildings, walls, machinery, cliffs and ocean edges block your path.</p>
             <div class="map-controls" aria-label="Mother Base movement controls">
                 <button type="button" class="up" data-base-move="up" aria-label="Move up">▲</button>
                 <button type="button" class="left" data-base-move="left" aria-label="Move left">◀</button>
@@ -92,7 +92,7 @@ msw_header($ownerId===$uid?'Your Mother Base':$owner['username'].' Mother Base',
         <section class="base-status-card">
             <div class="eyebrow">BASE GARRISON</div><h3><?=msw_e($owner['username'])?></h3>
             <div class="base-status-grid"><span><small>ACCESS</small><b><?=msw_e($relationLabel)?></b></span><span><small>BASE POWER</small><b><?=number_format((int)$owner['base_power'])?></b></span><span><small>PERSONNEL</small><b><?=$personnelCount?></b></span><span><small>VEHICLES</small><b><?=$vehicleCount?></b></span></div>
-            <p>Captured personnel roam slowly around assigned open areas. Captured hardware remains parked and synchronized for every authorized visitor.</p>
+            <p>Recovered personnel patrol their assigned areas, while captured vehicles remain parked for all visiting friends and Strike Force allies to see.</p>
         </section>
     </aside>
 </div>

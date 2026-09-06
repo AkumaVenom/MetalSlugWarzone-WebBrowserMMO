@@ -1,7 +1,7 @@
 <?php
 declare(strict_types=1);
 require __DIR__.'/includes/ui.php';
-$user=msw_require_user();$uid=(int)$user['id'];if(!msw_is_post()){http_response_code(405);exit('Method Not Allowed');}
+$user=msw_require_user();$uid=(int)$user['id'];if(!msw_is_post()){http_response_code(405);exit('That invasion action is unavailable.');}
 msw_verify_post();
 $defenderId=(int)($_POST['defender_id']??0);
 $worldId=(int)($_POST['world_id']??0);
@@ -10,11 +10,11 @@ $return=(string)($_POST['return']??'fob_infiltration.php');
 if(!in_array($return,['fob.php','fob_infiltration.php','fob_world.php','fob_target.php'],true))$return='fob.php';
 try{
     $target=msw_fob_target_row($uid,$defenderId,$worldId>0?$worldId:null);
-    if(!$target)throw new RuntimeException('Invalid FOB target for the selected global shard.');
+    if(!$target)throw new RuntimeException('That FOB is no longer a valid target in this shard.');
     if($retaliationRaidId>0){
         $source=msw_fob_retaliation_source($uid,$retaliationRaidId);
-        if(!$source||(int)$source['target_id']!==$defenderId)throw new RuntimeException('That retaliation authorization is no longer valid.');
-        if(!empty($source['retaliation_raid_id']))throw new RuntimeException('That incoming raid has already been retaliated against.');
+        if(!$source||(int)$source['target_id']!==$defenderId)throw new RuntimeException('That retaliation order is no longer available.');
+        if(!empty($source['retaliation_raid_id']))throw new RuntimeException('You have already retaliated against that raid.');
         $raidId=msw_fob_resolve_direct_raid($uid,$defenderId,'retaliation',$retaliationRaidId);
     }else{
         $raidId=msw_fob_resolve_direct_raid($uid,$defenderId,'direct');

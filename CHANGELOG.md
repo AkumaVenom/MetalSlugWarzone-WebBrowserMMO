@@ -1,4 +1,20 @@
 # Changelog
+## v0.6.1 — Production Gamer Readability Pass — XAMPP Test Candidate
+
+### Full-site player-facing copy pass
+- Rewrote visible production copy across landing/onboarding, Command, Warzone, Mother Base, staff, missions, battles, Dispatch, R&D, Strategic Systems, PvP, AI Commanders, Community, rankings and all FOB invasion/deployment/reporting surfaces.
+- Replaced implementation-facing explanations with concise player language while retaining useful Metal Slug Warzone terminology such as Mother Base, FOB, R&D, Fulton, Security, Strike Force and PvP.
+- Removed ordinary player exposure to wording such as server-authoritative, atomic ledger, persisted rows, MySQL/Apache timing, immutable snapshots and version-locking where those concepts did not help the player make a gameplay decision.
+- Added presentation-only label helpers for PvP modes/statuses, Dispatch states and FOB raid outcomes so stored backend values render as natural game text without changing database contracts.
+- Polished buttons, helper copy, warnings, tooltips, empty states, combat Intel/Fulton guidance, account feedback, AI activity text and FOB navigation terminology for consistency.
+
+### Regression boundary
+- Application version advances **0.6.0 → 0.6.1**; schema revision remains **8**.
+- No database schema/install SQL changes.
+- No CSS sizing/layout changes and no JavaScript behavior changes.
+- No artwork, map, character sprite or other runtime image changes.
+- No combat, recovery, dispatch, PvP, FOB, AI, economy, persistence or social gameplay rule changes; edits are limited to player-facing presentation text and label formatting.
+
 ## v0.6.0 — Advanced FOB Invasion Command Centre, Retaliation & Command Network Visual Overhaul — XAMPP Test Candidate
 
 ### Integrated FOB Command Centre

@@ -1,4 +1,25 @@
-# Build Validation — v0.6.0 Advanced FOB Invasion Command Centre, Retaliation & Command Network Visual Overhaul
+# Build Validation — v0.6.1 Production Gamer Readability Pass
+
+## v0.6.1 copy-pass release gate
+
+This section records the static release boundary for the v0.6.1 production-copy update. The detailed v0.6.0 gameplay/visual validation below remains the inherited baseline because v0.6.1 does not change those systems.
+
+- Application version: **0.6.1**.
+- Schema revision: **8** (unchanged).
+- Scope: player-facing copy, status labels and presentation-only wording helpers.
+- CSS/layout, JavaScript, database schema/install SQL and runtime image assets remain unchanged from the uploaded v0.6.0 visual-overhaul baseline.
+- Gameplay authority and persistence logic remain unchanged; the new label helpers only translate stored status/mode/result values for display.
+- Final static validation completed for this candidate:
+  - **57 / 57 PHP files** pass `php -l` with zero syntax errors.
+  - `public_html/assets/js/msw.js` passes `node --check`.
+  - `public_html/assets/css/msw.css`, `public_html/assets/js/msw.js` and `database/install_schema.sql` are byte-identical to the uploaded v0.6.0 visual-overhaul baseline.
+  - All **67 runtime images** are byte-identical to the uploaded baseline.
+  - A focused player-facing copy scan reports **0** remaining hits for the targeted implementation jargon set outside the localhost setup/admin surface.
+  - PHP token-structure comparison reports no unexpected structural changes outside the intentional display-label helpers/calls, and SQL query literals are unchanged.
+
+---
+
+## Historical validation — v0.6.0 Advanced FOB Invasion Command Centre, Retaliation & Command Network Visual Overhaul
 
 ## Static release gate completed
 

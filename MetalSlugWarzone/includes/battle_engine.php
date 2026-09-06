@@ -35,7 +35,7 @@ function msw_sync_enemy_runtime_state(array &$state): void {
     $state['enemy']['sprite']=(string)$entry['sprite'];
     $state['enemy']['recruitable']=(string)($state['context']??'')==='trainer'?0:(int)$entry['recruitable'];
     if($original!==$key){
-        $state['log'][]='Legacy contact visual normalized to the production Rebel Biker asset.';
+        $state['log'][]='Enemy contact updated to Rebel Biker.';
     }
 }
 
@@ -60,7 +60,7 @@ function msw_battle_fx(array &$state,string $action,array $extra=[]): void {
 
 function msw_new_battle_state(int $uid,string $enemyKey,string $context='field',string $contextKey=''): array {
     $enemies=msw_enemy_catalog();
-    if(!isset($enemies[$enemyKey])) throw new InvalidArgumentException('Unknown enemy.');
+    if(!isset($enemies[$enemyKey])) throw new InvalidArgumentException('That enemy is unavailable.');
     $enemy=$enemies[$enemyKey];
     $lead=msw_commander_fighter($uid);
     $definition=msw_context_definition($context,$contextKey);
@@ -110,7 +110,7 @@ function msw_sync_battle_support_state(int $uid,array &$state): void {
 function msw_start_encounter(int $uid,string $enemyKey,string $context='field',string $contextKey=''): int {
     $active=msw_active_encounter($uid);
     if($active) return (int)$active['id'];
-    if(!in_array($context,['field','mission','sidequest','trainer','boss'],true)) throw new InvalidArgumentException('Unknown battle context.');
+    if(!in_array($context,['field','mission','sidequest','trainer','boss'],true)) throw new InvalidArgumentException('That battle is unavailable.');
     $state=msw_new_battle_state($uid,$enemyKey,$context,$contextKey);
     msw_stmt('INSERT INTO encounters(user_id,context_type,context_key,state_json) VALUES(?,?,?,?)','isss',[$uid,$context,$contextKey,json_encode($state,JSON_UNESCAPED_SLASHES)]);
     $encounterId=(int)msw_db()->insert_id;
@@ -133,14 +133,14 @@ function msw_security_backup_assist(array &$state): array {
     $hits=[];
     foreach((array)($state['backups']??[]) as $backup){
         if((int)$state['enemy']['hp']<=0)break;
-        if(random_int(1,100)>$accuracy){$state['log'][]=(string)$backup['name'].' provided covering fire but missed.';continue;}
+        if(random_int(1,100)>$accuracy){$state['log'][]=(string)$backup['name'].' fired backup cover but missed.';continue;}
         $mult=msw_type_multiplier((string)$backup['type'],(string)$state['enemy']['class']);
         $damage=msw_damage(12,(int)$backup['attack'],(int)$state['enemy']['defense'],$mult*.55);
         $cap=max(2,(int)floor((int)$state['enemy']['max_hp']*$capRate));
         $damage=max(1,min($cap,$damage));
         $state['enemy']['hp']=max(0,(int)$state['enemy']['hp']-$damage);
         $slot=(int)($backup['slot']??0);$hits[]=$slot;
-        $state['log'][]=(string)$backup['name'].' landed controlled backup fire for '.$damage.' damage.';
+        $state['log'][]=(string)$backup['name'].' landed backup fire for '.$damage.' damage.';
     }
     if(isset($state['fx'])&&is_array($state['fx']))$state['fx']['backup_slots']=$hits;
     if((int)$state['enemy']['hp']<=0){$state['finished']=true;$state['result']='won';}
@@ -155,7 +155,7 @@ function msw_battle_attack(array &$state,string $moveKey): void {
         $hit=true;$multiplier=msw_type_multiplier((string)$move['type'],(string)$state['enemy']['class']);
         $damage=msw_damage((int)$move['power'],(int)$state['player']['attack'],(int)$state['enemy']['defense'],$multiplier);
         $state['enemy']['hp']=max(0,(int)$state['enemy']['hp']-$damage);
-        $tag=$multiplier>=1.35?' Critical effectiveness!':($multiplier<=0.65?' Reduced effectiveness.':'');
+        $tag=$multiplier>=1.35?' Super effective!':($multiplier<=0.65?' Not very effective.':'');
         $state['log'][]=$state['player']['name'].' used '.$move['name'].' for '.$damage.' damage.'.$tag;
     }else{$state['log'][]=$state['player']['name'].' missed with '.$move['name'].'.';}
     msw_battle_fx($state,'attack',['player_hit'=>$hit,'damage'=>$damage,'move'=>$moveKey]);
@@ -175,7 +175,7 @@ function msw_enemy_turn(array &$state): void {
         $damage=msw_damage((int)$move['power'],(int)$state['enemy']['attack'],(int)$state['player']['defense'],$multiplier);
         $state['player']['hp']=max(0,(int)$state['player']['hp']-$damage);
         $state['log'][]=$state['enemy']['name'].' countered for '.$damage.' damage.';
-    }else{$state['log'][]=$state['enemy']['name'].' missed its counterattack'.($intel>=8?' after Intel countermeasure prediction.':'.');}
+    }else{$state['log'][]=$state['enemy']['name'].' missed its counterattack'.($intel>=8?' after your Intel Team called the move.':'.');}
     if(!isset($state['fx'])||!is_array($state['fx']))msw_battle_fx($state,'counter');
     $state['fx']['enemy_counter']=true;$state['fx']['enemy_hit']=$hit;$state['fx']['counter_damage']=$damage;
     if((int)$state['player']['hp']<=0){$state['finished']=true;$state['result']='lost';}else{$state['round']=(int)$state['round']+1;}
@@ -195,17 +195,17 @@ function msw_battle_medical_multiplier(array $state): float {
 }
 
 function msw_use_battle_item(int $uid,array &$state,string $itemKey): array {
-    $items=msw_battle_item_catalog();if(!isset($items[$itemKey]))return [false,'Unknown battlefield medical supply.'];
+    $items=msw_battle_item_catalog();if(!isset($items[$itemKey]))return [false,'That medical item is unavailable.'];
     $item=$items[$itemKey];
-    if(!msw_requirements_met($uid,(array)$item['requirements']))return [false,'Mother Base medical/R&D requirement not met for '.$item['name'].'.'];
+    if(!msw_requirements_met($uid,(array)$item['requirements']))return [false,'You have not unlocked '.$item['name'].'.'];
     $missing=max(0,(int)$state['player']['max_hp']-(int)$state['player']['hp']);if($missing<=0)return [false,'Commander HP is already full.'];
     if(!msw_consume_item($uid,$itemKey,1))return [false,'No '.$item['name'].' units remain.'];
     $heal=min($missing,max(1,(int)round((int)$item['heal']*msw_battle_medical_multiplier($state))));
     $state['player']['hp']=min((int)$state['player']['max_hp'],(int)$state['player']['hp']+$heal);
     $state['log'][]=$state['player']['name'].' used '.$item['name'].' and restored '.$heal.' HP.';
     msw_battle_fx($state,'medical',['heal'=>$heal,'medical_item'=>$itemKey]);
-    msw_security_backup_assist($state);if(!empty($state['finished']))return [true,'Medical supply deployed; Security backup finished the contact.'];
-    msw_enemy_turn($state);return [true,'Medical supply deployed.'];
+    msw_security_backup_assist($state);if(!empty($state['finished']))return [true,'Medical item used; your Security backup finished the enemy.'];
+    msw_enemy_turn($state);return [true,'Medical item used.'];
 }
 
 function msw_battle_recommended_move(array $state): ?array {
@@ -223,20 +223,20 @@ function msw_battle_recommended_move(array $state): ?array {
 function msw_try_recovery(int $uid,array &$state,string $itemKey): array {
     if(($state['context']??'field')==='trainer') return [false,'Rival Commander units cannot be extracted during a command duel.'];
     $catalog=msw_fulton_catalog();
-    if(!isset($catalog[$itemKey])) return [false,'Unknown recovery system.'];
+    if(!isset($catalog[$itemKey])) return [false,'That Fulton system is unavailable.'];
     $fulton=$catalog[$itemKey];$class=(string)$state['enemy']['class'];
     if(!(int)$state['enemy']['recruitable']) return [false,'This target cannot be recovered.'];
     if(!in_array($class,$fulton['classes'],true)) return [false,$fulton['name'].' cannot recover this target class.'];
-    if(!msw_requirements_met($uid,['rd'=>(int)$fulton['rd']])) return [false,'R&D level is too low for this recovery system.'];
+    if(!msw_requirements_met($uid,['rd'=>(int)$fulton['rd']])) return [false,'Your R&D Team level is too low for this Fulton system.'];
     if(!msw_consume_item($uid,$itemKey,1)) return [false,'No '.$fulton['name'].' units remain.'];
     $chance=msw_recovery_chance($state,$fulton);$roll=random_int(1,10000)/10000;$percent=(int)round($chance*100);
     msw_battle_fx($state,'recovery',['recovery_item'=>$itemKey,'recovery_chance'=>$percent]);
     if($roll<=$chance){
         msw_create_recruit($uid,$state['enemy']);$state['finished']=true;$state['result']='recovered';$state['fx']['recovery_success']=true;
-        $state['log'][]='Fulton locked. '.$state['enemy']['name'].' recovered successfully ('.$percent.'% calculated chance).';return [true,'Recovery successful.'];
+        $state['log'][]='Fulton secured! '.$state['enemy']['name'].' recovered ('.$percent.'% chance).';return [true,'Recovery successful.'];
     }
-    $state['log'][]='Fulton recovery failed ('.$percent.'% calculated chance).';
-    msw_security_backup_assist($state);if(!empty($state['finished']))return [false,'Recovery failed, but Security backup neutralized the target.'];
+    $state['log'][]='Fulton recovery failed ('.$percent.'% chance).';
+    msw_security_backup_assist($state);if(!empty($state['finished']))return [false,'Fulton failed, but your Security backup finished the target.'];
     msw_enemy_turn($state);return [false,'Recovery failed.'];
 }
 

@@ -219,14 +219,14 @@ function msw_bot_pick_fob_target(int $attackerId): ?array {
 function msw_bot_autonomous_fob_raid(int $attackerId): bool {
     $membership=msw_fob_membership($attackerId);if(!$membership)return false;$target=msw_bot_pick_fob_target($attackerId);if(!$target)return false;
     $defenderId=(int)$target['id'];msw_fob_resolve_direct_raid($attackerId,$defenderId,'autonomous');$targetWorld=msw_fob_world_row((int)$target['world_id']);
-    msw_bot_set_activity($attackerId,'Invaded '.((int)$target['is_bot']===0?'human commander ':'AI commander ').(string)$target['username'].' in '.($targetWorld?msw_fob_world_name($targetWorld):'global FOB network'));
+    msw_bot_set_activity($attackerId,'Invaded '.((int)$target['is_bot']===0?'human commander ':'AI commander ').(string)$target['username'].' in '.($targetWorld?msw_fob_world_name($targetWorld):'global FOB map'));
     return true;
 }
 
 function msw_bot_fob_dispatch_action(int $uid): bool {
     if(msw_fob_resolve_due_dispatches($uid,2)>0){
         $membership=msw_fob_membership($uid);
-        msw_bot_set_activity($uid,'Staff invasion team returned from '.($membership?msw_fob_world_name($membership):'FOB network'));
+        msw_bot_set_activity($uid,'Staff invasion team returned from '.($membership?msw_fob_world_name($membership):'FOB operations'));
         return true;
     }
     $pending=msw_one("SELECT id,defender_user_id,finish_at FROM fob_strike_dispatches WHERE attacker_user_id=? AND result='pending' ORDER BY id DESC LIMIT 1",'i',[$uid]);
@@ -236,21 +236,21 @@ function msw_bot_fob_dispatch_action(int $uid): bool {
     if(count($units)<2)return false;
     $ids=array_map(fn($r)=>(int)$r['id'],$units);
     msw_fob_launch_staff_dispatch($uid,(int)$target['id'],$ids);
-    $targetWorld=msw_fob_world_row((int)$target['world_id']);msw_bot_set_activity($uid,'Dispatched staff invasion team to '.(string)$target['username'].' in '.($targetWorld?msw_fob_world_name($targetWorld):'global FOB network'));
+    $targetWorld=msw_fob_world_row((int)$target['world_id']);msw_bot_set_activity($uid,'Dispatched staff invasion team to '.(string)$target['username'].' in '.($targetWorld?msw_fob_world_name($targetWorld):'global FOB map'));
     return true;
 }
 
 function msw_bot_simulate_pvp_pair(int $a,int $b): void {
-    if($a===$b)return;$fa=msw_commander_fighter($a);$fb=msw_commander_fighter($b);$moves=msw_move_catalog();$log=['Autonomous live-fire PvP simulation established.'];$turn=$a;$round=1;$winner=0;
+    if($a===$b)return;$fa=msw_commander_fighter($a);$fb=msw_commander_fighter($b);$moves=msw_move_catalog();$log=['AI PvP battle started.'];$turn=$a;$round=1;$winner=0;
     while($round<=36&&$fa['hp']>0&&$fb['hp']>0){$actor=$turn===$a?$fa:$fb;$target=$turn===$a?$fb:$fa;$bestKey='rifle_burst';$best=-1.0;foreach($moves as $k=>$mv){$score=(float)$mv['power']*msw_type_multiplier((string)$mv['type'],(string)$target['class'])*((int)$mv['accuracy']/100);if($score>$best){$best=$score;$bestKey=$k;}}$mv=$moves[$bestKey];$hit=random_int(1,100)<=(int)$mv['accuracy'];$damage=$hit?max(1,(int)floor((((int)$mv['power']+(int)$actor['attack']*.55)-((int)$target['defense']*.35))*msw_type_multiplier((string)$mv['type'],(string)$target['class'])*random_int(90,110)/100)):0;
         if($turn===$a){$fb['hp']=max(0,$fb['hp']-$damage);$log[]=$fa['name'].($hit?' dealt '.$damage.' damage.':' missed.');}else{$fa['hp']=max(0,$fa['hp']-$damage);$log[]=$fb['name'].($hit?' dealt '.$damage.' damage.':' missed.');}$turn=$turn===$a?$b:$a;$round++;}
-    if($fa['hp']===$fb['hp'])$winner=random_int(0,1)?$a:$b;else$winner=$fa['hp']>$fb['hp']?$a:$b;$status=$winner===$a?'player1_win':'player2_win';$log[]='Autonomous match resolved.';
+    if($fa['hp']===$fb['hp'])$winner=random_int(0,1)?$a:$b;else$winner=$fa['hp']>$fb['hp']?$a:$b;$status=$winner===$a?'player1_win':'player2_win';$log[]='AI PvP battle finished.';
     $state=['round'=>$round,'log'=>$log,'fighters'=>[(string)$a=>$fa,(string)$b=>$fb],'ai_simulated'=>1];
     msw_stmt('INSERT INTO pvp_matches(player1_id,player2_id,match_mode,current_turn_user_id,state_json,status,version) VALUES(?,?,\'ai_sim\',?,?,?,?)','iiissi',[$a,$b,$winner,json_encode($state,JSON_UNESCAPED_SLASHES),$status,$round]);
     msw_level_up_user($winner,120);msw_level_up_user($winner===$a?$b:$a,30);
     msw_stmt('UPDATE bot_commanders SET pvp_battles=pvp_battles+1,pvp_wins=pvp_wins+? WHERE user_id=?','ii',[$winner===$a?1:0,$a]);
     msw_stmt('UPDATE bot_commanders SET pvp_battles=pvp_battles+1,pvp_wins=pvp_wins+? WHERE user_id=?','ii',[$winner===$b?1:0,$b]);
-    msw_bot_set_activity($a,$winner===$a?'Won autonomous PvP exercise':'Completed autonomous PvP exercise');msw_bot_set_activity($b,$winner===$b?'Won autonomous PvP exercise':'Completed autonomous PvP exercise');
+    msw_bot_set_activity($a,$winner===$a?'Won AI PvP battle':'Completed AI PvP battle');msw_bot_set_activity($b,$winner===$b?'Won AI PvP battle':'Completed AI PvP battle');
 }
 
 function msw_bot_autonomous_pvp(int $uid): bool {
@@ -277,5 +277,5 @@ function msw_bot_simulation_pulse(?string $mapKey=null,int $budget=12): void {
     if($mapKey!==null&&$mapKey!==''){$where.=' AND u.active_map=?';$types='s';$params=[$mapKey];}
     $ids=msw_all("SELECT b.user_id FROM bot_commanders b JOIN users u ON u.id=b.user_id WHERE {$where} ORDER BY b.next_action_at,b.bot_index LIMIT {$budget}",$types,$params);
     foreach($ids as $row){$uid=(int)$row['user_id'];$claim=msw_stmt('UPDATE bot_commanders SET lease_until=DATE_ADD(NOW(),INTERVAL 8 SECOND) WHERE user_id=? AND enabled=1 AND (lease_until IS NULL OR lease_until<NOW())','i',[$uid]);if($claim->affected_rows!==1)continue;
-        try{msw_bot_simulate_one($uid);msw_bot_schedule_next($uid,false);}catch(Throwable $e){error_log('[MSW bot '.$uid.'] '.$e->getMessage());msw_bot_set_activity($uid,'Simulation backoff');msw_bot_schedule_next($uid,true);}}
+        try{msw_bot_simulate_one($uid);msw_bot_schedule_next($uid,false);}catch(Throwable $e){error_log('[MSW bot '.$uid.'] '.$e->getMessage());msw_bot_set_activity($uid,'Regrouping');msw_bot_schedule_next($uid,true);}}
 }

@@ -13,7 +13,7 @@ if(msw_is_post()){
     msw_verify_post();
     $key=(string)($_POST['mission']??'');
     if(!isset($catalog[$key])){
-        msw_flash('Dispatch mission unavailable.','error');
+        msw_flash('That dispatch mission is unavailable.','error');
         msw_redirect('dispatch.php');
     }
     $definition=$catalog[$key];
@@ -31,9 +31,9 @@ if(msw_is_post()){
     $db->begin_transaction();
     try{
         $rows=msw_all("SELECT id,combat,level,dispatched_until FROM units WHERE owner_user_id=? AND id IN($marks) ORDER BY id FOR UPDATE",$types,[$uid,...$ids]);
-        if(count($rows)!==count($ids)) throw new RuntimeException('One or more units are unavailable.');
+        if(count($rows)!==count($ids)) throw new RuntimeException('One or more selected units are unavailable right now.');
         foreach($rows as $row){
-            if(!empty($row['dispatched_until']) && strtotime((string)$row['dispatched_until'])>time()) throw new RuntimeException('One or more selected units are already deployed.');
+            if(!empty($row['dispatched_until']) && strtotime((string)$row['dispatched_until'])>time()) throw new RuntimeException('One or more selected units are already away on a mission.');
         }
         $power=array_sum(array_map(fn($row)=>(int)$row['combat']+(int)$row['level']*3,$rows));
         $chance=max(.18,min(.95,.45+(($power-(int)$definition['difficulty'])/600)));
@@ -42,7 +42,7 @@ if(msw_is_post()){
         foreach($ids as $unitId) msw_stmt('UPDATE units SET dispatched_until=? WHERE id=? AND owner_user_id=?','sii',[$finish,$unitId,$uid]);
         $db->commit();
         msw_console_event_for_user($uid,'DISPATCH','DEPLOY',$definition['name'].' dispatched with '.count($ids).' units.',['mission_key'=>$key,'units'=>count($ids),'power'=>$power,'success_percent'=>(int)round($chance*100)]);
-        msw_flash($definition['name'].' dispatched with '.count($ids).' units. Completion remains anchored to the MySQL server clock.','success');
+        msw_flash($definition['name'].' deployed with '.count($ids).' units. The mission will keep running even if you leave this page.','success');
     }catch(Throwable $e){
         $db->rollback();
         msw_flash($e->getMessage(),'error');
@@ -55,7 +55,7 @@ $runs=msw_all('SELECT * FROM dispatch_missions WHERE user_id=? ORDER BY id DESC 
 msw_header('Combat Dispatch','dispatch.php');
 msw_alert(msw_flash());
 ?>
-<section class="hero"><div class="eyebrow">COMBAT UNIT DEPLOYMENT</div><h1>DISPATCH <span>MISSIONS</span></h1><p>Build a dispatch team with explicit unit cards—no modifier-key multi-selects. Team power is snapshotted at deployment; completion and results remain authoritative in MySQL across browser, Apache and machine restarts.</p></section>
+<section class="hero"><div class="eyebrow">COMBAT UNIT DEPLOYMENT</div><h1>DISPATCH <span>MISSIONS</span></h1><p>Choose the exact units for each assignment, compare their combined combat power, and send the squad into the field. Missions keep running while you fight elsewhere or log out.</p></section>
 <div class="grid g2 dispatch-layout" style="margin-top:18px">
 <section><?php msw_panel('Available Dispatches','COMBAT UNIT'); ?>
 <?php foreach($catalog as $key=>$definition): $slots=(int)$definition['slots']; ?>
@@ -81,11 +81,11 @@ msw_alert(msw_flash());
 </form>
 <?php endforeach; ?>
 <?php msw_panel_end(); ?></section>
-<section><?php msw_panel('Mission Ledger','RECENT RESULTS'); ?>
+<section><?php msw_panel('Dispatch History','RECENT RESULTS'); ?>
 <?php if(!$runs): ?><div class="empty">No dispatch records yet. Build your first team from the mission cards.</div><?php else: ?>
 <table><thead><tr><th>Mission</th><th>Status</th><th>Power</th><th>Time / Result</th></tr></thead><tbody>
 <?php foreach($runs as $run): ?>
-<tr><td><?=msw_e($catalog[$run['mission_key']]['name']??$run['mission_key'])?></td><td><span class="badge"><?=msw_e($run['result'])?></span></td><td><?=number_format((int)$run['snapshot_power'])?></td><td>
+<tr><td><?=msw_e($catalog[$run['mission_key']]['name']??$run['mission_key'])?></td><td><span class="badge"><?=msw_e(msw_dispatch_status_label((string)$run['result']))?></span></td><td><?=number_format((int)$run['snapshot_power'])?></td><td>
 <?php if($run['result']==='pending'): ?><span data-countdown="<?=msw_e(date(DATE_ATOM,strtotime((string)$run['finish_at'])))?>">--:--:--</span>
 <?php else: $reward=json_decode((string)$run['reward_json'],true)?:[]; ?><?=msw_e(implode(', ',array_map(fn($k,$v)=>str_replace('_',' ',$k).' +'.$v,array_keys($reward),$reward)))?><?php endif; ?>
 </td></tr>

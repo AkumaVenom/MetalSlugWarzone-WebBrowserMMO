@@ -1,0 +1,32 @@
+METAL SLUG WARZONE v0.6.1 — PRODUCTION GAMER READABILITY PASS
+XAMPP TEST CANDIDATE — STATIC RELEASE GATE
+
+STATUS: PASS
+
+SCOPE
+- Full-site player-facing copy rewrite and polish.
+- Presentation-only label formatting for PvP, Dispatch and FOB result/status values.
+- Application version 0.6.1.
+- Schema revision remains 8.
+
+VALIDATION
+- 57 / 57 PHP files pass php -l.
+- assets/js/msw.js passes node --check.
+- assets/css/msw.css is byte-identical to the uploaded v0.6.0 visual-overhaul baseline.
+- assets/js/msw.js is byte-identical to the uploaded baseline.
+- database/install_schema.sql is byte-identical to the uploaded baseline.
+- 67 / 67 runtime images are byte-identical to the uploaded baseline.
+- SQL query literals are unchanged.
+- No unexpected PHP structural changes outside intentional presentation-label helpers/calls.
+- Focused player-facing implementation-jargon scan: 0 hits outside the localhost setup/admin surface.
+- No nested ZIP/7z/RAR archives are present inside the candidate.
+
+REGRESSION BOUNDARY
+- No CSS sizing/layout changes.
+- No JavaScript behavior changes.
+- No database schema/install SQL changes.
+- No map, sprite, JPG or other runtime image changes.
+- No combat, economy, recovery, Dispatch, PvP, FOB, AI, social or persistence rule changes.
+
+RUNTIME ACCEPTANCE
+- Follow docs/XAMPP_TEST_PLAN.md section 0 for the production-copy and visual-regression review, then the inherited v0.6.0 gameplay/schema acceptance matrix.
