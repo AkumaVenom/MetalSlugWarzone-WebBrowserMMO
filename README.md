@@ -1,4 +1,4 @@
-# METAL SLUG WARZONE
+# METAL SLUG WARZONE By AkumaVenom
 ## Web Browser MMORPG
 
 **Build your army. Recover enemy soldiers. Grow your Mother Base. Invade rival commanders. Rule the warzone.**
@@ -50,6 +50,8 @@ Each warzone contains a varied mix of playable operative appearances rather than
 <img width="3783" height="1845" alt="3- RaGEZONE" src="https://github.com/user-attachments/assets/8d520ecb-a56f-46a5-8386-a4148fd523e4" />
 
 <img width="3777" height="1809" alt="6- RaGEZONE" src="https://github.com/user-attachments/assets/fbc2566b-018f-4149-823c-5bb2585e01e6" />
+
+<img width="3789" height="1841" alt="Capture" src="https://github.com/user-attachments/assets/c381eb54-4ff5-4fab-b060-e84984dbe14e" />
 
 ---
 
