@@ -432,7 +432,7 @@ function msw_seed_bot_population(mysqli $db,int $target=1000): void {
             $facing=(($i%2)===0)?'left':'right';
             $userStmt->bind_param('ssssiis',$username,$char,$base,$mapKey,$x,$y,$facing);
             $userStmt->execute();$uid=(int)$db->insert_id;
-            $delay=5+(($i*7)%31);$botStmt->bind_param('iisi',$uid,$i,$personality,$delay);$botStmt->execute();
+            $delay=2+(($i*7)%12);$botStmt->bind_param('iisi',$uid,$i,$personality,$delay);$botStmt->execute();
             $resourceStmt->bind_param('i',$uid);$resourceStmt->execute();
             foreach(['fulton'=>20,'fulton_plus'=>4,'cargo_fulton'=>2,'wormhole_fulton'=>0,'field_medkit'=>0,'trauma_kit'=>0,'nanomed_injector'=>0] as $item=>$qty){$inventoryStmt->bind_param('isi',$uid,$item,$qty);$inventoryStmt->execute();}
             foreach($sectors as $sector){$score=$sector==='combat'?68:0;$grade=$sector==='combat'?'E-':'E--';$sectorStmt->bind_param('isis',$uid,$sector,$score,$grade);$sectorStmt->execute();}

@@ -1,3 +1,64 @@
+## v0.8.4.2 — Responsive Autonomous Commander Pulse Corrective Patch — XAMPP Test Candidate
+
+### Critical performance fix
+- Corrected the v0.8.4/v0.8.4.1 foreground-request regression that could make Rankings and other AI-enabled pages appear frozen. The cause was the new competitive AI system allowing a single page request to service a much larger batch of overdue commanders, with each commander potentially compressing many missed actions into expensive recruitment/training/layout work.
+- Rankings is now a pure read of the persisted ladder and performs **no AI simulation work before rendering**. Opening the ranking page can no longer trigger a large autonomous catch-up wave.
+- Autonomous progression now uses a global non-blocking MySQL advisory lease (`msw_bot_pulse`) so overlapping browser tabs/map-presence polls cannot run competing AI batches simultaneously on the same XAMPP database.
+- Added a strict per-request progression ceiling: at most 4 detailed commanders per pulse, a configured 180 ms cooperative time budget, an 8-commander absolute pulse ceiling, and a short 15-second per-bot lease. The time guard is checked between commanders so normal page work retains priority.
+- Removed eager Mother Base visual-position rebuilding from bot roster finalization. Staff positions are already synchronized lazily when a Mother Base is actually viewed, so autonomous development no longer performs collision/layout work for unseen bases.
+- Catch-up still records all elapsed field/logistics productivity, but materializes at most one recovered staff row and a small bounded training batch per detailed catch-up. This preserves strong competitive progression without multiplying SQL work by every missed 4–11 second action window.
+- The v0.8.4 rival classes, competitive human-power anchor, productive decision weighting, real staff/sector Base Power calculation and 4–11 second action cadence remain intact.
+
+### Fresh install / upgrade safety
+- The one-time v0.8.4 activation marker no longer makes all 1,000 commanders immediately overdue. It only clears stale expired leases, preventing a fresh install or upgrade from creating an initial thundering-herd catch-up spike.
+- Schema revision remains **8** and no database wipe/migration is required.
+- MySQL/XAMPP authentication remains **root + blank password only**. No non-empty database-password literal or database-password environment override is present in this build.
+
+### Presentation regression protection
+- `msw.css`, `msw.js` and all 67 runtime image assets are byte-identical to the accepted v0.8.3 presentation baseline. No sprite dimensions, image files, UI sizing rules or battle-facing rules were changed.
+- Application version advances **0.8.4.1 → 0.8.4.2** only to identify the corrective build and refresh the existing cache-busted asset URLs.
+
+## v0.8.4 — Competitive Autonomous Commander Activity — XAMPP Test Candidate
+
+## v0.8.4.1 — Blank XAMPP Database Password Corrective Patch
+
+### Fixed
+- Removed the non-empty MySQL/XAMPP database password from the project configuration. Database connections now use the intended empty password (`''`) for `root`.
+- Removed the database-password environment override so this build accepts only the blank database-password contract requested for this XAMPP setup.
+- Fresh Install, Upgrade / Repair and normal runtime connections all resolve through the same `public_html/config/app.php` DB credential, preventing setup/runtime password drift.
+- Bumped the application version to 0.8.4.1 so the existing asset-version query string refreshes browser caches without changing the accepted physical CSS, JavaScript or image assets.
+
+### Preserved
+- The v0.8.4 Competitive Autonomous Commander activity/progression system is unchanged.
+- Player commander login passwords and password hashing are unchanged; this correction applies only to the MySQL/XAMPP DB credential.
+- Schema revision remains 8 with no migration or wipe.
+- `msw.css`, `msw.js` and all runtime PNG/JPG/JPEG/WebP/GIF assets remain byte-identical to v0.8.4, protecting the accepted compact UI/image sizing and combat-facing behavior.
+
+### Continuous competitive AI progression
+- Reworked all 1,000 `WarzoneAI` commanders from sparse request-time activity into an elapsed-time-aware autonomous career model. A leased bot still performs only bounded server work per request, but overdue commanders now compress missed field/logistics/training work into a capped catch-up operation instead of losing all progression while their warzone is not being watched.
+- Added a one-time upgrade activation marker (`bot_competitive_rivals_v084`) that makes the existing autonomous population immediately due without rewriting rank, staff, resources, identity, map position, FOB placement or combat history. Existing installations therefore begin using the new progression naturally as soon as normal game requests resume.
+- Reduced the base action window from 10–26 seconds to **4–11 seconds**, raised bounded pulse throughput, and retained per-bot `next_action_at` plus a 45-second lease so extra browser clients cannot double-run the same commander.
+- Rebalanced autonomous decisions away from non-progressing patrol movement. Field combat, Mother Base development, recruitment/training, Dispatch, FOB operations and PvP now dominate the decision mix; failed/unavailable FOB or PvP actions fall back into productive field/base work instead of wasting a turn.
+
+### Rival classes and strong-base tail
+- Added deterministic competitive classes tied to durable `bot_index`: **726 Active Rivals**, **202 Contenders**, **65 Elite Rivals** and **7 Apex Rivals** across the 1,000-command population. The class never reshuffles after restart.
+- Every class targets a moving power band anchored to the stronger of the configured 3,500 Base Power floor or the current strongest human Commander. Most AI bases are driven toward credible player competition; Elite/Apex classes receive higher staff-quality ceilings, larger staff caps, faster cadence and stronger catch-up so a small rare tail can become exceptionally powerful.
+- Base Power is never written as a fabricated number. Autonomous growth still comes from real recovered/trained `units`, real sector assignments and the same sector-score/level/base-grade formula used by players.
+- Improved recovered staff quality, capture reliability and staff assignment logic. New AI recruits are distributed with underdeveloped-sector pressure while preserving the existing early R&D/Cargo Fulton progression guarantee.
+- Added productive Mother Base training at/near roster capacity so mature rivals can continue increasing real sector scores instead of permanently plateauing once their roster is full.
+
+### Performance and presentation polish
+- Added a bot-only batched Base Power recalculation path that produces the same sector score/level/capacity/grade formula while collapsing the former repeated per-sector read/update loop, reducing MySQL pressure during catch-up bursts.
+- AI Network now identifies **Active / Contender / Elite / Apex** Rival Class and AI Commander profiles show the same stable class badge. Rankings copy now accurately describes continuous rival operations.
+- Freshly seeded autonomous commanders receive earlier initial action timestamps so new installations become lively almost immediately.
+- Application version advances **0.8.3 → 0.8.4**. Schema revision remains **8**: no table/column migration is introduced.
+- Superseded by v0.8.4.1: database authentication now uses the blank-password-only XAMPP contract.
+
+### Preserved
+- Human accounts, inventories, resources, staff, progression, FOB homes, raid history, PvP records and all autonomous identities remain intact.
+- Existing 28% human FOB target preference, defender protection, autonomous direct-raid transfer limits and transactional FOB/Dispatch authority are unchanged.
+- No CSS/JavaScript sizing rules or runtime PNG/JPG/JPEG/WebP/GIF assets are changed by this release, specifically protecting the accepted v0.8.1–v0.8.3 battle-size/facing presentation from regression.
+
 ## v0.8.3 — Combat Facing Consistency — XAMPP Test Candidate
 
 ### Fixed

@@ -1,7 +1,34 @@
-# XAMPP Runtime Acceptance Plan — v0.8.1 Corrected Peace Walker-Style Automatic Battle Playback
+# v0.8.4.2 Responsive AI Pulse Corrective Acceptance — RELEASE BLOCKING
 
-This v0.8.1 candidate corrects the automatic battle presentation for standard Dispatch, FOB staff strikes and FOB raid results. Test against a backed-up persistent database. Schema revision remains 8, so Update / Repair is a safety verification rather than a migration. The v0.7.5 high-threat progression gate and all inherited gameplay authority remain release-blocking regressions.
+1. Upgrade an existing v0.8.4/v0.8.4.1 database in place with **Update / Repair**. Do not wipe. Confirm login, Dashboard, Rankings, AI Commanders, Command Centre, PvP and Warzone navigation all return promptly with no indefinite spinner/freeze.
+2. Open **Rankings** repeatedly from several pages. Confirm Rankings renders the persisted TOP 100 without executing `msw_bot_simulation_pulse()` and remains responsive even when hundreds of `bot_commanders.next_action_at` rows are overdue.
+3. Leave one account on a live Warzone map long enough for repeated `map_presence.php` polling. Confirm AI commanders continue to gain levels/resources/recoveries/training/Base Power over time while normal movement/presence requests remain responsive.
+4. Open the same account in two browser tabs and, if possible, a second account/browser. Confirm overlapping AI pulse requests do not stack: the global non-blocking `msw_bot_pulse` advisory lock allows only one autonomous batch at a time and skipped overlapping pulses do not produce errors.
+5. Inspect low-ranked WarzoneAI commanders over several minutes. Confirm the 68-power/E-rank stall still breaks naturally through real recovered/trained staff and sector score growth; no direct/fabricated Base Power assignment is allowed.
+6. Confirm the rare Rival Class distribution and competitive behavior from v0.8.4 remains present (Active / Contender / Elite / Apex), including occasional very strong AI bases.
+7. Fresh Install into an empty `metal_slug_warzone` database and confirm the game uses `root` with a **blank** MySQL password. Repeat Update / Repair. Search the runtime/configuration tree for any non-empty DB password fallback or DB-password environment override; none may be present.
+8. Presentation regression gate: compare runtime image hashes against v0.8.3 and require **67/67 byte-identical**. Require `assets/css/msw.css` and `assets/js/msw.js` to be byte-identical as well. Navigate through battle/result/PvP pages and confirm there is no oversized UI or giant-image regression.
+9. Run PHP lint across all PHP files, JavaScript syntax validation, CSS brace validation, and confirm schema revision remains 8 with no nested archive in the release package.
 
+---
+
+# XAMPP Runtime Acceptance Plan — v0.8.4 Competitive Autonomous Commander Activity
+
+
+This v0.8.4 candidate is an autonomous-competition update built on the accepted v0.8.3 combat-facing baseline. Test against a backed-up persistent database. Schema revision remains 8; no wipe is required. The release is accepted only if the 1,000 AI commanders visibly become active competitors without reintroducing oversized UI/images, concurrency errors or destructive progression changes.
+
+## A-00000. v0.8.4 autonomous rivalry and ranking activity — RELEASE BLOCKING
+
+1. Back up the current MySQL database, replace only the candidate files, sign in normally and open **Rankings**. Do not Fresh Install. Confirm the page loads and existing player/base progression is unchanged.
+2. On the first normal gameplay/ranking requests, confirm low-power `WarzoneAI` accounts begin leaving the old **68 Base Power / E-range** stall. Open several AI profiles and require increasing Field Battles/Recoveries plus real recovered-unit counts; Base Power must correspond to owned staff/sector development rather than an unexplained direct jump.
+3. Stay deployed on a Warzone for at least 3–5 minutes, then revisit Rankings and AI Network. Require broad movement across many AI accounts, including bots assigned to other maps. Repeat after another few minutes and confirm the population continues progressing rather than only the same small handful acting.
+4. In **AI Network**, confirm stable Rival Class labels appear. Across the durable 1–1000 population the static class model is 726 Active, 202 Contender, 65 Elite and 7 Apex. Refresh/restart and confirm a given bot never changes class.
+5. Compare a normal Active Rival, Contender, Elite and Apex profile over time. All classes must progress, while Elite/Apex commanders should generally recruit/train faster and be capable of reaching substantially stronger bases. Apex must remain rare rather than becoming the majority of the Top 100.
+6. Use a developed human account (for example a several-thousand Base Power Commander) and verify the AI ladder begins closing the gap. Normal rivals should occupy a broad competitive band; some Elite/Apex bases may eventually match or exceed the human leader without every bot becoming identical.
+7. Run the game in two browsers at once. Watch the same AI profile/activity while map presence polling is active. Confirm there are no duplicate-action storms, SQL/500 errors or impossible rapid same-bot action loops; `next_action_at`/lease protection must continue serializing each bot.
+8. Leave Apache/MySQL stopped for a few minutes, restart both, sign back in and observe the population. Catch-up must resume from persisted timestamps, make bounded progress and remain responsive rather than trying to spawn 1,000 simultaneous workers.
+9. Exercise FOB/Dispatch/PvP while the new AI activity is running. Confirm human defender protection, existing autonomous transfer limits, real mission/raid settlement and the 28% human target preference remain intact. AI competition must not bypass the existing transactional authorities.
+10. Regression-check one normal battle, one PvP battle and one automatic Dispatch/FOB result. Require the accepted compact sizing, HP layout and inward-facing sprites from v0.8.1–v0.8.3. No giant images, oversized battle UI, stale unstyled presentation or altered runtime artwork is acceptable.
 
 ## A-0000. v0.8.1 automatic battle visual correction — RELEASE BLOCKING
 

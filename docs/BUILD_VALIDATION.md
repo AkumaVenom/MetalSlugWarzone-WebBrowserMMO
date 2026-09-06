@@ -1,4 +1,37 @@
-# Build Validation — v0.8.1 Corrected Peace Walker-Style Automatic Battle Playback
+# v0.8.4.2 Build Validation Addendum
+
+- [x] 60 PHP files pass `php -l`.
+- [x] `assets/js/msw.js` passes `node --check`.
+- [x] `assets/css/msw.css` has balanced structural braces.
+- [x] Runtime DB configuration evaluates to `root` + empty password (`''`).
+- [x] No non-empty DB password fallback or DB-password environment override exists in the release tree.
+- [x] 67/67 runtime PNG/JPG/JPEG/WebP/GIF files are byte-identical to v0.8.3.
+- [x] `assets/css/msw.css` and `assets/js/msw.js` are byte-identical to v0.8.3.
+- [x] Rankings no longer invokes autonomous simulation before rendering.
+- [x] AI pulse has a non-blocking global MySQL advisory lock, 4-commander hard cap, 180 ms cooperative budget and 15-second bot lease.
+- [x] Bot roster finalization no longer rebuilds unseen Mother Base visual positions; layout remains lazy through `msw_mb_staff_state()`.
+- [x] Schema revision remains 8; no migration or data wipe required.
+
+---
+
+# Build Validation — v0.8.4 Competitive Autonomous Commander Activity
+
+
+## v0.8.4 competitive autonomous commander static release gate
+
+- Application version: **0.8.4**; schema revision remains **8** with no table/column migration.
+- Runtime AI scheduling remains request-driven and leased, but missed elapsed time now produces a bounded catch-up count rather than being discarded when `next_action_at` is overdue.
+- Competitive class mapping is deterministic from durable `bot_index`; the 1,000 indexes resolve to **726 Active / 202 Contender / 65 Elite / 7 Apex**.
+- Competitive Base Power targeting uses the stronger of a 3,500 floor or current top human Base Power. Target multipliers, staff-quality ranges, roster caps and cadence vary by class/personality.
+- New development/catch-up paths create or train real `units`, use real assignments and recalculate real sector/Base Power state; no runtime path directly assigns an arbitrary competitive `users.base_power` value.
+- Patrol weighting is reduced and productive Field/Development/Base/Dispatch/FOB/PvP choices dominate. Unavailable FOB/PvP choices fall back to productive work.
+- Bot staff assignment now batches sector/capacity reads and includes underdeveloped-sector pressure; bot Base Power recalculation batches sector aggregation/upserts to control MySQL cost during catch-up.
+- Upgrade activation is state-preserving: it only advances scheduling debt once through `schema_meta.bot_competitive_rivals_v084` and does not alter human progress, bot identity/history or FOB placement.
+- AI Network/Profile Rival Class presentation is PHP/HTML-only. The class badge is kept inside the existing Commander cell so the activity table does not gain a wider column.
+- Full static validation: **60 / 60 PHP files** pass `php -l`; `assets/js/msw.js` passes `node --check`; stylesheet brace balance is zero.
+- Byte-identity against the uploaded v0.8.3 baseline: `assets/css/msw.css`, `assets/js/msw.js`, `database/install_schema.sql`, and all **67 / 67 runtime images** are unchanged. No nested archive exists in the candidate tree.
+- Competitive-profile harness passes the deterministic **726 Active / 202 Contender / 65 Elite / 7 Apex** distribution and bounded catch-up-cap assertion.
+- Detailed static evidence is recorded in `RELEASE_GATE_v0.8.4.txt`. Runtime XAMPP/MySQL/browser acceptance remains required before baseline promotion; see `docs/XAMPP_TEST_PLAN.md`.
 
 
 ## v0.8.1 corrective static release gate
