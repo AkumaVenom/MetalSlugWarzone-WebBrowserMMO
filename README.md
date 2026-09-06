@@ -39,30 +39,17 @@ They move around the world, fight enemies, recover soldiers, gather resources, i
 
 Each warzone contains a varied mix of playable operative appearances rather than copy-pasted clone armies.
 
-<img width="3777" height="1843" alt="ServerConsole" src="https://github.com/user-attachments/assets/0bf556cb-b779-4131-af64-43f733b3ee56" />
+<img width="3787" height="1839" alt="00" src="https://github.com/user-attachments/assets/ecb882f6-3056-4cb0-80e0-920374196082" />
 
-<img width="3792" height="1847" alt="0" src="https://github.com/user-attachments/assets/14c3693a-a007-4248-882b-0b1956e79b0c" />
+<img width="3777" height="1845" alt="0- RaGEZONE" src="https://github.com/user-attachments/assets/5a8a219e-fc17-4c54-8780-1ab67d2b1b91" />
 
-<img width="3804" height="1849" alt="1" src="https://github.com/user-attachments/assets/bfec8f3f-73fa-4cbe-8cf9-6e8ffbc674b0" />
+<img width="3779" height="1843" alt="1- RaGEZONE" src="https://github.com/user-attachments/assets/a2108c76-2565-4f01-a3b5-c070d6b38b5d" />
 
-<img width="3811" height="1846" alt="2" src="https://github.com/user-attachments/assets/1b5e972c-beaa-4d33-a4bf-0232cc5d82fa" />
+<img width="3790" height="1837" alt="2- RaGEZONE" src="https://github.com/user-attachments/assets/5cfd12a6-212c-404b-b783-3043377c0ad2" />
 
-<img width="3781" height="1846" alt="3" src="https://github.com/user-attachments/assets/de89fd83-9853-4777-9dfe-5ebcb990c4b2" />
+<img width="3783" height="1845" alt="3- RaGEZONE" src="https://github.com/user-attachments/assets/8d520ecb-a56f-46a5-8386-a4148fd523e4" />
 
-<img width="3784" height="1849" alt="4" src="https://github.com/user-attachments/assets/f2205fda-bbee-4532-88d4-ce6115e18ed9" />
-
-<img width="3767" height="1804" alt="5" src="https://github.com/user-attachments/assets/2f524695-21ff-4fcf-ad4c-1e447076c2aa" />
-
-<img width="3787" height="1849" alt="6" src="https://github.com/user-attachments/assets/f7a70bc4-2748-4ba8-9b30-0c0be680152c" />
-
-<img width="3768" height="1846" alt="7" src="https://github.com/user-attachments/assets/61d47d05-0f5f-4e70-ae7c-0180dabdad23" />
-
-<img width="3788" height="1845" alt="8" src="https://github.com/user-attachments/assets/570cf07f-1505-4ab4-8cc6-6e12f029ebbe" />
-
-<img width="3792" height="1840" alt="9" src="https://github.com/user-attachments/assets/a7c7fb47-911f-44a7-b9ed-c5b9bafafdba" />
-
-<img width="3801" height="1849" alt="10" src="https://github.com/user-attachments/assets/e1ff3e81-75ef-489e-a480-fb7c0b8793a6" />
-
+<img width="3777" height="1809" alt="6- RaGEZONE" src="https://github.com/user-attachments/assets/fbc2566b-018f-4149-823c-5bb2585e01e6" />
 
 ---
 
