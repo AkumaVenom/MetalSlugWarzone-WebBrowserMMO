@@ -1,11 +1,32 @@
-# Architecture — Metal Slug Warzone v0.7.4
+# Architecture — Metal Slug Warzone v0.8.0
 
 
-> **v0.7.4 combat-pressure note:** the v0.7.3 threat-aware player-relative level windows remain authoritative, while normal-enemy high-threat HP/ATK/DEF/SPD and counter pressure are strengthened so upper warzones remain dangerous even with light Mother Base development and Security escorts. Commander/Mother Base/R&D/SPD/Security architecture and the **Command Centre** navigation naming remain preserved.
+> **v0.8.0 automatic-operations note:** Dispatch and FOB gameplay settlement remains fully server-authoritative. The new automatic battle layer is a deterministic post-settlement projection: it reads committed mission/raid snapshots and results, then visualizes them in a Peace Walker-inspired opposing-force report without owning success rolls, rewards, resource transfer, protection, XP or persistent combat state. The accepted v0.7.5 warzone progression gate and all prior Commander/Mother Base/Security authority remain preserved.
 
 ## Authority model
 
 PHP/MySQL remains authoritative. The browser submits intent and renders returned state; it does not own movement coordinates, collision, staff movement, unit ownership, sector levels, inventory, battle state, FOB membership, target authority, bot state, resources or timers. v0.6.0 continues that rule: the new FOB Command Centre composes existing ledgers and adds only a one-use retaliation link; it does not create client-owned shortcuts.
+
+
+## Corrected automatic battle presentation (v0.8.1)
+
+The v0.8.1 replay UI reuses the established encounter-battle visual primitives (`battle-scene`, `battle-side`, `fighter`, `fighter-sprite-shell`, `battle-card`, `hpbar`) and layers multi-unit automatic choreography on top. `includes/auto_battle.php` supplies both teams, current/max HP, deterministic event choreography and result copy; `assets/js/msw.js` animates HP, force integrity, attack/hit/KO states and replay/skip; `assets/css/msw.css` constrains the arena to the encounter scale.
+
+FOB snapshots now retain existing `hp`/`max_hp` fields in addition to the earlier unit identity/combat fields. Historical snapshots without them fall back safely. When an FOB side has no assigned combat team, the replay renders a representative base/security defense element so the opposing force remains visible without changing the stored raid result. Static assets are version-query cache-busted through `includes/ui.php` so CSS and JavaScript from a prior release cannot be mixed with new replay markup. Gameplay authority remains outside this presentation layer.
+
+## Automatic operations battle playback (v0.8.0)
+
+The automatic battle system is deliberately separated from gameplay resolution. `includes/auto_battle.php` is a read/projection layer, not a combat-authority layer.
+
+1. **Standard Dispatch:** `includes/dispatch_authority.php` remains the only resolver. `dispatch_result.php` may invoke the existing due-resolution function, then builds a replay model from the committed mission row, selected owned units, snapshot power, difficulty, stored result and stored rewards.
+2. **FOB staff strike:** `includes/fob_world.php` remains the only resolver. `fob_dispatch_result.php` invokes the established due-strike resolver. A normal combat outcome is represented by its created `fob_raids` row and therefore redirects to the canonical `fob_result.php`; `protected_abort` remains a non-combat terminal state and receives a withdrawal/shield presentation only.
+3. **Direct invasion / retaliation:** the existing synchronous raid transaction commits the raid first. `fob_result.php` then reads the persisted attacker/defender snapshots and result and renders playback. Immediate/retaliation HUD power can display the exact stored comparison rolls; this is display-only and cannot affect settlement.
+4. **Determinism:** visual event selection uses a stable hash of operation identity/result. No `random_int()` or browser randomness is used to decide a replay winner. The event sequence is generated so its final integrity state agrees with the committed result.
+5. **Client responsibility:** JavaScript only advances presentation frames, applies unit/integrity state and routes an expired countdown to a server result endpoint. If the server still considers an operation pending, the result endpoint renders the authoritative pending state rather than accepting the client clock as proof of completion.
+6. **Snapshot fidelity:** FOB unit snapshots now include the existing unit `source_enemy_key`, ATK, DEF and SPD fields in addition to prior metadata. This enriches future replay rendering without adding tables/columns or mutating historical raid snapshots.
+7. **Accessibility:** Replay/Skip controls are local presentation controls. `prefers-reduced-motion` skips timed choreography and applies the committed final presentation immediately.
+
+This separation is a regression contract: future visual improvements may change choreography and HUD layout, but must not create a second Dispatch/FOB result calculation path.
 
 ## Persistent autonomous commander model
 

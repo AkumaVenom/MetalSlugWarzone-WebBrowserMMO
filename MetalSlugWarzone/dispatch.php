@@ -52,6 +52,8 @@ if(msw_is_post()){
 
 $available=msw_all('SELECT * FROM units WHERE owner_user_id=? AND (dispatched_until IS NULL OR dispatched_until<=NOW()) ORDER BY combat DESC,level DESC,id ASC LIMIT 40','i',[$uid]);
 $runs=msw_all('SELECT * FROM dispatch_missions WHERE user_id=? ORDER BY id DESC LIMIT 12','i',[$uid]);
+$nextPendingId=0;$nextPendingAt=PHP_INT_MAX;
+foreach($runs as $candidate){if((string)$candidate['result']!=='pending')continue;$at=strtotime((string)$candidate['finish_at'])?:PHP_INT_MAX;if($at<$nextPendingAt){$nextPendingAt=$at;$nextPendingId=(int)$candidate['id'];}}
 msw_header('Combat Dispatch','dispatch.php');
 msw_alert(msw_flash());
 ?>
@@ -86,8 +88,8 @@ msw_alert(msw_flash());
 <table><thead><tr><th>Mission</th><th>Status</th><th>Power</th><th>Time / Result</th></tr></thead><tbody>
 <?php foreach($runs as $run): ?>
 <tr><td><?=msw_e($catalog[$run['mission_key']]['name']??$run['mission_key'])?></td><td><span class="badge"><?=msw_e(msw_dispatch_status_label((string)$run['result']))?></span></td><td><?=number_format((int)$run['snapshot_power'])?></td><td>
-<?php if($run['result']==='pending'): ?><span data-countdown="<?=msw_e(date(DATE_ATOM,strtotime((string)$run['finish_at'])))?>">--:--:--</span>
-<?php else: $reward=json_decode((string)$run['reward_json'],true)?:[]; ?><?=msw_e(implode(', ',array_map(fn($k,$v)=>str_replace('_',' ',$k).' +'.$v,array_keys($reward),$reward)))?><?php endif; ?>
+<?php if($run['result']==='pending'): ?><span data-countdown="<?=msw_e(date(DATE_ATOM,strtotime((string)$run['finish_at'])))?>"<?=(int)$run['id']===$nextPendingId?' data-auto-result-url="'.msw_e(msw_url('dispatch_result.php?id='.(int)$run['id'])).'"':''?>>--:--:--</span>
+<?php else: $reward=json_decode((string)$run['reward_json'],true)?:[]; ?><div class="dispatch-result-cell"><span><?=msw_e(implode(', ',array_map(fn($k,$v)=>str_replace('_',' ',$k).' +'.$v,array_keys($reward),$reward)))?></span><a class="btn small secondary" href="<?=msw_e(msw_url('dispatch_result.php?id='.(int)$run['id']))?>">Battle Replay</a></div><?php endif; ?>
 </td></tr>
 <?php endforeach; ?>
 </tbody></table><?php endif; ?>

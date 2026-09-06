@@ -9,7 +9,13 @@
       const d=Math.max(0,end-Date.now());
       const h=Math.floor(d/36e5),m=Math.floor((d%36e5)/6e4),s=Math.floor((d%6e4)/1e3);
       el.textContent=`${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
-      if(d>0)setTimeout(tick,1000);
+      if(d>0){setTimeout(tick,1000);return;}
+      const resultUrl=el.dataset.autoResultUrl;
+      if(resultUrl&&el.dataset.autoResultTriggered!=='1'){
+        el.dataset.autoResultTriggered='1';
+        el.textContent='RESOLVING…';
+        window.setTimeout(()=>{location.href=resultUrl;},700);
+      }
     };
     tick();
   });
@@ -339,6 +345,121 @@
       if(!ok){event.preventDefault();return;}
       form.dataset.protectionConfirmed='1';
     });
+  });
+})();
+
+// v0.8.1 corrected automatic operations battle playback. The authoritative
+// result is already committed by PHP/MySQL; this layer only plays the battle film.
+(()=>{
+  const reduced=window.matchMedia&&window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  document.querySelectorAll('[data-auto-battle]').forEach(shell=>{
+    let model={};
+    try{model=JSON.parse(shell.dataset.model||'{}');}catch(_error){return;}
+    const stage=shell.querySelector('[data-auto-battle-stage]');
+    const status=shell.querySelector('[data-auto-battle-status]');
+    const eventText=shell.querySelector('[data-auto-battle-event]');
+    const result=shell.querySelector('[data-auto-battle-result]');
+    const log=shell.querySelector('[data-auto-battle-log]');
+    const replay=shell.querySelector('[data-auto-battle-replay]');
+    const skip=shell.querySelector('[data-auto-battle-skip]');
+    const events=Array.isArray(model.events)?model.events:[];
+    let runToken=0;
+
+    const wait=ms=>new Promise(resolve=>window.setTimeout(resolve,ms));
+    const team=side=>Array.isArray(model[side])?model[side]:[];
+    const unit=(side,index)=>shell.querySelector(`[data-auto-unit="${side}-${index}"]`);
+    const hpBar=(side,index)=>shell.querySelector(`[data-auto-unit-hp="${side}-${index}"]`);
+    const hpCopy=(side,index)=>shell.querySelector(`[data-auto-hp-current="${side}-${index}"]`);
+    const maxHp=(side,index)=>Math.max(1,Number(team(side)[index]?.max_hp)||1);
+    const initialHp=(side,index)=>Math.max(0,Math.min(maxHp(side,index),Number(team(side)[index]?.hp)||maxHp(side,index)));
+
+    const setHp=(side,index,value)=>{
+      const maximum=maxHp(side,index);
+      const hp=Math.max(0,Math.min(maximum,Math.round(Number(value)||0)));
+      const pct=Math.max(0,Math.min(100,(hp/maximum)*100));
+      const bar=hpBar(side,index);if(bar)bar.style.width=pct+'%';
+      const copy=hpCopy(side,index);if(copy)copy.textContent=String(hp);
+      const card=unit(side,index);if(card){
+        card.classList.toggle('is-ko',hp<=0);
+        card.setAttribute('aria-label',`${team(side)[index]?.name||'Unit'} HP ${hp} of ${maximum}`);
+      }
+    };
+    const setIntegrity=(side,value)=>{
+      const pct=Math.max(0,Math.min(100,Math.round(Number(value)||0)));
+      const copy=shell.querySelector(`[data-auto-integrity="${side}"]`);
+      const bar=shell.querySelector(`[data-auto-force-hp="${side}"]`);
+      if(copy)copy.textContent=pct+'%';
+      if(bar)bar.style.width=pct+'%';
+    };
+    const clearFx=()=>shell.querySelectorAll('.auto-battle-fighter').forEach(node=>node.classList.remove('is-firing','is-hit','is-shielded'));
+    const reset=()=>{
+      clearFx();
+      ['left','right'].forEach(side=>team(side).forEach((_u,index)=>setHp(side,index,initialHp(side,index))));
+      setIntegrity('left',100);setIntegrity('right',100);
+      if(status)status.textContent='STANDBY';
+      if(eventText)eventText.textContent='CONTACT';
+      if(log)log.textContent='';
+      if(result)result.classList.remove('is-visible');
+      if(stage)stage.dataset.phase='standby';
+    };
+    const pushLog=text=>{
+      if(!log||!text)return;
+      const line=document.createElement('div');
+      line.textContent=text;
+      log.append(line);
+      log.scrollTop=log.scrollHeight;
+    };
+    const applyEvent=evt=>{
+      clearFx();
+      if(evt.left_integrity!==undefined)setIntegrity('left',evt.left_integrity);
+      if(evt.right_integrity!==undefined)setIntegrity('right',evt.right_integrity);
+      if(Array.isArray(evt.left_hp))evt.left_hp.forEach((hp,i)=>setHp('left',i,hp));
+      if(Array.isArray(evt.right_hp))evt.right_hp.forEach((hp,i)=>setHp('right',i,hp));
+      if(evt.target_index!==undefined&&Number(evt.target_index)>=0&&evt.target&&evt.hp_after!==undefined){
+        setHp(String(evt.target),Number(evt.target_index),evt.hp_after);
+      }
+      if(evt.actor&&evt.actor!=='none'&&Number(evt.actor_index)>=0){
+        const actor=unit(String(evt.actor),Number(evt.actor_index));if(actor)actor.classList.add('is-firing');
+      }
+      if(evt.target&&evt.target!=='none'&&Number(evt.target_index)>=0){
+        const target=unit(String(evt.target),Number(evt.target_index));if(target)target.classList.add('is-hit');
+      }
+      if(evt.type==='shield')shell.querySelectorAll('[data-auto-force="right"] .auto-battle-fighter').forEach(node=>node.classList.add('is-shielded'));
+      if(stage)stage.dataset.phase=String(evt.type||'exchange');
+      if(eventText)eventText.textContent=String(evt.log||'Combat exchange resolved.');
+      if(status){
+        status.textContent=evt.type==='contact'?'CONTACT':evt.type==='knockout'?'TARGET DOWN':evt.type==='decisive'?'BATTLE COMPLETE':evt.type==='shield'?'SHIELD BLOCK':evt.type==='withdraw'?'WITHDRAWAL':'ENGAGING';
+      }
+      pushLog(String(evt.log||''));
+    };
+    const finish=()=>{
+      clearFx();
+      if(status)status.textContent=model.result_label||'COMPLETE';
+      if(result)result.classList.add('is-visible');
+      if(stage)stage.dataset.phase='complete';
+      if(replay)replay.disabled=false;
+      if(skip)skip.disabled=true;
+    };
+    const applyAll=()=>{reset();events.forEach(applyEvent);finish();};
+    const play=async()=>{
+      const token=++runToken;
+      reset();
+      if(replay)replay.disabled=true;if(skip)skip.disabled=false;
+      if(reduced){applyAll();return;}
+      await wait(550);if(token!==runToken)return;
+      for(const evt of events){
+        applyEvent(evt);
+        const pause=evt.type==='contact'?1000:evt.type==='knockout'?950:evt.type==='decisive'?1200:evt.type==='shield'?1250:820;
+        await wait(pause);
+        if(token!==runToken)return;
+      }
+      finish();
+    };
+    if(replay)replay.addEventListener('click',play);
+    if(skip)skip.addEventListener('click',()=>{runToken++;applyAll();});
+    // Script is cache-busted per release in ui.php, so every result page receives
+    // this autoplay code even if the browser had an older msw.js cached.
+    window.setTimeout(play,300);
   });
 })();
 

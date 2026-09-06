@@ -1,4 +1,35 @@
-# Build Validation — v0.7.4 High-Threat Combat Pressure Calibration
+# Build Validation — v0.8.1 Corrected Peace Walker-Style Automatic Battle Playback
+
+
+## v0.8.1 corrective static release gate
+
+- Application version: **0.8.1**; schema revision remains **8** with no migration.
+- Corrected automatic battles reuse the normal encounter fighter/battle-card/HP presentation and constrain multi-unit sprites to compact battle proportions.
+- Both sides are guaranteed renderable in FOB replays; empty combat-team snapshots receive a visual base/security defense representation.
+- Every combatant carries current/max HP and every rendered fighter exposes numeric HP plus an HP bar; top-level Force HP bars update from the same event state.
+- CSS/JavaScript URLs are cache-busted with the application version so old v0.8.0 assets cannot be mixed with v0.8.1 markup.
+- Static model harness verifies both rosters, enemy HP, attack exchanges, KO events, final loser 0% integrity, Force HP output and absence of technical player-facing terminology.
+- Full syntax gate: **60 / 60 PHP files** pass `php -l`; `assets/js/msw.js` passes `node --check`; stylesheet braces are balanced.
+- Runtime XAMPP/browser acceptance remains required before baseline promotion.
+
+## v0.8.0 static release gate
+
+This candidate adds a presentation-only automatic battle projection around existing Dispatch/FOB authorities. Runtime XAMPP/MySQL/browser acceptance remains release-blocking and is defined in `docs/XAMPP_TEST_PLAN.md`.
+
+- Application version: **0.8.0**.
+- Schema revision: **8** (unchanged; no migration required).
+- New routes: `public_html/dispatch_result.php`, `public_html/fob_dispatch_result.php`; canonical `public_html/fob_result.php` now embeds the replay before its AAR.
+- New shared presentation helper: `public_html/includes/auto_battle.php`. It deterministically derives choreography from already-settled operation identity/result and does not contain a gameplay success/reward/resource roll.
+- Existing gameplay authority remains in `includes/dispatch_authority.php` and `includes/fob_world.php`. The FOB-world runtime change only enriches future unit snapshots with existing unit fields used by the renderer.
+- JavaScript adds expired-countdown result routing plus automatic battle autoplay/replay/skip state; CSS adds the responsive operations HUD.
+- `database/install_schema.sql` and runtime image assets are required to remain byte-identical to the uploaded v0.7.5 baseline.
+- Final syntax, deterministic-model, byte-identity and package-integrity results are recorded in `RELEASE_GATE_v0.8.0.txt`.
+- Final static result: **60 / 60 PHP files** pass `php -l`; `assets/js/msw.js` passes `node --check`; stylesheet brace balance is zero.
+- Deterministic model harness passes Dispatch success/failure final-state, FOB viewer orientation, persisted direct-raid roll, staff-strike complementary odds, sprite-fidelity and protected-abort contracts.
+- Byte-identity comparison against v0.7.5 confirms `database/install_schema.sql`, `includes/dispatch_authority.php`, `includes/battle_engine.php`, and all **67 / 67 runtime images** are unchanged.
+- Candidate tree contains no nested ZIP/7z/RAR archives. Live XAMPP/MySQL/browser acceptance is not inferred from these checks.
+
+## Historical validation — v0.7.4 High-Threat Combat Pressure Calibration
 
 ## v0.7.4 static/formula release gate
 

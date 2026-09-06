@@ -41,7 +41,7 @@ $s=json_decode((string)$row['state_json'],true);if($row['status']==='active'){ms
 $inv=msw_inventory($uid);$enemy=$s['enemy'];$player=$s['player'];$systems=(array)($s['systems']??msw_battle_system_snapshot($uid));$backups=(array)($s['backups']??[]);$fx=(array)($s['fx']??[]);$counterProfile=msw_enemy_counter_profile($s);
 $fxClasses=['msw-battle-arena','fx-action-'.preg_replace('/[^a-z0-9_-]/','',(string)($fx['action']??'contact'))];
 if(!empty($fx['player_hit']))$fxClasses[]='fx-player-hit';if(!empty($fx['enemy_counter']))$fxClasses[]='fx-enemy-counter';if(!empty($fx['enemy_hit']))$fxClasses[]='fx-enemy-hit';if(!empty($fx['backup_slots'])||!empty($fx['backup_guard_slot']))$fxClasses[]='fx-backup';if(!empty($fx['recovery_success']))$fxClasses[]='fx-recovery-success';
-$character=msw_character_catalog()[$u['character_key']]??reset(msw_character_catalog());$recommended=msw_battle_recommended_move($s);
+$character=msw_character_catalog()[$u['character_key']]??reset(msw_character_catalog());$characterSprite=(string)($character['sprite_r']??$character['sprite']);$recommended=msw_battle_recommended_move($s);
 msw_header('Combat Engagement');if(!$flash)$flash=msw_flash();msw_alert($flash);
 ?>
 <div class="grid g2 battle-layout">
@@ -49,11 +49,11 @@ msw_header('Combat Engagement');if(!$flash)$flash=msw_flash();msw_alert($flash);
 <div class="battle-scene <?=msw_e(implode(' ',$fxClasses))?>" data-battle-fx-seq="<?=intval($fx['seq']??0)?>">
     <div class="battle-side battle-side-player">
         <div class="fighter player">
-            <div class="fighter-sprite-shell"><img src="<?=msw_e(msw_url($character['sprite']))?>" alt=""></div>
+            <div class="fighter-sprite-shell"><img class="battle-sprite-face-right" data-battle-facing="right" src="<?=msw_e(msw_url($characterSprite))?>" alt=""></div>
             <div class="battle-card"><b><?=msw_e($player['name'])?> · Lv <?=intval($player['level'])?></b><div class="hpbar"><i style="width:<?=max(0,min(100,round(100*$player['hp']/max(1,$player['max_hp']))))?>%"></i></div><small>HP <?=intval($player['hp'])?> / <?=intval($player['max_hp'])?> · <?=msw_e($player['class'])?></small></div>
         </div>
         <?php if($backups): ?><div class="security-backup-line" aria-label="Security backup detail">
-            <?php foreach($backups as $backup):$slot=(int)($backup['slot']??0);$hit=in_array($slot,(array)($fx['backup_slots']??[]),true)||(int)($fx['backup_guard_slot']??0)===$slot;$backupHp=max(0,(int)($backup['hp']??0));$backupMax=max(1,(int)($backup['max_hp']??1));?><div class="security-backup <?=$hit?'assist-hit':''?>" title="Security backup slot <?=$slot?> · covering fire and damage interception"><img src="<?=msw_e(msw_url((string)$backup['sprite']))?>" alt=""><span><b><?=msw_e($backup['name'])?></b><small>SLOT <?=$slot?> · <?=msw_e($backup['grade'])?> · <?=$backupHp>0?'HP '.$backupHp.'/'.$backupMax:'KO'?></small></span></div><?php endforeach; ?>
+            <?php foreach($backups as $backup):$slot=(int)($backup['slot']??0);$hit=in_array($slot,(array)($fx['backup_slots']??[]),true)||(int)($fx['backup_guard_slot']??0)===$slot;$backupHp=max(0,(int)($backup['hp']??0));$backupMax=max(1,(int)($backup['max_hp']??1));?><div class="security-backup <?=$hit?'assist-hit':''?>" title="Security backup slot <?=$slot?> · covering fire and damage interception"><img class="battle-sprite-face-right battle-sprite-mirror-x" data-battle-facing="right" src="<?=msw_e(msw_url((string)$backup['sprite']))?>" alt=""><span><b><?=msw_e($backup['name'])?></b><small>SLOT <?=$slot?> · <?=msw_e($backup['grade'])?> · <?=$backupHp>0?'HP '.$backupHp.'/'.$backupMax:'KO'?></small></span></div><?php endforeach; ?>
         </div><?php else: ?><div class="security-backup-empty"><small>No Security backup selected · assign up to two soldiers in Staff Management.</small></div><?php endif; ?>
     </div>
     <div class="battle-vs">VS</div>

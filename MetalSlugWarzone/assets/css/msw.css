@@ -213,3 +213,105 @@ body.page-dashboard,body.page-fob,body.page-fob-world,body.page-fob-globe,body.p
 .fob-world-viewport{background:#050607;scrollbar-color:#986b3b #111315}.fob-world-marker span{border-color:#685039;background:#0a0b0ce8;color:#f3d29a}.fob-world-marker span small{color:#aaa197}.fob-world-marker.own span{border-color:#d28a3c;background:#211711;color:#ffe0a0}.fob-world-marker.protected::after{border-color:#4e8790;background:#081719e8;color:#b9eaf2}
 .msw-battle-arena{background:radial-gradient(ellipse at 50% 72%,#3a2d22 0,#17191a 42%,#090a0b 78%)}.security-backup{border-color:#4b443c;background:#0c0e0fda}.security-backup small{color:#908a82}.security-backup-empty{border-color:#49423a;color:#8f8981}.battle-command-module{border-top-color:#443e37}.battle-command-module small{color:#999187}.intel-stat-grid span{border-color:#47413a;background:#101213;color:#958e85}.intel-stat-grid b{color:#efc06b}.security-slot-card{border-color:#4d463d;background:linear-gradient(180deg,#161819,#0d0f10)}.security-slot-card small{color:#948d84}.capability-card{border-color:#4a433b;background:#101213}.capability-card-head>b{color:#eab45e}.capability-row{border-top-color:#3b3732}.capability-row>span{border-color:#514a41;color:#989087}.capability-row small{color:#8c867f}.capability-row.active>span{border-color:#a06b35;color:#ffd17d;background:#2b1b12}.capability-row.active em{color:#8dca8a}.fob-shard-card{border-color:#4b453d;background:linear-gradient(180deg,#17191a,#0e1011)}.fob-shard-card h3{color:#efc16d}
 body.page-index,body.page-login,body.page-signup,body.page-404{--page-scene-art:url('../artwork/MAINHEADER.jpg')}
+
+/* v0.8.1 — corrected Peace-Walker-style automatic FOB / strike / dispatch battle playback */
+body.page-dispatch-result{--hero-art:url('../artwork/DispatchHeader.jpg');--page-scene-art:url('../artwork/Dispatch.jpg')}
+body.page-fob-dispatch-result{--hero-art:url('../artwork/CommandCentreHeader.jpg');--page-scene-art:url('../artwork/ExtaCommanderScanner.jpg')}
+.dispatch-result-cell{display:flex;align-items:center;gap:8px;justify-content:space-between;flex-wrap:wrap}.dispatch-result-cell>span{color:#b6aa9b}
+
+.auto-battle-shell{position:relative;overflow:hidden;margin-bottom:18px;border-color:#5c4936;box-shadow:0 22px 55px #0008}
+.auto-battle-shell::after{content:'';position:absolute;inset:0;pointer-events:none;background:repeating-linear-gradient(0deg,transparent 0 3px,#fff 4px);opacity:.012;z-index:20}
+.auto-battle-head{display:flex;justify-content:space-between;align-items:center;gap:18px}
+.auto-battle-head p{margin:4px 0 0;color:#948d83;font-size:10px}
+.auto-battle-controls{display:flex;gap:7px;position:relative;z-index:21}
+.auto-battle-controls button.secondary{border-color:#5c5549;background:#17191a;color:#d6c6aa;padding:7px 10px;font-size:9px}
+.auto-battle-controls button:disabled{opacity:.4;cursor:default;filter:none}
+
+.auto-battle-scoreboard{display:grid;grid-template-columns:minmax(0,1fr) 230px minmax(0,1fr);align-items:stretch;border-bottom:1px solid #393633;background:linear-gradient(180deg,#161918,#101212)}
+.auto-battle-score{padding:11px 15px;min-width:0;border-right:1px solid #393633}
+.auto-battle-score.enemy{border-right:0;border-left:1px solid #393633;text-align:right}
+.auto-battle-score small,.auto-battle-link small{display:block;color:#d49748;font-size:8px;letter-spacing:1.5px}
+.auto-battle-score.enemy small{color:#d76759}
+.auto-battle-score b{display:block;margin:4px 0;color:#eed09a;font-size:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.auto-battle-score.enemy b{color:#efaaa0}
+.auto-battle-score span{display:block;color:#999187;font-size:8px;letter-spacing:.5px}
+.auto-battle-score strong{color:#f0c56f}
+.auto-battle-score.enemy strong{color:#ef8a7c}
+.auto-force-hp{height:6px;margin-top:7px;border:1px solid #594c32;background:#13130e;overflow:hidden}
+.auto-force-hp i{display:block;height:100%;background:linear-gradient(90deg,#6f7b32,#b6aa44,#e0c65f);transition:width .38s ease}
+.auto-battle-score.enemy .auto-force-hp{border-color:#5b3430;background:#1a0d0c}
+.auto-battle-score.enemy .auto-force-hp i{background:linear-gradient(90deg,#9c3029,#d65346,#ef8d67)}
+.auto-battle-link{display:grid;place-content:center;text-align:center;padding:8px 12px;min-width:0}
+.auto-battle-link b{display:block;margin:5px 0 3px;color:#ece2c9;font-size:13px;letter-spacing:1.2px}
+.auto-battle-link span{color:#88847d;font-size:8px;white-space:nowrap}
+
+.auto-battle-arena.msw-battle-arena{position:relative;grid-template-columns:minmax(0,1fr) 180px minmax(0,1fr);align-items:center;gap:14px;min-height:430px;padding:22px 24px 82px;overflow:hidden;background:radial-gradient(ellipse at 50% 72%,#3a2d22 0,#17191a 42%,#090a0b 78%)}
+.auto-battle-arena::before{content:'';position:absolute;inset:0;pointer-events:none;opacity:.16;background:linear-gradient(90deg,transparent 49.9%,#e0c98f25 50%,transparent 50.1%),repeating-radial-gradient(circle at 50% 52%,transparent 0 70px,#d8c39112 71px 72px,transparent 73px 140px)}
+.auto-battle-side{position:relative;z-index:2;min-width:0;width:100%;align-self:stretch;justify-content:center}
+.auto-battle-side-label{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:8px;padding:7px 9px;border-left:3px solid #d08a3d;background:#141412cc}
+.auto-battle-side-label.enemy{border-left:0;border-right:3px solid #c94d42;flex-direction:row-reverse}
+.auto-battle-side-label span{color:#c98d47;font-size:8px;letter-spacing:1.5px}.auto-battle-side-label.enemy span{color:#d76759}
+.auto-battle-side-label b{font-size:9px;color:#ded2bc;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.auto-battle-roster{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:9px;align-content:center;min-width:0}
+.auto-battle-fighter{min-width:0;position:relative;padding:7px;border:1px solid #4e473d;background:linear-gradient(180deg,#161818e8,#0a0c0dec);transition:transform .18s ease,opacity .24s ease,filter .24s ease,box-shadow .18s ease}
+.auto-battle-side[data-auto-force="left"] .auto-battle-fighter{border-color:#665238;background:linear-gradient(180deg,#1d1914e8,#0b0c0dec)}
+.auto-battle-side[data-auto-force="right"] .auto-battle-fighter{border-color:#623d38;background:linear-gradient(180deg,#1b1312e8,#0b0c0dec)}
+.auto-battle-fighter .fighter-sprite-shell{min-height:102px;height:102px;display:grid;place-items:center}
+.auto-battle-fighter.player .fighter-sprite-shell{min-height:102px}
+.auto-battle-fighter .fighter-sprite-shell img,.auto-battle-fighter.player .fighter-sprite-shell img{height:88px!important;width:auto!important;max-width:128px!important;object-fit:contain!important;image-rendering:pixelated;filter:drop-shadow(0 8px 5px #000a)}
+.auto-battle-fighter.auto-battle-vehicle .fighter-sprite-shell img{height:72px!important;max-width:150px!important}
+/* v0.8.2: automatic-battle combatants explicitly face the opposing force.
+   The recovered/enemy catalog source art is natively left-facing, so the friendly
+   roster is mirrored at render time while the hostile roster keeps native facing. */
+.auto-battle-fighter .fighter-sprite-shell img.auto-battle-sprite-face-right{transform:scaleX(-1)!important;transform-origin:50% 50%}
+.auto-battle-fighter .fighter-sprite-shell img.auto-battle-sprite-face-left{transform:scaleX(1)!important;transform-origin:50% 50%}
+.auto-battle-fighter .battle-card{padding:8px 9px;min-height:64px;background:#0b0d0eea;border-color:#403a34}
+.auto-battle-fighter .battle-card b{display:block;color:#ece2c9;font-size:9px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.auto-battle-fighter .battle-card small{display:block;margin-top:4px;color:#958e85;font-size:7px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.auto-battle-fighter .hpbar{height:8px;margin-top:7px;background:#281411;border:1px solid #5a3931;overflow:hidden}
+.auto-battle-fighter .hpbar i{display:block;height:100%;background:linear-gradient(90deg,#b83f31,#e87149,#e6b453);transition:width .38s ease}
+.auto-battle-side[data-auto-force="left"] .auto-battle-fighter .hpbar{background:#17170f;border-color:#5f5130}
+.auto-battle-side[data-auto-force="left"] .auto-battle-fighter .hpbar i{background:linear-gradient(90deg,#6f7b32,#b6aa44,#e0c65f)}
+.auto-battle-fighter.is-firing{z-index:6;transform:translateX(12px) scale(1.035);box-shadow:0 0 24px #d08a3d44}
+.auto-battle-side[data-auto-force="right"] .auto-battle-fighter.is-firing{transform:translateX(-12px) scale(1.035);box-shadow:0 0 24px #c94d4244}
+.auto-battle-fighter .fighter-sprite-shell::before,.auto-battle-fighter .fighter-sprite-shell::after{content:'';position:absolute;z-index:5;pointer-events:none;opacity:0}
+.auto-battle-fighter.is-firing .fighter-sprite-shell::after{top:45%;right:-18px;width:42px;height:3px;background:linear-gradient(90deg,#fff1b7,#e7b95b 50%,transparent);box-shadow:0 0 10px #e7b95b;animation:autoBattleMuzzle .3s steps(2,end)}
+.auto-battle-side[data-auto-force="right"] .auto-battle-fighter.is-firing .fighter-sprite-shell::after{right:auto;left:-18px;transform:scaleX(-1)}
+.auto-battle-fighter.is-hit .fighter-sprite-shell::before{inset:24% 25%;border:2px solid #f2d291;background:#f0c56f20;box-shadow:0 0 22px #e7b95b;animation:autoBattleImpact .42s steps(2,end)}
+.auto-battle-fighter.is-hit .fighter-sprite-shell{animation:autoBattleEncounterHit .42s steps(2,end)}
+.auto-battle-fighter.is-hit{box-shadow:inset 0 0 0 2px #f0d29c,0 0 24px #d08a3d3d}
+.auto-battle-side[data-auto-force="right"] .auto-battle-fighter.is-hit{box-shadow:inset 0 0 0 2px #f2a49a,0 0 24px #c94d4248}
+.auto-battle-fighter.is-ko{opacity:.28;filter:grayscale(1) brightness(.58)}
+.auto-battle-fighter.is-ko::after{content:'KO';position:absolute;z-index:8;inset:0;display:grid;place-items:center;color:#f0d9bd;font-size:25px;font-weight:900;letter-spacing:3px;text-shadow:0 2px 8px #000;background:#08090945}
+.auto-battle-fighter.is-shielded{box-shadow:inset 0 0 0 2px #69c9d0,0 0 25px #55c8d13d}
+.auto-battle-fighter.is-shielded::after{content:'SHIELD';position:absolute;z-index:9;inset:8px;display:grid;place-items:center;border:1px solid #84d9dd99;color:#b6f3f5;background:#15313588;font-size:10px;font-weight:900;letter-spacing:2px}
+
+.auto-battle-vs{position:relative;z-index:4;grid-column:2;align-self:center;margin:0;width:180px;min-width:0;text-align:center;color:#d8b85d;text-shadow:0 0 14px #d8b85d55}
+.auto-battle-vs b{display:block;margin-top:10px;font-size:19px;letter-spacing:3px}
+.auto-battle-vs span{display:block;min-height:72px;padding:9px 8px;border:1px solid #4d463d;background:#080a0ae8;color:#c7bdad;font-size:8px;line-height:1.45;letter-spacing:0;text-shadow:none;overflow-wrap:anywhere}
+.auto-battle-result{position:absolute;z-index:12;left:18px;right:18px;bottom:13px;display:flex;align-items:center;justify-content:center;gap:13px;padding:10px 14px;border:1px solid #7a5d37;background:#0b0c0cf2;opacity:0;pointer-events:none;transform:translateY(8px);transition:opacity .25s ease,transform .25s ease}
+.auto-battle-result.is-visible{opacity:1;transform:translateY(0)}
+.auto-battle-result small{color:#9b9287;font-size:8px;letter-spacing:2px}.auto-battle-result strong{color:#f0bf66;font-size:22px;letter-spacing:.5px}.auto-battle-result span{color:#bdb4a6;font-size:9px;line-height:1.4}
+.auto-battle-log-wrap{display:grid;grid-template-columns:90px minmax(0,1fr);align-items:start;border-top:1px solid #373431;background:#090b0b}
+.auto-battle-log-wrap>small{padding:11px 12px;color:#d49748;font-size:8px;letter-spacing:1.4px}
+.auto-battle-log{height:78px;overflow:auto;padding:8px 12px;color:#a49d92;font-size:9px;line-height:1.5;border-left:1px solid #302e2b}
+.auto-battle-log div{padding:2px 0;border-bottom:1px dotted #292927}
+.auto-battle-doctrine{margin:0;padding:9px 15px 11px;border-top:1px solid #2d2d2b;color:#77756f;background:#0d0f0f;font-size:8px;line-height:1.5}
+.auto-battle-aar-hero{margin-top:18px}
+
+@keyframes autoBattleMuzzle{0%{opacity:0;transform:scaleX(.25)}30%{opacity:1;transform:scaleX(1)}100%{opacity:0;transform:scaleX(1.2)}}
+@keyframes autoBattleImpact{0%{opacity:0;transform:scale(.55) rotate(0)}35%{opacity:1;transform:scale(1.05) rotate(8deg)}100%{opacity:0;transform:scale(1.35) rotate(16deg)}}
+@keyframes autoBattleEncounterHit{0%{transform:translateX(0);filter:brightness(1)}28%{transform:translateX(-6px);filter:brightness(1.7)}58%{transform:translateX(5px);filter:brightness(.65)}100%{transform:translateX(0);filter:brightness(1)}}
+@media(max-width:1050px){.auto-battle-arena.msw-battle-arena{grid-template-columns:minmax(0,1fr) 120px minmax(0,1fr);padding-left:14px;padding-right:14px}.auto-battle-vs{width:120px}.auto-battle-fighter .fighter-sprite-shell img,.auto-battle-fighter.player .fighter-sprite-shell img{height:76px!important;max-width:110px!important}.auto-battle-fighter .fighter-sprite-shell{height:90px;min-height:90px}.auto-battle-fighter.player .fighter-sprite-shell{min-height:90px}}
+@media(max-width:900px){.auto-battle-head{align-items:flex-start;flex-direction:column}.auto-battle-controls{align-self:stretch}.auto-battle-controls button{flex:1}.auto-battle-scoreboard{grid-template-columns:1fr 1fr}.auto-battle-link{grid-column:1/-1;grid-row:2;border-top:1px solid #393633}.auto-battle-arena.msw-battle-arena{grid-template-columns:1fr;gap:10px;padding:16px 14px 88px}.auto-battle-side-enemy{grid-column:1}.auto-battle-vs{grid-column:1;width:100%;display:grid;grid-template-columns:1fr auto;align-items:center;gap:8px}.auto-battle-vs span{min-height:0}.auto-battle-vs b{margin:0}.auto-battle-roster{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:560px){.auto-battle-scoreboard{grid-template-columns:1fr}.auto-battle-score.enemy{border-left:0;border-top:1px solid #393633;text-align:left}.auto-battle-link{grid-column:1;grid-row:auto}.auto-battle-roster{grid-template-columns:1fr 1fr;gap:6px}.auto-battle-fighter{padding:5px}.auto-battle-fighter .fighter-sprite-shell,.auto-battle-fighter.player .fighter-sprite-shell{height:72px;min-height:72px}.auto-battle-fighter .fighter-sprite-shell img,.auto-battle-fighter.player .fighter-sprite-shell img{height:62px!important;max-width:88px!important}.auto-battle-fighter .battle-card{padding:6px;min-height:58px}.auto-battle-result{left:8px;right:8px;gap:6px;flex-wrap:wrap}.auto-battle-result strong{font-size:18px}.auto-battle-result span{width:100%;text-align:center}.auto-battle-log-wrap{grid-template-columns:1fr}.auto-battle-log{border-left:0;border-top:1px solid #302e2b}}
+@media(prefers-reduced-motion:reduce){.auto-battle-fighter,.auto-battle-fighter .hpbar i,.auto-battle-result{transition:none!important}.auto-battle-fighter.is-hit .fighter-sprite-shell{animation:none!important}}
+
+/* v0.8.3 combat-facing consistency
+   Recovered enemy-unit art is natively left-facing, so Security escorts deployed on
+   the Commander's left side are mirrored in code/CSS to look inward. PvP uses each
+   character's authored right/left sprites; this mirror utility is only used for
+   catalog entries whose left-facing pose is intentionally provided as a mirrored
+   right-facing fallback (currently Trevor) and for Security escorts. */
+.battle-sprite-face-right,.battle-sprite-face-left{transform-origin:50% 50%}
+.battle-sprite-mirror-x{transform:scaleX(-1)!important;transform-origin:50% 50%!important}

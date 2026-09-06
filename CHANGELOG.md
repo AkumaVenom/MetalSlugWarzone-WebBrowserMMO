@@ -1,4 +1,68 @@
+## v0.8.3 — Combat Facing Consistency — XAMPP Test Candidate
+
+### Fixed
+- Corrected normal player-encounter **Security Backup Squad** orientation. Recovered Security escorts deploy on the Commander's left side and are now mirrored in code/CSS so they face right, inward toward the enemy, while the Commander keeps the already-correct right-facing pose.
+- Corrected **live player-vs-player commander battles** so the local Commander on the left always uses the character's right-facing sprite and the opposing Commander on the right always uses the character's left-facing sprite.
+- Applied the same opposing-Commander direction rules to **Live AI PvP** and **Quick AI Duel / snapshot PvP**, because all three modes share the canonical `pvp_match.php` battle renderer.
+- Added a safe mirror fallback for characters that do not have a separate authored left-facing file. Trevor continues to use the existing `mirror_left` catalog contract and is mirrored at render time rather than creating a duplicate sprite asset.
+- Added explicit `data-battle-facing`/facing classes to the affected battle sprites and a protected horizontal-mirror utility so future presentation rules cannot silently reverse the intended inward-facing formation.
+- Bumped the application version to 0.8.3 so the existing CSS/JS cache-busting mechanism immediately loads the corrected facing rules.
+
+### Preserved
+- No PNG/JPG/JPEG/WebP/GIF runtime artwork was generated, duplicated, flipped on disk or modified; all facing corrections are code/CSS and existing authored directional character sprites only.
+- PvE battle damage, Security backup interception/covering-fire behavior, PvP turn resolution, AI PvP behavior, snapshot PvP behavior, XP awards and persistence are unchanged.
+- Automatic Dispatch/FOB battle playback remains unchanged from v0.8.2.
+- Database schema revision remains 8 with no migration.
+
+## v0.8.2 — Automatic Battle Friendly Facing Fix — XAMPP Test Candidate
+
+### Fixed
+- Corrected friendly combatant orientation in automatic Dispatch/FOB battle playback: units rendered on the left now explicitly face right, inward toward the opposing force.
+- Preserved the enemy roster's accepted orientation on the right so hostile units continue to face left toward the friendly squad.
+- Replaced the previous broad side-based sprite transform with explicit render-time facing classes plus a protected CSS transform, preventing other fighter presentation rules from cancelling the intended friendly mirror.
+- Kept side-aware attack choreography aligned with the sprites: friendly lunge/muzzle effects travel right and enemy lunge/muzzle effects travel left.
+- Bumped the application version to 0.8.2 so CSS/JS cache-busting forces the corrected battle-facing rules to load without a manual hard refresh.
+
+### Preserved
+- No runtime sprite/image assets are added, generated, mirrored on disk or modified; the fix is code/CSS only.
+- Automatic battle HP, KO sequencing, autoplay, replay, skip, result choreography and player-facing text remain unchanged from the accepted v0.8.1 behavior.
+- Dispatch/FOB settlement logic and database schema remain unchanged; schema revision stays at 8 with no migration.
+
+## v0.8.1 — Corrected Peace Walker-Style Automatic Battle Playback — XAMPP Test Candidate
+
+### Fixed
+- Replaced the broken oversized automatic battle layout with a compact multi-unit arena built from the same fighter cards, sprites, HP bars and visual proportions used by the normal player encounter battle screen.
+- Added explicit friendly and enemy rosters to every replay. FOB reports with no assigned combat defenders now show a base/security defense representation instead of leaving the opposing side blank.
+- Added numeric current/max HP for every combatant and animated Force HP bars for both sides. Exchange and KO events now visibly reduce enemy/friendly HP to the final result.
+- Added clearer firing/impact feedback and a one-at-a-time KO finish so the battle visibly plays rather than jumping from setup to the AAR.
+- Added release-version cache busting to `msw.css` and `msw.js`, preventing an older cached stylesheet/script from producing unstyled giant sprites or disabling autoplay after an update.
+- Rewrote automatic-battle and result-page copy as player-facing game text; implementation/debug terminology is no longer shown to players.
+
+### Preserved
+- Dispatch and FOB gameplay settlement remains unchanged and replay-only.
+- Schema revision remains 8; no database migration or new runtime image asset is required.
+
 # Changelog
+## v0.8.0 — Automatic Operations Battle Playback — XAMPP Test Candidate
+
+### Peace Walker-inspired automatic result battles
+- Added a reusable deterministic battle-playback layer in `public_html/includes/auto_battle.php` for **standard Dispatch Missions**, **FOB staff strike-force operations**, and **direct/retaliation FOB raids**. The opposing-force HUD, unit cards, force integrity, event log, hit/KO presentation and final result overlay are presentation only and consume an already-settled server result.
+- Added `dispatch_result.php` as the canonical standard Dispatch result/replay route. Due missions are first passed through the existing dispatch authority, pending missions retain their timer, and settled missions render the automatic battle before their authoritative result/reward summary.
+- Added `fob_dispatch_result.php` as the staff-strike completion route. Pending strikes resolve only through the existing FOB authority; combat resolutions redirect into the canonical FOB raid AAR/replay, while a defender protection abort receives a dedicated shield/withdrawal playback and no fabricated combat settlement.
+- Upgraded `fob_result.php` so every accessible settled raid—direct invasion, retaliation or staff strike—plays the automatic battle before the established resource/readiness After Action Report. The logged-in commander is consistently presented as the left-side force.
+- Standard Dispatch and FOB staff ledgers now expose **Battle Replay** links. The nearest pending operation on each relevant surface carries an automatic result URL so its client countdown transfers into the battle result as soon as it reaches zero.
+
+### Authority and deterministic replay safety
+- Gameplay settlement remains untouched: `dispatch_authority.php` still owns Dispatch result/reward/unit-XP resolution; `fob_world.php` still owns FOB result, resource transfer, recovery protection and staff-XP settlement. The browser cannot submit or alter a replay outcome.
+- Replay choreography is seeded from stable operation/raid identity plus the committed result. Replaying or refreshing produces the same presentation outcome and contains no result roll or reward calculation.
+- Immediate/retaliation FOB reports consume the exact attacker/defender comparison rolls already persisted in each raid snapshot. Staff-strike reports consume the persisted success chance; defender-facing playback presents the complementary defender probability.
+- FOB unit snapshots now also retain `source_enemy_key`, ATK, DEF and SPD so future battle reports can preserve recovered unit sprite identity and richer snapshot fidelity without changing the database schema.
+
+### Presentation and compatibility
+- Added a responsive Peace Walker-inspired amber-versus-red operations HUD to `assets/css/msw.css` and the autoplay/replay/skip/countdown transition controller to `assets/js/msw.js`. Reduced-motion preference is honored by applying the settled final state immediately.
+- Added result-route labels to the server console and wired the shared playback include through the existing UI bootstrap.
+- Application version advances **0.7.5 → 0.8.0**. Schema revision remains **8**; no migration or install-schema change is introduced and no runtime image assets are added or modified.
+
 ## v0.7.5 — Underlevel High-Threat Progression Gate — XAMPP Test Candidate
 
 ### Low-level late-warzone progression gate

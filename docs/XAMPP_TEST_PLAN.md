@@ -1,7 +1,39 @@
-# XAMPP Runtime Acceptance Plan — v0.7.5 Underlevel High-Threat Progression Gate
+# XAMPP Runtime Acceptance Plan — v0.8.1 Corrected Peace Walker-Style Automatic Battle Playback
 
-This v0.7.5 candidate is a focused low-level/high-threat progression-gate correction built directly from v0.7.4. Test against a backed-up persistent database. Schema revision remains 8, so Update / Repair is a safety verification rather than a migration. The accepted v0.7.3 player-relative level windows, v0.7.4 base threat curve, v0.7.1 Commander/Mother Base/SPD/Security fixes and v0.7.2 Command Centre navigation polish remain inherited and must regress unchanged.
+This v0.8.1 candidate corrects the automatic battle presentation for standard Dispatch, FOB staff strikes and FOB raid results. Test against a backed-up persistent database. Schema revision remains 8, so Update / Repair is a safety verification rather than a migration. The v0.7.5 high-threat progression gate and all inherited gameplay authority remain release-blocking regressions.
 
+
+## A-0000. v0.8.1 automatic battle visual correction — RELEASE BLOCKING
+
+1. Open a completed FOB invasion result in Firefox/Edge after replacing the files. Confirm the page automatically loads the **0.8.1** CSS/JS without a hard refresh and the battle is fully styled; no giant raw sprites or stacked unstyled text are acceptable.
+2. Confirm the arena visually matches the normal player encounter battle language: compact sprites, fighter cards, HP bars, two opposing sides and a centered VS/event area.
+3. Confirm **both teams are visible at the same time**. Test a defender with zero assigned combat staff and require visible FOB/base defenders rather than an empty enemy side.
+4. Confirm every friendly and enemy fighter shows **HP current / max** and a visible HP bar. Confirm both top Force HP bars/percentages update while the replay runs.
+5. Let the battle autoplay. Require visible attacks/hit feedback, changing HP, individual KO states and a final losing force at 0%. Replay Battle must restart the same sequence; Skip Battle must jump to the same final state.
+6. Inspect the battle/result screens as a player. There must be no implementation/debug copy such as “authoritative”, “deterministic”, “persisted”, “server result”, “pre-resolution” or “resolver”.
+7. Repeat items 2–6 for a normal Dispatch result and an FOB Staff Strike result (including a protected-abort strike).
+8. Verify the result and rewards still match the previously settled Dispatch/FOB record and are not changed by replay, skip or refresh.
+
+## A-000. Automatic operations battle playback — RELEASE BLOCKING
+
+1. Launch a normal **Dispatch Mission** with two or more units. Confirm the nearest pending countdown transfers automatically to `dispatch_result.php` at zero, while a manually opened not-yet-due result route remains **Mission In Progress** and does not resolve from client time alone.
+2. After server resolution, confirm the Dispatch result route autoplays a tactical amber-versus-red battle before the AAR. Friendly cards must match the dispatched owned units, the operation label/power/difficulty/result must match the stored mission, and the final overlay must agree exactly with the existing Dispatch result/history row.
+3. Use **Replay** repeatedly and refresh the result page. Confirm the winner, final integrity pattern and result copy do not change. Use **Skip** and confirm it immediately reaches the same committed result. Confirm no extra rewards, XP or state changes occur from playback.
+4. Run an FOB **Staff Strike / Strike Team** that resolves into combat. Confirm its timer transfers to `fob_dispatch_result.php`, the resulting raid redirects to canonical `fob_result.php`, and the battle autoplays before the raid AAR. Verify attacker success chance shown to the attacker matches the committed strike chance; when viewed by the defender, the displayed pre-resolution odds are the complementary defender-side probability.
+5. Run an FOB staff strike that reaches a defender who has entered recovery protection. Confirm the result remains `protected_abort`, no raid/resource transfer is fabricated, and the result page presents the dedicated shield/withdrawal automatic sequence followed by the protected-abort report.
+6. Launch a **Direct Invasion** and a **Retaliation**. Confirm each canonical `fob_result.php` autoplays before the existing AAR and displays the persisted attacker/defender settlement roll values in the force-power HUD, oriented so the logged-in viewer is always the left-side force. Final victory/defeat must match the stored raid result.
+7. Test a recovered infantry unit and vehicle with known `source_enemy_key` in a new FOB snapshot. Confirm subsequent playback uses the correct existing runtime sprite where available. Historical raids without the new snapshot fields must still render through class-based fallback with no errors.
+8. Check standard Dispatch History, FOB Staff Operations and Command Centre recent results. Confirm settled entries expose **Battle Replay**/operation playback links and no duplicate settlement route is created.
+9. Enable the OS/browser **reduced motion** preference. Confirm the result page reaches the committed final battle state without timed combat animation while preserving the AAR and controls. Test desktop and a narrow/mobile viewport for no clipped result controls or unreadable unit cards.
+10. Open two accounts around the same FOB result and refresh aggressively. Confirm replay traffic never changes `fob_raids`, resources, shields, staff XP or result; only the existing authority functions may settle due work.
+
+## A-001. v0.8.0 authority and regression boundary — RELEASE BLOCKING
+
+1. Confirm `config/app.php` reports **0.8.1** and schema revision remains **8**. Run Update / Repair and require no new migration.
+2. Confirm `database/install_schema.sql` is unchanged from the accepted v0.7.5 baseline and all existing runtime image assets remain byte-identical.
+3. Confirm Dispatch success/reward settlement still occurs only through `includes/dispatch_authority.php`; inspect multiple wins/failures to ensure playback never changes committed outcome or rewards.
+4. Confirm FOB raid/strike result, resource transfer, protection and staff XP settlement still occurs only through `includes/fob_world.php`; playback must remain a post-settlement view.
+5. Complete the inherited v0.7.5 progression/combat, Mother Base, Security, PvP, FOB, persistence and social regression matrix below before promoting v0.8.0.
 
 ## A-00. Underlevel high-threat progression gate — RELEASE BLOCKING
 

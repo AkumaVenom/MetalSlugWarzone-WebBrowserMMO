@@ -1,12 +1,40 @@
 <?php
 declare(strict_types=1);
 require __DIR__.'/includes/ui.php';
-$u=msw_require_user();$uid=(int)$u['id'];$id=(int)($_GET['id']??0);$r=msw_one('SELECT r.*,a.username attacker,d.username defender FROM fob_raids r JOIN users a ON a.id=r.attacker_user_id JOIN users d ON d.id=r.defender_user_id WHERE r.id=? AND (r.attacker_user_id=? OR r.defender_user_id=?)','iii',[$id,$uid,$uid]);if(!$r){http_response_code(404);exit('That raid report is unavailable.');}
-$tr=json_decode((string)$r['transfer_json'],true)?:[];$as=json_decode((string)$r['attacker_snapshot_json'],true)?:[];$ds=json_decode((string)$r['defender_snapshot_json'],true)?:[];$mode=(string)($as['resolution']['mode']??'direct');$modeLabel=['direct'=>'Immediate Infiltration','staff_dispatch'=>'Staff Dispatch Invasion','autonomous'=>'AI FOB Raid','retaliation'=>'Retaliation Strike'][$mode]??ucwords(str_replace('_',' ',$mode));$sourceRaidId=(int)($r['retaliation_for_raid_id']??($as['resolution']['retaliation_for_raid_id']??0));$attackerProtectionBroken=!empty($as['resolution']['attacker_protection_broken'])||!empty($as['launch']['attacker_protection_broken']);
-$defenderId=(int)$r['defender_user_id'];$defenderMembership=msw_fob_membership($defenderId);$targetWorld=(int)($defenderMembership['world_id']??0);$targetVisible=$uid===(int)$r['attacker_user_id']&&msw_fob_target_row($uid,$defenderId)!==null;
+
+$u=msw_require_user();
+$uid=(int)$u['id'];
+$id=(int)($_GET['id']??0);
+$r=msw_one(
+    'SELECT r.*,a.username attacker,d.username defender FROM fob_raids r JOIN users a ON a.id=r.attacker_user_id JOIN users d ON d.id=r.defender_user_id WHERE r.id=? AND (r.attacker_user_id=? OR r.defender_user_id=?)',
+    'iii',[$id,$uid,$uid]
+);
+if(!$r){http_response_code(404);exit('That raid report is unavailable.');}
+
+$tr=json_decode((string)$r['transfer_json'],true)?:[];
+$as=json_decode((string)$r['attacker_snapshot_json'],true)?:[];
+$ds=json_decode((string)$r['defender_snapshot_json'],true)?:[];
+$mode=(string)($as['resolution']['mode']??'direct');
+$modeLabel=[
+    'direct'=>'Immediate Infiltration',
+    'staff_dispatch'=>'Staff Dispatch Invasion',
+    'autonomous'=>'AI FOB Raid',
+    'retaliation'=>'Retaliation Strike',
+][$mode]??ucwords(str_replace('_',' ',$mode));
+$sourceRaidId=(int)($r['retaliation_for_raid_id']??($as['resolution']['retaliation_for_raid_id']??0));
+$attackerProtectionBroken=!empty($as['resolution']['attacker_protection_broken'])||!empty($as['launch']['attacker_protection_broken']);
+$defenderId=(int)$r['defender_user_id'];
+$defenderMembership=msw_fob_membership($defenderId);
+$targetWorld=(int)($defenderMembership['world_id']??0);
+$targetVisible=$uid===(int)$r['attacker_user_id']&&msw_fob_target_row($uid,$defenderId)!==null;
+
 msw_header('FOB Raid Report','fob.php');
+msw_render_auto_battle(msw_auto_battle_model_fob($r,$as,$ds,$uid,$modeLabel));
 ?>
-<section class="hero"><div class="eyebrow">AFTER ACTION REPORT #<?=$id?> · <?=msw_e(strtoupper($modeLabel))?></div><h1><?=msw_e(strtoupper(msw_fob_result_label((string)$r['result'])))?></h1><p><?=msw_e($r['attacker'])?> infiltrated <?=msw_e($r['defender'])?>. The battle is complete, rewards have been settled, and the defender now has a temporary recovery shield. Home-shard raids, cross-shard invasions and retaliation strikes all follow the same combat rules.<?= $attackerProtectionBroken?' The attacker also gave up an active FOB shield when the attack began.':'' ?></p></section>
-<div class="grid g2" style="margin-top:18px"><?php msw_panel('Captured Resources','RAID REWARDS');?><table><tbody><?php foreach($tr as $k=>$v):?><tr><td><?=msw_e(ucwords(str_replace('_',' ',$k)))?></td><td><?=number_format((int)$v)?></td></tr><?php endforeach;?></tbody></table><p class="muted-copy">Resources are captured only when the attacker wins. Even a repelled invasion gives the defender a temporary shield before they can be attacked again.</p><?php msw_panel_end();?><?php msw_panel('Defender Readiness','BASE DEFENSE');?><p>Base: <b><?=msw_e($ds['user']['base_grade']??'--')?></b> · Power <?=number_format((int)($ds['user']['base_power']??0))?></p><p>Security: <?=number_format((int)($ds['security']['score']??0))?> · <?=msw_e($ds['security']['grade']??'--')?></p><p>Combat defenders: <?=count($ds['team']??[])?></p><p>Mode: <b><?=msw_e($modeLabel)?></b></p><?php msw_panel_end();?></div>
+<section class="hero auto-battle-aar-hero"><div class="eyebrow">AFTER ACTION REPORT #<?=$id?> · <?=msw_e(strtoupper($modeLabel))?></div><h1><?=msw_e(strtoupper(msw_fob_result_label((string)$r['result'])))?></h1><p><?=msw_e($r['attacker'])?> infiltrated <?=msw_e($r['defender'])?>. The battle is complete, rewards have been settled, and the defender now has a temporary recovery shield. Home-shard raids, cross-shard invasions and retaliation strikes all follow the same combat rules.<?=$attackerProtectionBroken?' The attacker also gave up an active FOB shield when the attack began.':''?></p></section>
+<div class="grid g2" style="margin-top:18px">
+<?php msw_panel('Captured Resources','RAID REWARDS');?><table><tbody><?php foreach($tr as $k=>$v):?><tr><td><?=msw_e(ucwords(str_replace('_',' ',$k)))?></td><td><?=number_format((int)$v)?></td></tr><?php endforeach;?></tbody></table><p class="muted-copy">Resources are captured only when the attacker wins. Even a repelled invasion gives the defender a temporary shield before they can be attacked again.</p><?php msw_panel_end();?>
+<?php msw_panel('Defender Readiness','BASE DEFENSE');?><p>Base: <b><?=msw_e($ds['user']['base_grade']??'--')?></b> · Power <?=number_format((int)($ds['user']['base_power']??0))?></p><p>Security: <?=number_format((int)($ds['security']['score']??0))?> · <?=msw_e($ds['security']['grade']??'--')?></p><p>Combat defenders: <?=count($ds['team']??[])?></p><p>Mode: <b><?=msw_e($modeLabel)?></b></p><?php if(isset($as['resolution']['success_chance'])):$attackerChance=(float)$as['resolution']['success_chance']*100;$viewerChance=$uid===(int)$r['attacker_user_id']?$attackerChance:100-$attackerChance;?><p><?=$uid===(int)$r['attacker_user_id']?'Attacker strike chance':'Defender hold chance'?>: <b><?=number_format($viewerChance,1)?>%</b></p><?php endif;?><?php msw_panel_end();?>
+</div>
 <div class="actions"><a class="btn" href="<?=msw_e(msw_url('fob.php'))?>">Command Centre</a><a class="btn secondary" href="<?=msw_e(msw_url($targetWorld>0?'fob_world.php?world='.$targetWorld:'fob_world.php'))?>">Battle Shard</a><?php if($targetVisible):?><a class="btn secondary" href="<?=msw_e(msw_url('fob_target.php?id='.$defenderId.'&world='.$targetWorld))?>">Target Intel</a><?php endif;?><a class="btn secondary" href="<?=msw_e(msw_url($targetWorld>0?'fob_infiltration.php?world='.$targetWorld:'fob_infiltration.php'))?>">Raid History</a><?php if($sourceRaidId>0):?><a class="btn secondary" href="<?=msw_e(msw_url('fob_result.php?id='.$sourceRaidId))?>">Source Incident #<?=$sourceRaidId?></a><?php endif;?><a class="btn secondary" href="<?=msw_e(msw_url('fob_globe.php'))?>">Global FOB Map</a></div>
 <?php msw_footer(); ?>

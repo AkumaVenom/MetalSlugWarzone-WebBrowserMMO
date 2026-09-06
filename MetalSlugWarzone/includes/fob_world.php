@@ -146,13 +146,13 @@ function msw_fob_snapshot_locked(int $id,?array $specificUnitIds=null): array {
     $user=msw_one('SELECT id,username,base_power,base_grade,mother_base_key,is_bot FROM users WHERE id=?','i',[$id]);
     if(!$user) throw new RuntimeException('That FOB Commander is unavailable.');
     if($specificUnitIds===null){
-        $team=msw_all("SELECT id,callsign,unit_class,level,combat,security,grade FROM units WHERE owner_user_id=? AND active_combat=1 AND (dispatched_until IS NULL OR dispatched_until<=NOW()) ORDER BY combat DESC,id ASC LIMIT 4 FOR UPDATE",'i',[$id]);
+        $team=msw_all("SELECT id,source_enemy_key,callsign,unit_class,level,hp,max_hp,attack,defense,speed,combat,security,grade FROM units WHERE owner_user_id=? AND active_combat=1 AND (dispatched_until IS NULL OR dispatched_until<=NOW()) ORDER BY combat DESC,id ASC LIMIT 4 FOR UPDATE",'i',[$id]);
     }else{
         $specificUnitIds=array_values(array_unique(array_filter(array_map('intval',$specificUnitIds),fn($v)=>$v>0)));
         if(!$specificUnitIds) $team=[];
         else{
             $in=implode(',',array_map('intval',$specificUnitIds));
-            $team=msw_all("SELECT id,callsign,unit_class,level,combat,security,grade FROM units WHERE owner_user_id=? AND id IN ({$in}) ORDER BY combat DESC,id ASC FOR UPDATE",'i',[$id]);
+            $team=msw_all("SELECT id,source_enemy_key,callsign,unit_class,level,hp,max_hp,attack,defense,speed,combat,security,grade FROM units WHERE owner_user_id=? AND id IN ({$in}) ORDER BY combat DESC,id ASC FOR UPDATE",'i',[$id]);
         }
     }
     $security=msw_one("SELECT score,level,grade FROM base_sectors WHERE user_id=? AND sector_key='security' FOR UPDATE",'i',[$id]);
