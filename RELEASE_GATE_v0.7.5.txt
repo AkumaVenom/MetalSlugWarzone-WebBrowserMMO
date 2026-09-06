@@ -1,0 +1,106 @@
+METAL SLUG WARZONE v0.7.5 — UNDERLEVEL HIGH-THREAT PROGRESSION GATE
+XAMPP TEST CANDIDATE
+
+SCOPE
+- Preserve the accepted v0.7.3/v0.7.4 player-relative enemy level windows and probability distribution.
+- Make upper-warzone combat a genuine progression gate for low-level/lightly developed Commanders.
+- Preserve low-threat progression and the complete v0.7.4 base threat curve for appropriately levelled Commanders.
+- Preserve Mother Base/R&D Commander stat growth as the intended direct counterplay to dangerous maps.
+- Preserve beneficial-only Commander SPD, Security interception/covering fire, Command Centre navigation and unrelated systems.
+
+AUTHORITATIVE LEVEL CONTRACT — UNCHANGED
+- Commander Lv5 / Threat 12 => enemy Lv8–10 (+3..+5).
+- Commander Lv20 / Threat 12 => enemy Lv19–25 (-1..+5).
+- Threat ceilings remain T1 +0, T3 +1, T5 +2, T7 +3, T9 +4, T10–12 +5.
+- Exhaustive Lv5 / Threat12 roll mapping remains +3 19%, +4 33%, +5 48%.
+
+UNDERLEVEL READINESS PRESSURE
+- Normal Threat 1–3 contacts: no underlevel gate.
+- Readiness benchmarks:
+  * T4 Lv5
+  * T5 Lv6
+  * T6 Lv7
+  * T7 Lv9
+  * T8 Lv10
+  * T9 Lv12
+  * T10 Lv13
+  * T11 Lv15
+  * T12 Lv16
+- underlevel_gap = max(0, readiness_benchmark - Commander level).
+- Extra multiplier caps for ordinary contacts:
+  * HP: 1 + min(0.55, gap * 0.045)
+  * ATK: 1 + min(0.85, gap * 0.070)
+  * DEF: 1 + min(0.35, gap * 0.030)
+  * SPD: 1 + min(0.18, gap * 0.015)
+- These multiply after the accepted rolled-enemy-level + v0.7.4 map-threat factors.
+- At/above the benchmark every underlevel stat multiplier is exactly 1.00x.
+- Bosses do not inherit this normal-warzone gate.
+
+REPRODUCED LV4 BALANCE ANCHORS
+Using the same class/level combinations shown in the reported v0.7.4 test screenshots:
+- P4 / T5 / Lv6 Rebel Biker => HP 133 / ATK 33 / DEF 21 / SPD 21.
+- P4 / T7 / Lv6 Rebel Heavy Gunner => HP 130 / ATK 44 / DEF 20 / SPD 9.
+- P4 / T9 / Lv8 Rebel Biker => HP 206 / ATK 54 / DEF 28 / SPD 24.
+- P4 / T12 / Lv9 Rebel Shield Trooper => HP 232 / ATK 47 / DEF 43 / SPD 10.
+- P5 / T12 Shield legal range:
+  * Lv8 => 220 / 44 / 42 / 9
+  * Lv9 => 225 / 45 / 43 / 10
+  * Lv10 => 230 / 47 / 43 / 10
+These values intentionally make late maps unsuitable for starter/light-development farming while remaining conquerable through substantial Mother Base growth, better gear/medical use and/or later Commander levels.
+
+COUNTER PRESSURE / SPD CONTRACT
+- Normal underlevel contacts gain up to +6 counter base-accuracy points from readiness pressure.
+- Existing map-threat counter accuracy remains in place underneath that layer.
+- Commander SPD and Intel reductions are applied after threat + underlevel pressure.
+- Player attack accuracy remains the accepted 94–100% beneficial-only model; enemy SPD never creates a player hit penalty.
+- Enemy ATK remains applied exactly once by msw_damage(); the historical ATK×ATK escalation bug remains absent.
+
+SECURITY / MOTHER BASE CONTRACT
+- Security interception formula is unchanged from v0.7.4: rotating living escort, approximately 20–40% bounded absorption, escort HP consumption and KO persistence.
+- Security covering-fire formula/caps are unchanged from v0.7.4.
+- Increased high-threat enemy ATK naturally depletes escort HP faster; Security is not artificially disabled.
+- Combat/R&D/Medical/Security/Intel/Support/Mess Commander stat mappings are unchanged.
+- R&D partial score contribution remains immediate; no return to whole-level-only staffing bonuses.
+- Enemy gate depends on Commander level + map threat, not live staff assignment, so assigning staff strengthens the Commander rather than secretly weakening the opponent.
+
+ACTIVE ENCOUNTER COMPATIBILITY
+- New encounters write scaling model: warzone_player_threat_window_v5.
+- Existing v3/v4 encounters preserve their exact committed enemy level and stored roll.
+- v3/v4 -> v5 recalculates HP/ATK/DEF/SPD through the new gate and preserves current enemy HP percentage.
+- Repeated refreshes do not reroll enemy level, reapply scaling or heal the encounter.
+- Older pre-v0.7.3 encounters still receive one deterministic legal-window level migration before v5 calibration.
+
+RELEASE BOUNDARY
+- Application version: 0.7.5.
+- Schema revision remains 8.
+- No database migration.
+- Runtime PHP changes versus v0.7.4 are limited to:
+  * public_html/config/app.php
+  * public_html/includes/battle_engine.php
+- No intended CSS, JavaScript, database/install_schema.sql or runtime-art changes.
+
+STATIC / FORMULA VALIDATION
+- 57 / 57 PHP files pass php -l.
+- public_html/assets/js/msw.js passes node --check.
+- CSS brace balance is zero.
+- assets/css/msw.css is byte-identical to v0.7.4.
+- assets/js/msw.js is byte-identical to v0.7.4.
+- database/install_schema.sql is byte-identical to v0.7.4.
+- 67 / 67 runtime images are byte-identical to v0.7.4; no image added/removed.
+- Runtime diff versus v0.7.4 is exactly 2 files: config/app.php and includes/battle_engine.php.
+- Direct isolated PHP formula/migration harness passes:
+  * Lv5/Threat12 +3/+4/+5 distribution 19/33/48.
+  * Lv20/Threat12 legal -1..+5 window.
+  * Threat ceiling progression +0/+1/+2/+3/+4/+5.
+  * Readiness benchmark/gap matrix T4–T12.
+  * Exact P4 T5/T7/T9/T12 reproduced contact anchors above.
+  * P5/T12 Shield Lv8–10 high-risk anchors above.
+  * Gate-neutral Threat12 Shield Lv8 remains the inherited v0.7.4 147/25/31/8 anchor.
+  * Threat1 base remains unchanged beneath the gate.
+  * Underlevel multiplier caps 1.55/1.85/1.35/1.18 and +6 counter accuracy.
+  * player attack accuracy remains >=94% and non-decreasing with SPD.
+  * SPD and Intel still reduce underlevel high-threat enemy counter accuracy.
+  * boss stats are invariant to normal-warzone underlevel pressure.
+  * v4->v5 sample preserves level, roll, HP ratio and refresh stability while recalibrating 39/152 HP T9 Lv8 Biker to 53/206 HP with ATK54/DEF28/SPD24.
+- Package source contains no nested ZIP/7z/RAR archives.
+- No live XAMPP/MySQL/browser acceptance is claimed until the user performs the release-blocking runtime test plan.

@@ -12,7 +12,7 @@ function msw_header(string $title,string $active=''): void {
     <div class="network-state" aria-label="Command network online"><i></i><span>WARZONE LINK</span><b>ONLINE</b></div>
     <?php if($u): $c=$chars[$u['character_key']]??reset($chars);$p=msw_user_progress($u); ?><div class="commander-chip"><span class="commander-sprite-shell"><img src="<?=msw_e(msw_url($c['sprite']))?>" alt=""></span><span class="commander-chip-copy"><b><?=msw_e($u['username'])?></b><small>LV <?=intval($p['level'])?> · <?=msw_e($u['base_grade'])?> · PWR <?=number_format((int)$u['base_power'])?></small><span class="commander-xp-row"><i><em style="width:<?=round((float)$p['percent'],2)?>%"></em></i><small>XP <?=number_format((int)$p['current_xp'])?> / <?=number_format((int)$p['required_xp'])?></small></span></span></div><?php endif; ?></header>
     <?php if($u): ?><nav class="mainnav"><?php foreach([
-        'dashboard.php'=>'Command','map_select.php'=>'Warzone','base.php'=>'Mother Base','missions.php'=>'Operations','bosses.php'=>'Bosses','dispatch.php'=>'Dispatch','fob.php'=>'FOB','pvp.php'=>'Live PvP','ai_commanders.php'=>'AI Commanders','community.php'=>'Community','rankings.php'=>'Rankings'
+        'dashboard.php'=>'Command','map_select.php'=>'Warzone','base.php'=>'Mother Base','missions.php'=>'Operations','bosses.php'=>'Bosses','dispatch.php'=>'Dispatch','fob.php'=>'Command Centre','pvp.php'=>'Live PvP','ai_commanders.php'=>'AI Commanders','community.php'=>'Community','rankings.php'=>'Rankings'
     ] as $href=>$label): ?><a class="<?=$active===$href?'active':''?>" href="<?=msw_e(msw_url($href))?>"><?=msw_e($label)?></a><?php endforeach; ?><a href="<?=msw_e(msw_url('logout.php'))?>">Logout</a></nav><?php endif; ?>
     <main class="shell"><?php
 }

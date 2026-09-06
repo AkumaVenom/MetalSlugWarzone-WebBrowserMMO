@@ -38,9 +38,9 @@ if(msw_is_post()){
 
 $row=msw_one('SELECT * FROM encounters WHERE id=? AND user_id=?','ii',[$id,$uid]);if(!$row){http_response_code(404);exit('Battle not found.');}
 $s=json_decode((string)$row['state_json'],true);if($row['status']==='active'){msw_sync_commander_battle_state($uid,$s);msw_sync_enemy_runtime_state($s);msw_sync_battle_support_state($uid,$s);}
-$inv=msw_inventory($uid);$enemy=$s['enemy'];$player=$s['player'];$systems=(array)($s['systems']??msw_battle_system_snapshot($uid));$backups=(array)($s['backups']??[]);$fx=(array)($s['fx']??[]);
+$inv=msw_inventory($uid);$enemy=$s['enemy'];$player=$s['player'];$systems=(array)($s['systems']??msw_battle_system_snapshot($uid));$backups=(array)($s['backups']??[]);$fx=(array)($s['fx']??[]);$counterProfile=msw_enemy_counter_profile($s);
 $fxClasses=['msw-battle-arena','fx-action-'.preg_replace('/[^a-z0-9_-]/','',(string)($fx['action']??'contact'))];
-if(!empty($fx['player_hit']))$fxClasses[]='fx-player-hit';if(!empty($fx['enemy_counter']))$fxClasses[]='fx-enemy-counter';if(!empty($fx['enemy_hit']))$fxClasses[]='fx-enemy-hit';if(!empty($fx['backup_slots']))$fxClasses[]='fx-backup';if(!empty($fx['recovery_success']))$fxClasses[]='fx-recovery-success';
+if(!empty($fx['player_hit']))$fxClasses[]='fx-player-hit';if(!empty($fx['enemy_counter']))$fxClasses[]='fx-enemy-counter';if(!empty($fx['enemy_hit']))$fxClasses[]='fx-enemy-hit';if(!empty($fx['backup_slots'])||!empty($fx['backup_guard_slot']))$fxClasses[]='fx-backup';if(!empty($fx['recovery_success']))$fxClasses[]='fx-recovery-success';
 $character=msw_character_catalog()[$u['character_key']]??reset(msw_character_catalog());$recommended=msw_battle_recommended_move($s);
 msw_header('Combat Engagement');if(!$flash)$flash=msw_flash();msw_alert($flash);
 ?>
@@ -53,14 +53,14 @@ msw_header('Combat Engagement');if(!$flash)$flash=msw_flash();msw_alert($flash);
             <div class="battle-card"><b><?=msw_e($player['name'])?> · Lv <?=intval($player['level'])?></b><div class="hpbar"><i style="width:<?=max(0,min(100,round(100*$player['hp']/max(1,$player['max_hp']))))?>%"></i></div><small>HP <?=intval($player['hp'])?> / <?=intval($player['max_hp'])?> · <?=msw_e($player['class'])?></small></div>
         </div>
         <?php if($backups): ?><div class="security-backup-line" aria-label="Security backup detail">
-            <?php foreach($backups as $backup):$slot=(int)($backup['slot']??0);$hit=in_array($slot,(array)($fx['backup_slots']??[]),true);?><div class="security-backup <?=$hit?'assist-hit':''?>" title="Security backup slot <?=$slot?> · light covering fire"><img src="<?=msw_e(msw_url((string)$backup['sprite']))?>" alt=""><span><b><?=msw_e($backup['name'])?></b><small>SLOT <?=$slot?> · <?=msw_e($backup['grade'])?></small></span></div><?php endforeach; ?>
+            <?php foreach($backups as $backup):$slot=(int)($backup['slot']??0);$hit=in_array($slot,(array)($fx['backup_slots']??[]),true)||(int)($fx['backup_guard_slot']??0)===$slot;$backupHp=max(0,(int)($backup['hp']??0));$backupMax=max(1,(int)($backup['max_hp']??1));?><div class="security-backup <?=$hit?'assist-hit':''?>" title="Security backup slot <?=$slot?> · covering fire and damage interception"><img src="<?=msw_e(msw_url((string)$backup['sprite']))?>" alt=""><span><b><?=msw_e($backup['name'])?></b><small>SLOT <?=$slot?> · <?=msw_e($backup['grade'])?> · <?=$backupHp>0?'HP '.$backupHp.'/'.$backupMax:'KO'?></small></span></div><?php endforeach; ?>
         </div><?php else: ?><div class="security-backup-empty"><small>No Security backup selected · assign up to two soldiers in Staff Management.</small></div><?php endif; ?>
     </div>
     <div class="battle-vs">VS</div>
     <div class="battle-side battle-side-enemy">
         <div class="fighter enemy enemy-<?=msw_e((string)$enemy['class'])?>">
             <div class="fighter-sprite-shell"><img src="<?=msw_e(msw_url($enemy['sprite']))?>" alt=""></div>
-            <div class="battle-card"><b><?=msw_e($enemy['name'])?> · Lv <?=intval($enemy['level'])?></b><div class="hpbar"><i style="width:<?=max(0,min(100,round(100*$enemy['hp']/max(1,$enemy['max_hp']))))?>%"></i></div><small>HP <?=intval($enemy['hp'])?> / <?=intval($enemy['max_hp'])?> · <?=msw_e($enemy['class'])?></small></div>
+            <div class="battle-card"><b><?=msw_e($enemy['name'])?> · Lv <?=intval($enemy['level'])?></b><div class="hpbar"><i style="width:<?=max(0,min(100,round(100*$enemy['hp']/max(1,$enemy['max_hp']))))?>%"></i></div><small>HP <?=intval($enemy['hp'])?> / <?=intval($enemy['max_hp'])?> · <?=msw_e($enemy['class'])?> · THREAT <?=intval($enemy['threat']??($s['scaling']['threat']??1))?></small></div>
         </div>
     </div>
 </div>
@@ -68,7 +68,7 @@ msw_header('Combat Engagement');if(!$flash)$flash=msw_flash();msw_alert($flash);
 
 <?php if((int)($systems['intel']??1)>=2): ?>
 <section class="panel battle-intel-panel" style="margin-top:14px"><div class="panel-head"><div><small>INTEL TEAM LV <?=intval($systems['intel'])?></small><h2>Enemy Intel</h2></div><span class="bolts">•••</span></div><div class="panel-body">
-<div class="intel-stat-grid"><span>ATK <b><?=intval($enemy['attack'])?></b></span><span>DEF <b><?=intval($enemy['defense'])?></b></span><span>SPD <b><?=intval($enemy['speed'])?></b></span><?php if((int)$systems['intel']>=8):?><span>COUNTER <b>ENEMY ACC −6%</b></span><?php endif;?></div>
+<div class="intel-stat-grid"><span>ATK <b><?=intval($enemy['attack'])?></b></span><span>DEF <b><?=intval($enemy['defense'])?></b></span><span>SPD <b><?=intval($enemy['speed'])?></b></span><?php if((int)$systems['intel']>=8):?><span>COUNTER <b><?=intval($counterProfile['accuracy'])?>% ACC</b></span><?php endif;?></div>
 <?php if($recommended):?><p class="muted-copy">Best attack: <b><?=msw_e($recommended['name'])?></b> · <?=number_format((float)$recommended['multiplier'],2)?>× matchup damage.</p><?php elseif((int)$systems['intel']<4):?><p class="muted-copy">Attack recommendations unlock at Intel Team Lv 4.</p><?php endif;?>
 </div></section>
 <?php endif; ?>
@@ -79,7 +79,7 @@ msw_header('Combat Engagement');if(!$flash)$flash=msw_flash();msw_alert($flash);
 <?php if($row['status']==='active'): ?>
 <form method="post" style="margin-top:12px" class="battle-command-form">
     <?=msw_csrf_field()?><input type="hidden" name="id" value="<?=$id?>"><input type="hidden" name="version" value="<?=intval($row['version'])?>">
-    <div class="field"><label>Attack Pattern</label><select name="move"><?php foreach(msw_move_catalog() as $k=>$m):$mult=msw_type_multiplier((string)$m['type'],(string)$enemy['class']);?><option value="<?=msw_e($k)?>"><?=msw_e($m['name'])?> · <?=msw_e($m['type'])?> · PWR <?=intval($m['power'])?><?=(int)$systems['intel']>=4?' · '.number_format($mult,2).'×':''?><?=$recommended&&$recommended['key']===$k?' · RECOMMENDED':''?></option><?php endforeach;?></select></div>
+    <div class="field"><label>Attack Pattern</label><select name="move"><?php foreach(msw_move_catalog() as $k=>$m):$mult=msw_type_multiplier((string)$m['type'],(string)$enemy['class']);$hitProfile=msw_player_attack_profile($s,$m);?><option value="<?=msw_e($k)?>"><?=msw_e($m['name'])?> · <?=msw_e($m['type'])?> · PWR <?=intval($m['power'])?> · ACC <?=intval($hitProfile['accuracy'])?>%<?=(int)$systems['intel']>=4?' · '.number_format($mult,2).'×':''?><?=$recommended&&$recommended['key']===$k?' · RECOMMENDED':''?></option><?php endforeach;?></select><small>Commander SPD only improves PvE accuracy/evasion; it never applies a hit penalty.</small></div>
     <div class="actions"><button name="action" value="attack">Attack</button><?php if($s['context']==='field'):?><button class="danger" name="action" value="retreat">Retreat</button><?php endif;?></div>
 
     <div class="battle-command-module"><div class="field"><label>Combat Medical Gear</label><select name="medical_item"><?php foreach(msw_battle_item_catalog() as $k=>$item):$unlocked=msw_requirements_met($uid,(array)$item['requirements']);?><option value="<?=msw_e($k)?>" <?=$unlocked?'':'disabled'?>><?=msw_e($item['name'])?> · x<?=intval($inv[$k]??0)?> · HEAL <?=intval($item['heal'])?><?=$unlocked?'':' · LOCKED '.msw_requirement_label((array)$item['requirements'])?></option><?php endforeach;?></select><small>Using medical gear takes your turn. Support Lv 3 / 6 boosts healing by 15% / 25%.</small></div><button class="secondary" name="action" value="medical">Use Item</button></div>

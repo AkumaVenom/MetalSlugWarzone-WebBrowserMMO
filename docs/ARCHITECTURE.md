@@ -1,4 +1,7 @@
-# Architecture — Metal Slug Warzone v0.6.0
+# Architecture — Metal Slug Warzone v0.7.4
+
+
+> **v0.7.4 combat-pressure note:** the v0.7.3 threat-aware player-relative level windows remain authoritative, while normal-enemy high-threat HP/ATK/DEF/SPD and counter pressure are strengthened so upper warzones remain dangerous even with light Mother Base development and Security escorts. Commander/Mother Base/R&D/SPD/Security architecture and the **Command Centre** navigation naming remain preserved.
 
 ## Authority model
 
@@ -33,6 +36,24 @@ Autonomous action weighting now gives FOB aggression roughly 15% of action decis
 ## Mother Base sector systems
 
 `base_sectors` remains the authoritative level source. `msw_sector_unlock_catalog()` is the canonical description of runtime milestones and the Mother Base Capability Matrix renders that same catalog.
+
+### Commander combat-stat projection (v0.7.1)
+
+`msw_commander_fighter()` remains the shared Commander-stat authority and composes the personal-level curve plus automatic Mother Base bonuses. v0.7.1 changes the Mother Base input from coarse integer levels to **continuous persisted sector development**: `base_sectors.score / 120` is the raw development-step value, so assigning staff contributes immediately even before the next displayed sector level.
+
+The sector-to-stat contract per effective 120 score points is:
+
+- Combat: ATK +7.00.
+- R&D: ATK +7.00 and SPD +3.00.
+- Support: MAX HP +8.00 and DEF +2.00.
+- Intel: SPD +4.00.
+- Medical: MAX HP +18.00.
+- Mess: MAX HP +6.00 and SPD +2.00.
+- Security: DEF +5.00.
+
+`msw_commander_sector_development()` reads the authoritative score/level rows and preserves fractional progress. `msw_commander_sector_effective_steps()` then applies the same bounded late-game curve to that fractional value: the first nine development steps contribute at 100%, the next ten at 65%, and later steps at 40%. Before aggregation, a non-zero staffed sector floors each mapped raw contribution at 0.51 so the first valid assignment cannot disappear when the final integer Commander stat is rounded. Bonuses are otherwise aggregated by stat and rounded at the end. This guarantees that R&D staffing can affect Commander ATK/SPD before a 120-point level boundary while preventing unbounded late-game linear growth.
+
+The personal-level curve is also slightly stronger in v0.7.1 (HP +3.8/level step, ATK +1.35, DEF +1.00, SPD +0.45 before flooring) so personal levelling and Mother Base development both create real separation from field contacts. Because PvP/AI projections consume the same Commander fighter authority, no parallel PvE-only player-stat copy is introduced.
 
 ### R&D
 
@@ -73,11 +94,49 @@ Schema revision 7 adds `security_backup_slots`, a two-slot persistent selection 
 
 The Staff page manages the slots. Reassigning a selected unit away from Security clears its backup selection. At battle synchronization, only currently valid rows are projected into the fight.
 
-Backup output is deliberately constrained. The derived backup attack is substantially reduced from the unit's normal stats, assist accuracy starts around 60%, and each hit is capped to a small percentage of enemy maximum HP (with a lower boss ceiling). Security Lv4 adds 5 percentage points of assist accuracy; Security Lv7 raises the non-boss controlled-damage ceiling slightly. The primary commander remains the dominant damage source.
+Backup output remains deliberately constrained but is more reliable in v0.7.1. Base assist accuracy rises to 72%, Security Lv4 adds 6 points, later Security levels add incremental accuracy up to an 86% ceiling, and controlled non-boss per-hit caps are 9%/11% of enemy maximum HP before/after Security Lv7. Boss support remains capped at 4.5% per hit, preserving the Commander as the primary damage source.
+
+Each selected escort also has battle-local `hp/max_hp`. `msw_security_backup_guard()` rotates interception duty among living escorts and absorbs a bounded portion of a successful enemy counter before Commander HP is reduced. Interception begins at 20%, can gain up to 14 points from Security Team level plus up to 6 points from the escort's Security stat, and is hard-capped at 40%. Absorption consumes escort HP; an escort at 0 HP is KO'd and can neither guard nor fire. `msw_merge_security_backup_runtime()` preserves the current HP ratio when valid backup rows are re-synchronized, preventing page reloads from restoring escort health. No persistent unit injury/death is introduced; this HP exists only inside the encounter state.
 
 ### Support
 
 Support Lv3 raises medical-item healing to 115% of base and Support Lv6 to 125% total. This multiplier is applied in the authoritative battle engine, not calculated by the browser.
+
+## Underlevel high-threat progression gate (v0.7.5)
+
+`msw_warzone_readiness_pressure()` adds a conditional progression-gate layer on top of the accepted player-relative enemy level window and v0.7.4 threat factors. The enemy level is still rolled from Commander level + threat; the new layer exists only to prevent a very low-level Commander from treating late maps as ordinary fights.
+
+Normal field/mission contacts use readiness benchmarks T4=5, T5=6, T6=7, T7=9, T8=10, T9=12, T10=13, T11=15 and T12=16. Threat 1–3 have no readiness penalty. `underlevel_gap = max(0, benchmark - commander_level)` and feeds capped multipliers: HP `1 + min(.55, gap*.045)`, ATK `1 + min(.85, gap*.070)`, DEF `1 + min(.35, gap*.030)`, SPD `1 + min(.18, gap*.015)`. These multiply after rolled-enemy-level and map-threat factors. Bosses remain on their dedicated curve and do not inherit this gate.
+
+The gate is intentionally based on Commander level, not live Mother Base staffing. Mother Base development therefore never weakens an enemy behind the scenes; it strengthens the player directly. This keeps Combat/R&D/Medical/Security/Intel/Support/Mess progression legible and makes substantial base development the intended way for an ambitious underlevel Commander to survive a dangerous map.
+
+Normal enemy counter accuracy additionally receives up to +6 points from the same underlevel gap before existing Commander SPD and Intel reductions. Player attack accuracy is untouched. Security interception/support is also untouched, but increased raw enemy ATK means escort HP is depleted faster under real late-warzone pressure.
+
+Encounter compatibility advances to `warzone_player_threat_window_v5`. Existing v3/v4 encounters preserve the exact committed enemy level and roll, preserve current HP percentage, and recalculate only combat stats. Older models still receive the deterministic legal-window migration before v5 calibration.
+
+## High-threat combat pressure calibration (v0.7.4)
+
+`msw_enemy_level_window()` and `msw_enemy_level_offset_for_roll()` are intentionally unchanged from v0.7.3. Enemy **level selection** remains the progression backbone, including the +0/+1/+2/+3/+4/+5 threat ceilings and maturity-based lower spread. v0.7.4 changes only the independent **combat pressure** layered on top of the already-rolled enemy level.
+
+For normal enemies, `msw_enemy_scaled_stats()` retains 3.0% HP, 2.8% ATK, 2.4% DEF and 1.0% SPD per enemy-level step. The threat-pressure exponent is reduced from 1.25 to 1.10 and the curve is widened from the same accepted Threat 1 factors, so the low-map baseline is byte-for-byte formula-equivalent while middle/high maps separate earlier and more coherently. Threat 12 reaches approximately **1.48× HP, 1.40× ATK, 1.22× DEF and 1.08× SPD** before enemy-level scaling. This intentionally emphasizes HP/ATK over DEF: dangerous maps gain survivability and offensive pressure without creating excessive damage-sponge behavior.
+
+`msw_enemy_counter_profile()` adds up to +4 base counter accuracy from threat before Commander SPD and Intel reductions. `msw_enemy_counter_power()` raises the normal-enemy threat component from +6 to +8 at the top end. Enemy ATK is still applied exactly once by `msw_damage()`; counter move power remains a separate class/threat term and does not reintroduce the historical ATK×ATK escalation.
+
+Encounter model marker `warzone_player_threat_window_v4` distinguishes the calibration. A v0.7.3 encounter already has a valid threat/player level roll, so migration preserves that enemy level and stored roll, recalculates HP/ATK/DEF/SPD, and retains current HP percentage. Older encounters still receive one deterministic legal-window level migration first.
+
+## Threat-aware player-relative enemy scaling (v0.7.3)
+
+PvE encounter creation deliberately separates **enemy level selection** from **threat stat pressure**, but v0.7.3 makes threat authoritative in both stages rather than using one universal level window. `msw_enemy_level_window()` first derives the legal level offset range from current Commander level and threat. Normal-map ceilings progress from +0 at Threat 1 through +1/+2/+3/+4 and finally +5 at Threat 10–12. Commander maturity then widens the lower side of the range: Lv1–5 use a two-level spread, Lv6–9 three, Lv10–14 four, Lv15–19 five and Lv20+ six, with a normal floor of −3. This produces **Commander Lv5 / Threat 12 = +3..+5 (enemy Lv8–10)** and **Commander Lv20 / Threat 12 = −1..+5 (enemy Lv19–25)**. Bosses use a separate tighter window because their authored catalog values are already exceptional.
+
+`msw_enemy_level_offset_for_roll()` applies a threat-driven weight blend across that legal window. Low threat favors the lower offsets; increasing threat shifts probability toward the upper offsets without removing range variety. The 1–100 mapping is deterministic for a supplied roll. `msw_roll_enemy_level()` persists the selected roll, final offset and min/max offsets in encounter state under `warzone_player_threat_window_v3`, so an established battle never rerolls from a browser refresh.
+
+`msw_enemy_scaled_stats()` then derives HP/ATK/DEF/SPD from the enemy catalog base, the actual rolled enemy level and the authoritative threat. For normal contacts, level progression uses 3.0% HP, 2.8% ATK, 2.4% DEF and 1.0% SPD per level step. Threat is a separate nonlinear multiplier reaching approximately 1.30× HP, 1.22× ATK, 1.16× DEF and 1.06× SPD at Threat 12 before the level factor. The nonlinear curve keeps low/mid maps controlled while making the final warzones unmistakably stronger. Bosses retain lower dedicated rates.
+
+`msw_sync_enemy_runtime_state()` hot-upgrades active pre-v0.7.3 encounters. It derives one deterministic migration roll from stable encounter fields, moves the enemy into the legal v3 level window, recalculates stats, and preserves the exact current HP percentage as closely as integer rounding allows. Once upgraded, the v3 model marker prevents further rerolls.
+
+Enemy counter damage remains decoupled from raw ATK growth. `msw_enemy_counter_power()` derives move power from enemy class plus a smooth threat bonus; enemy ATK is then consumed exactly once by `msw_damage()`. This retains the v0.7.1 protection against superlinear ATK×ATK behavior while letting deeper warzones apply higher counter pressure.
+
+Commander SPD remains strictly beneficial in PvE. `msw_player_attack_profile()` never subtracts accuracy for enemy speed: SPD adds up to 5 points on top of the PvE accuracy baseline, Combat adds up to 3, Intel Lv4 adds 1, and final player attack accuracy is clamped to 94–100%. `msw_enemy_counter_profile()` separately begins enemy counter accuracy at 88%, subtracts up to 6 points from absolute Commander SPD plus up to 6 from a positive speed advantage (10 total SPD reduction cap), then stacks Intel Lv8's −6. Final enemy counter accuracy cannot fall below 55%.
 
 ## Unified PvE battle flow and animation contract
 

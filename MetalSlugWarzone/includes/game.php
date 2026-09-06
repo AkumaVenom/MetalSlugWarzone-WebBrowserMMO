@@ -256,7 +256,7 @@ function msw_security_backup_fighters(int $uid): array {
     $capacity=msw_security_backup_capacity($uid);
     if($capacity<=0)return [];
     $rows=msw_all(
-        "SELECT s.slot_index,u.id,u.callsign,u.source_enemy_key,u.unit_class,u.affinity_type,u.level,u.attack,u.defense,u.speed,u.combat,u.security,u.grade FROM security_backup_slots s JOIN units u ON u.id=s.unit_id AND u.owner_user_id=s.user_id WHERE s.user_id=? AND s.slot_index BETWEEN 1 AND ? AND u.assignment='security' AND u.unit_class IN ('infantry','heavy_infantry') AND (u.dispatched_until IS NULL OR u.dispatched_until<=NOW()) ORDER BY s.slot_index",
+        "SELECT s.slot_index,u.id,u.callsign,u.source_enemy_key,u.unit_class,u.affinity_type,u.level,u.max_hp,u.attack,u.defense,u.speed,u.combat,u.security,u.grade FROM security_backup_slots s JOIN units u ON u.id=s.unit_id AND u.owner_user_id=s.user_id WHERE s.user_id=? AND s.slot_index BETWEEN 1 AND ? AND u.assignment='security' AND u.unit_class IN ('infantry','heavy_infantry') AND (u.dispatched_until IS NULL OR u.dispatched_until<=NOW()) ORDER BY s.slot_index",
         'ii',[$uid,$capacity]
     );
     $enemyCatalog=msw_enemy_catalog();$out=[];
@@ -264,7 +264,8 @@ function msw_security_backup_fighters(int $uid): array {
         $enemy=$enemyCatalog[(string)$row['source_enemy_key']]??$enemyCatalog['rifle'];
         $out[]=[
             'slot'=>(int)$row['slot_index'],'unit_id'=>(int)$row['id'],'name'=>(string)$row['callsign'],'class'=>(string)$row['unit_class'],'type'=>(string)$row['affinity_type'],
-            'level'=>(int)$row['level'],'attack'=>max(6,(int)round(((int)$row['attack']*.34)+((int)$row['combat']*.16))),'defense'=>(int)$row['defense'],'speed'=>(int)$row['speed'],
+            'level'=>(int)$row['level'],'hp'=>max(1,(int)$row['max_hp']),'max_hp'=>max(1,(int)$row['max_hp']),
+            'attack'=>max(7,(int)round(((int)$row['attack']*.38)+((int)$row['combat']*.18))),'defense'=>(int)$row['defense'],'speed'=>(int)$row['speed'],
             'security'=>(int)$row['security'],'grade'=>(string)$row['grade'],'sprite'=>(string)$enemy['sprite'],
         ];
     }
@@ -419,6 +420,78 @@ function msw_user_progress(array $user): array {
     ];
 }
 
+function msw_commander_sector_effective_steps(float $steps): float {
+    $steps=max(0.0,$steps);
+    // Full-value growth through the first nine completed sector steps, then
+    // measured diminishing returns. Fractional steps are preserved so every
+    // staff assignment can contribute immediately instead of waiting for a
+    // coarse 120-point level threshold.
+    return min($steps,9.0)
+        +(min(max($steps-9.0,0.0),10.0)*0.65)
+        +(max($steps-19.0,0.0)*0.40);
+}
+
+function msw_commander_sector_development(int $uid,?array $levels=null): array {
+    $levels=$levels??msw_sector_levels($uid);
+    $rows=[];
+    foreach(msw_all('SELECT sector_key,score,level FROM base_sectors WHERE user_id=?','i',[$uid]) as $row){
+        $rows[(string)$row['sector_key']]=$row;
+    }
+    $out=[];
+    foreach(array_keys(msw_sectors()) as $sector){
+        $level=max(1,(int)($rows[$sector]['level']??$levels[$sector]??1));
+        $score=max(0,(int)($rows[$sector]['score']??(($level-1)*120)));
+        $rawSteps=$score/120.0;
+        $out[$sector]=[
+            'level'=>$level,
+            'score'=>$score,
+            'raw_steps'=>$rawSteps,
+            'effective_steps'=>msw_commander_sector_effective_steps($rawSteps),
+            'level_progress'=>(($score%120)/120.0),
+            'points_to_next'=>120-($score%120),
+        ];
+    }
+    return $out;
+}
+
+function msw_commander_mother_base_bonuses(int $uid,?array $levels=null): array {
+    $levels=$levels??msw_sector_levels($uid);
+    $catalog=msw_commander_sector_stat_catalog();
+    $development=msw_commander_sector_development($uid,$levels);
+    $raw=['max_hp'=>0.0,'attack'=>0.0,'defense'=>0.0,'speed'=>0.0];
+    $bySector=[];
+    foreach($catalog as $sector=>$rates){
+        $snapshot=$development[$sector]??['level'=>1,'score'=>0,'raw_steps'=>0.0,'effective_steps'=>0.0,'level_progress'=>0.0,'points_to_next'=>120];
+        $effective=(float)$snapshot['effective_steps'];
+        $sectorBonus=['max_hp'=>0.0,'attack'=>0.0,'defense'=>0.0,'speed'=>0.0];
+        foreach($rates as $stat=>$rate){
+            if(!array_key_exists($stat,$raw))continue;
+            $gain=$effective*(float)$rate;
+            // A staffed sector must never look inert merely because its first
+            // fractional contribution rounds below one displayed Commander point.
+            if($effective>0.0 && $gain<0.51)$gain=0.51;
+            $raw[$stat]+=$gain;
+            $sectorBonus[$stat]+=$gain;
+        }
+        $bySector[$sector]=[
+            'level'=>(int)$snapshot['level'],
+            'score'=>(int)$snapshot['score'],
+            'raw_steps'=>(float)$snapshot['raw_steps'],
+            'effective_steps'=>$effective,
+            'level_progress'=>(float)$snapshot['level_progress'],
+            'points_to_next'=>(int)$snapshot['points_to_next'],
+            'bonuses'=>$sectorBonus,
+        ];
+    }
+    return [
+        'max_hp'=>(int)round($raw['max_hp']),
+        'attack'=>(int)round($raw['attack']),
+        'defense'=>(int)round($raw['defense']),
+        'speed'=>(int)round($raw['speed']),
+        'sectors'=>$bySector,
+    ];
+}
+
 function msw_commander_fighter(int $uid): array {
     $user=msw_one('SELECT id,username,character_key,level,xp,command_rank FROM users WHERE id=?','i',[$uid]);
     if(!$user) throw new RuntimeException('That Commander profile is unavailable.');
@@ -426,10 +499,18 @@ function msw_commander_fighter(int $uid): array {
     $character=$characters[$user['character_key']]??reset($characters);
     $level=max(1,(int)$user['level']);
     $step=$level-1;
-    $maxHp=70+(int)floor($step*3.2);
-    $attack=18+(int)floor($step*1.15);
-    $defense=14+(int)floor($step*.90);
-    $speed=14+(int)floor($step*.38);
+    $base=[
+        'max_hp'=>70+(int)floor($step*3.8),
+        'attack'=>18+(int)floor($step*1.35),
+        'defense'=>14+(int)floor($step*1.00),
+        'speed'=>14+(int)floor($step*.45),
+    ];
+    $sectorLevels=msw_sector_levels($uid);
+    $bonuses=msw_commander_mother_base_bonuses($uid,$sectorLevels);
+    $maxHp=max(1,$base['max_hp']+$bonuses['max_hp']);
+    $attack=max(1,$base['attack']+$bonuses['attack']);
+    $defense=max(1,$base['defense']+$bonuses['defense']);
+    $speed=max(1,$base['speed']+$bonuses['speed']);
     return [
         'user_id'=>$uid,
         'unit_id'=>0,
@@ -446,6 +527,15 @@ function msw_commander_fighter(int $uid): array {
         'attack'=>$attack,
         'defense'=>$defense,
         'speed'=>$speed,
+        'base_stats'=>$base,
+        'mother_base_bonuses'=>[
+            'max_hp'=>$bonuses['max_hp'],
+            'attack'=>$bonuses['attack'],
+            'defense'=>$bonuses['defense'],
+            'speed'=>$bonuses['speed'],
+        ],
+        'sector_levels'=>$sectorLevels,
+        'sector_contributions'=>$bonuses['sectors'],
         'progress'=>msw_user_progress($user),
     ];
 }

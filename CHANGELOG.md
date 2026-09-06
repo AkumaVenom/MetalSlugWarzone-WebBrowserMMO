@@ -1,4 +1,127 @@
 # Changelog
+## v0.7.5 — Underlevel High-Threat Progression Gate — XAMPP Test Candidate
+
+### Low-level late-warzone progression gate
+- Preserved the complete v0.7.3/v0.7.4 player-relative enemy level-window contract, including Threat ceilings +0/+1/+2/+3/+4/+5 and the required Lv5/Threat12 = Lv8–10 plus Lv20/Threat12 = Lv19–25 anchors.
+- Added `msw_warzone_readiness_pressure()` as a second difficulty axis for ordinary Threat 4–12 contacts. Readiness benchmarks are T4 Lv5, T5 Lv6, T6 Lv7, T7 Lv9, T8 Lv10, T9 Lv12, T10 Lv13, T11 Lv15 and T12 Lv16; Threat 1–3 have no underlevel gate.
+- When Commander level falls below the benchmark, normal-enemy HP/ATK/DEF/SPD receive capped multipliers of up to +55% / +85% / +35% / +18%. This extra pressure stacks after the accepted rolled-level + map-threat factors and disappears completely at/above the benchmark.
+- Added up to +6 underlevel points to normal enemy counter base accuracy before Commander SPD/Intel reductions. Player accuracy is unchanged and SPD remains beneficial-only.
+
+### Reproduced low-level balance anchors
+- Lv4 / Threat 5 / Lv6 Rebel Biker: approximately **133 HP / 33 ATK / 21 DEF / 21 SPD**.
+- Lv4 / Threat 7 / Lv6 Rebel Heavy Gunner: approximately **130 HP / 44 ATK / 20 DEF / 9 SPD**.
+- Lv4 / Threat 9 / Lv8 Rebel Biker: approximately **206 HP / 54 ATK / 28 DEF / 24 SPD**.
+- Lv4 / Threat 12 / Lv9 Rebel Shield Trooper: approximately **232 HP / 47 ATK / 43 DEF / 10 SPD**.
+- These anchors deliberately target the user's observed failure mode: a starter/lightly developed Lv3–4 Commander should no longer expect to clear high-threat zones without meaningful Mother Base/stat investment.
+
+### Progression and compatibility
+- Mother Base/R&D Commander bonuses remain unchanged and continue to be the intended way for a lower-level player to overcome dangerous maps through direct HP/ATK/DEF/SPD improvement.
+- Security escort interception/covering fire remain unchanged; higher incoming ATK simply burns through escort HP faster in late warzones.
+- New encounters use `warzone_player_threat_window_v5`. Existing v3/v4 encounters preserve committed enemy level/roll, preserve current HP percentage, and receive one stat recalibration through v5.
+- Application version advances **0.7.4 → 0.7.5**. Schema revision remains **8**; no database migration is introduced. Runtime PHP changes remain limited to `public_html/config/app.php` and `public_html/includes/battle_engine.php`.
+
+## v0.7.4 — High-Threat Combat Pressure Calibration — XAMPP Test Candidate
+
+### Upper-warzone threat pressure
+- Preserved the complete v0.7.3 player-relative enemy level-window system. Threat ceilings remain +0 / +1 / +2 / +3 / +4 / +5 across the established map bands, including the required Lv5/Threat12 = Lv8–10 and Lv20/Threat12 = Lv19–25 contracts.
+- Recalibrated normal-enemy threat multipliers so upper maps no longer feel too close to low/mid threat when the Commander has only light Mother Base development and active Security escorts. Threat 12 now reaches approximately **1.48× HP, 1.40× ATK, 1.22× DEF and 1.08× SPD** before enemy-level growth.
+- Changed the normal threat-pressure exponent from 1.25 to 1.10 and widened the upper multipliers while preserving the accepted Threat 1 factors exactly. Threat 5/7/9 therefore ramp earlier and more coherently instead of saving too much of the curve for the final band. HP/ATK receive the strongest lift; DEF remains intentionally restrained to avoid excessive sponge fights.
+- Normal enemy counter move threat contribution now reaches +8 instead of +6, while still keeping enemy ATK as a single input to `msw_damage()` and therefore preserving the v0.7.1 anti-double-scaling fix.
+- Normal enemy counter base accuracy gains up to +4 points from threat. Commander SPD and Intel remain pure defensive reductions and continue to subtract from enemy accuracy; player attack accuracy remains untouched at its beneficial 94–100% model.
+
+### Security / Commander progression preservation
+- Security interception rate, battle-local escort HP, KO persistence, covering-fire rules and support caps are unchanged. Higher-threat enemies naturally consume escort HP faster because incoming damage is now appropriately higher.
+- Immediate R&D staffing contribution, all Mother Base Commander stat mappings, personal Commander level growth and Command Centre navigation remain unchanged.
+
+### Active encounter migration
+- New encounters use `warzone_player_threat_window_v4`.
+- Existing v0.7.3 encounters keep their already-valid enemy level and stored level roll, recalculate only enemy HP/ATK/DEF/SPD through v0.7.4 pressure, and preserve current enemy HP percentage. They do not reroll level on upgrade or refresh.
+- Older pre-v0.7.3 encounters still receive one deterministic legal-window level migration before the v4 stat calibration.
+
+### Release boundary
+- Application version advances **0.7.3 → 0.7.4**. Schema revision remains **8**; no database migration is introduced.
+- Intended runtime code changes remain limited to `public_html/config/app.php` and `public_html/includes/battle_engine.php`; documentation/release-gate files are updated accordingly.
+
+## v0.7.3 — Threat-Aware Player-Relative Warzone Scaling — XAMPP Test Candidate
+
+### Threat-driven enemy level windows
+- Replaced the universal Commander −3..+2 normal-PvE level window with a dynamic window derived from both **Commander level** and **warzone/operation threat**. The maximum enemy offset rises progressively with threat: Threat 1 caps at +0, Threat 2–3 at +1, Threat 4–5 at +2, Threat 6–7 at +3, Threat 8–9 at +4, and Threat 10–12 at +5.
+- Added Commander-maturity spread control. Commanders Lv1–5 use a 2-level span below each threat ceiling; Lv6–9 use 3; Lv10–14 use 4; Lv15–19 use 5; Lv20+ use 6, with the normal lower bound capped at −3. This yields the requested **Lv5 / Threat 12 = Lv8–10** and **Lv20 / Threat 12 = Lv19–25** contracts.
+- Added threat-weighted probability blending across the legal window. Safe maps favor the lower side; dangerous maps progressively favor the upper side. At Lv5/Threat12 the exhaustive 1–100 mapping is +3 19%, +4 33%, +5 48%. At Lv20/Threat12 the complete −1..+5 range remains available.
+- Encounter state now persists the v3 scaling model, level roll, min/max offsets and final offset so reloads never reroll enemy level.
+
+### Threat/stat pressure correction
+- Reworked normal enemy HP/ATK/DEF/SPD factors so rolled enemy level supplies progression scaling and warzone threat supplies a separate nonlinear map-danger multiplier. Threat 12 therefore remains materially stronger than Threat 1 even at the same enemy level.
+- Increased normal enemy level growth to 3.0% HP, 2.8% ATK, 2.4% DEF and 1.0% SPD per enemy level step, with controlled nonlinear threat multipliers reaching approximately 1.30× HP, 1.22× ATK, 1.16× DEF and 1.06× SPD at Threat 12 before level scaling.
+- Kept bosses on a dedicated tighter level window and gentler stat curve because their catalog base stats are already exceptional.
+- Enemy counter move power retains single-ATK application and now uses a smooth threat bonus, preserving the v0.7.1 fix against ATK double-counting while allowing high-threat contacts to hit meaningfully harder.
+
+### Active encounter compatibility
+- Active pre-v0.7.3 encounters are hot-upgraded to `warzone_player_threat_window_v3`. A deterministic migration roll moves the enemy into the legal v0.7.3 level window; HP percentage is preserved when new HP/ATK/DEF/SPD are calculated. Repeated reloads cannot reroll or heal the enemy.
+- Existing Commander/Mother Base/R&D progression, SPD accuracy/evasion, Security escort support, Command Centre navigation and all unrelated systems remain unchanged.
+
+### Compatibility
+- Application version advances **0.7.2 → 0.7.3**. Schema revision remains **8**; no database migration is introduced.
+- CSS, JavaScript, `database/install_schema.sql` and runtime art remain unchanged.
+
+## v0.7.2 — Command Centre Navigation Label Polish — XAMPP Test Candidate
+
+### Navigation terminology correction
+- Renamed the primary top-navigation link for `fob.php` from **FOB** to **Command Centre** so the navigation matches the page's established Invasion Command Centre identity.
+- This is intentionally a presentation-only navigation correction. Existing FOB terminology remains unchanged where it describes actual Forward Operating Bases, FOB worlds/maps, targets, shields, raids, strike operations and persistence contracts.
+
+### Compatibility
+- Application version advances **0.7.1 → 0.7.2**. Schema revision remains **8**; no migration is introduced.
+- No combat, Mother Base progression, enemy scaling, Security support, FOB gameplay, CSS, JavaScript, database schema/install SQL, runtime art or persistence behavior is changed.
+
+## v0.7.1 — Polished Commander Progression & Combat Fairness Hotfix — XAMPP Test Candidate
+
+### Immediate Mother Base staffing progression
+- Fixed Commander combat bonuses using only completed integer Mother Base sector levels. The runtime projection now consumes persisted `base_sectors.score` continuously: 120 score remains one full development step, while partial progress contributes proportionally before the next displayed level. A non-empty staffed sector also receives a minimum visible contribution for each mapped stat so the first valid assignment cannot appear inert because of integer rounding.
+- Increased all seven sector combat-growth rates so Mother Base development creates a clearly measurable power advantage instead of merely offsetting enemy scaling. R&D now contributes substantial ATK plus SPD, with Combat/Medical/Security/Intel remaining the primary ATK/HP/DEF/SPD paths and Support/Mess supplying mixed growth.
+- Staff Management now shows live Commander HP/ATK/DEF/SPD and reports resulting whole-stat deltas after personnel reassignment. Mother Base stat cards now show each sector's live score and current contribution.
+- Slightly strengthened the personal Commander level curve so levelling itself remains beneficial independent of Mother Base development.
+
+### PvE accuracy and enemy fairness correction
+- Added an authoritative player attack profile. Commander SPD has no offensive penalty path and only increases PvE hit chance; Combat/Intel may add small supporting bonuses. Final PvE attack accuracy has a 94% floor and 100% ceiling and is displayed in the battle command selector.
+- Retained SPD as a defensive benefit with a revised enemy counter profile: 88% base counter accuracy, SPD-derived reduction, Intel Lv8 stacking, and a 55% floor.
+- Fixed enemy counterattack power double-scaling. Counter move power is now based on enemy class plus threat while enemy ATK is applied once through the shared damage formula.
+- Softened normal/boss enemy HP/ATK/DEF/SPD growth coefficients and shifted all player-relative level distributions toward below/equal contacts. The −3..+2 hard window remains and +2 is now exactly 1% in every threat band.
+- Updated encounter scaling metadata from `warzone_player_window_v1` to `warzone_player_window_v2`. Active v0.7.0 encounters are hot-upgraded on their next load by recalculating enemy stats through v2 while preserving current enemy HP percentage and the already-rolled level/threat.
+
+### Security escort support
+- Raised Security covering-fire accuracy and restrained support damage so selected escorts contribute more consistently without replacing Commander damage.
+- Increased rotating damage interception from the prior 13–28% envelope to an approximately 20–40% envelope, still bounded by escort HP and preserving KO/no-refresh-heal behavior.
+
+### Compatibility
+- Application version advances **0.7.0 → 0.7.1**. Schema revision remains **8**; no migration is introduced.
+- CSS, JavaScript, `database/install_schema.sql`, runtime maps/sprites/art and established recovery/R&D/Dispatch/PvP/FOB/social persistence contracts remain unchanged.
+
+## v0.7.0 — Polished Commander / Mother Base / Warzone Balance — XAMPP Test Candidate
+
+### Commander and Mother Base progression
+- Added authoritative automatic Mother Base combat-stat contributions for all seven sectors. Combat → ATK, Medical → MAX HP, Security → DEF, Intel → SPD, with R&D, Support and Mess providing complementary mixed-stat growth.
+- Commander personal-level base stats remain unchanged and Mother Base bonuses stack on top, preserving existing level progression while making base development a real combat-power path.
+- Added a diminishing effective-sector curve: full contribution through Lv10, 65% contribution across Lv11–20, and 40% contribution thereafter to prevent runaway late-game scaling.
+- Added Mother Base and Command-page telemetry for current bonus contributions using existing presentation components.
+
+### Warzone and enemy progression rebalance
+- Replaced direct raw-stat scaling from Commander level with a bounded player-relative enemy level roll plus independent warzone/operation threat scaling.
+- Normal enemy levels are always constrained to Commander Lv −3 through Lv +2 (with Lv1 floor). Low-threat zones bias toward −3/−2/−1; high-threat zones bias toward equal/+1; +2 remains rare.
+- Enemy HP/ATK/DEF/SPD are now derived from the actual rolled enemy level and threat. Bosses use a gentler dedicated scaling profile on top of their already-high catalog base stats.
+- Battle state persists enemy level offset, threat and scaling-model metadata for deterministic display/reload behavior after encounter creation.
+
+### Security escort and combat-support polish
+- Security escorts now carry battle-local HP and rotate damage-interception duty. A living escort absorbs a controlled portion of incoming Commander damage based on Security Team level plus that escort's Security stat, capped at 28%.
+- Escort battle HP persists proportionally through battle support resynchronization, preventing refresh/reload healing exploits. KO'd escorts no longer intercept or provide covering fire.
+- Covering-fire output was increased slightly while retaining strict per-hit enemy-max-HP caps and the tighter boss ceiling, so escorts help without replacing the Commander.
+- Commander SPD now contributes to PvE counter-evasion when faster than the enemy (up to −8 counter accuracy); Intel Lv8's existing −6 benefit stacks with it, with a 50% enemy-accuracy floor.
+
+### Compatibility and release boundary
+- Application version advances **0.6.1 → 0.7.0**. Schema revision remains **8**; no database migration is introduced.
+- Existing CSS, JavaScript, `database/install_schema.sql` and runtime image assets are intentionally unchanged.
+- Existing recovery, inventory, R&D, Dispatch, PvP, FOB, autonomous Commander, social and persistence contracts remain outside this balance pass.
+
 ## v0.6.1 — Production Gamer Readability Pass — XAMPP Test Candidate
 
 ### Full-site player-facing copy pass

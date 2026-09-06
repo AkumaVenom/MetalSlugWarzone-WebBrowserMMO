@@ -18,6 +18,29 @@ function msw_sectors(): array {
         'security'=>['name'=>'Security Team','icon'=>'⬟','stat'=>'security'],
     ];
 }
+/**
+ * Per-sector Commander combat growth.
+ *
+ * Values are additive contribution rates per effective 120 sector-score points.
+ * Partial score progress contributes immediately between whole displayed levels,
+ * while high development uses a diminishing curve in game.php.
+ */
+function msw_commander_sector_stat_catalog(): array {
+    return [
+        // Commander combat growth is intentionally substantial: developing Mother Base
+        // must make the player stronger than an equal-level field contact, not merely
+        // offset enemy scaling. Values apply per effective 120 sector-score points and
+        // also accrue fractionally while staff are progressing toward the next sector level.
+        'combat'=>['attack'=>7.00],
+        'rd'=>['attack'=>7.00,'speed'=>3.00],
+        'support'=>['max_hp'=>8.00,'defense'=>2.00],
+        'intel'=>['speed'=>4.00],
+        'medical'=>['max_hp'=>18.00],
+        'mess'=>['max_hp'=>6.00,'speed'=>2.00],
+        'security'=>['defense'=>5.00],
+    ];
+}
+
 function msw_character_catalog(): array {
     return [
         'marco'=>['name'=>'Marco Rossi','game'=>'MS3','sprite'=>'assets/sprites/characters/marco_r.png','sprite_r'=>'assets/sprites/characters/marco_r.png','sprite_l'=>'assets/sprites/characters/marco_l.png','mirror_left'=>0],
@@ -600,8 +623,8 @@ function msw_mission_catalog(): array {
 }
 function msw_boss_catalog(): array {
     return [
-        'huge_hermit'=>['name'=>'Huge Hermit','enemy'=>'huge_hermit','threat'=>'S','brief'=>'Massive biological siege organism detected along the coastal perimeter.'],
-        'rootmars'=>['name'=>'Rootmars','enemy'=>'rootmars','threat'=>'S++','brief'=>'Extreme extraterrestrial command target. Full combat readiness advised.'],
+        'huge_hermit'=>['name'=>'Huge Hermit','enemy'=>'huge_hermit','threat'=>'S','level'=>12,'brief'=>'Massive biological siege organism detected along the coastal perimeter.'],
+        'rootmars'=>['name'=>'Rootmars','enemy'=>'rootmars','threat'=>'S++','level'=>15,'brief'=>'Extreme extraterrestrial command target. Full combat readiness advised.'],
     ];
 }
 function msw_dispatch_catalog(): array {
@@ -657,7 +680,7 @@ function msw_sector_unlock_catalog(): array {
             ['level'=>8,'name'=>'Countermeasure Analysis','effect'=>'Enemy counterattack accuracy is reduced by 6%.'],
         ],
         'security'=>[
-            ['level'=>1,'name'=>'Security Escort Detail','effect'=>'Choose up to two Security Team soldiers to provide automatic light covering fire.'],
+            ['level'=>1,'name'=>'Security Escort Detail','effect'=>'Choose up to two Security Team soldiers for covering fire and rotating Commander damage interception.'],
             ['level'=>4,'name'=>'Covering Fire Drill','effect'=>'Security backup accuracy improves by 5%.'],
             ['level'=>7,'name'=>'Controlled Burst Doctrine','effect'=>'Security backup shots deal slightly more damage while staying weaker than your Commander.'],
         ],

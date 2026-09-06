@@ -1,7 +1,103 @@
-# XAMPP Runtime Acceptance Plan — v0.6.1 Production Gamer Readability Pass
+# XAMPP Runtime Acceptance Plan — v0.7.5 Underlevel High-Threat Progression Gate
 
-This v0.6.1 candidate inherits the accepted v0.6.0 gameplay/schema test matrix below and adds a full-site player-copy review. This is the release-blocking runtime plan for the v0.6.1 XAMPP candidate. Perform it against a backed-up copy of the accepted persistent database and use at least two human test accounts where multiplayer behavior is involved.
+This v0.7.5 candidate is a focused low-level/high-threat progression-gate correction built directly from v0.7.4. Test against a backed-up persistent database. Schema revision remains 8, so Update / Repair is a safety verification rather than a migration. The accepted v0.7.3 player-relative level windows, v0.7.4 base threat curve, v0.7.1 Commander/Mother Base/SPD/Security fixes and v0.7.2 Command Centre navigation polish remain inherited and must regress unchanged.
 
+
+## A-00. Underlevel high-threat progression gate — RELEASE BLOCKING
+
+1. Use a lightly developed **Commander Lv4** with the same two low-level Security escorts used in the reported v0.7.4 screenshots. Do not add major Combat/Medical/Security/R&D development for the first pass.
+2. At **Threat 5**, verify a Lv6-class contact is a meaningful but still plausible fight; a representative Biker should be around 133 HP / 33 ATK / 21 DEF / 21 SPD.
+3. At **Threat 7**, verify the same Lv4/light-development profile is now clearly underprepared. A representative Lv6 Heavy Gunner should be around 130 HP / 44 ATK / 20 DEF / 9 SPD and should not be comfortably farmable without healing, stronger stats or favorable play.
+4. At **Threat 9**, verify a Lv8 Biker is approximately 206 HP / 54 ATK / 28 DEF / 24 SPD and that a starter/lightly upgraded Lv4 Commander is expected to lose or be forced to retreat unless substantially developed.
+5. At **Threat 12**, verify a Lv4 Commander faces the accepted +3..+5 level window and extreme underlevel pressure; a representative Lv9 Shield Trooper is approximately 232 HP / 47 ATK / 43 DEF / 10 SPD. This zone should function as a progression gate, not a low-level farming area.
+6. Add meaningful Mother Base development (Combat/R&D ATK, Medical HP, Security DEF, Intel/R&D SPD and/or Support/Mess mixed bonuses) while keeping the same Commander level. Confirm the player becomes materially more capable against the same threat band because Commander stats rise; enemies must not dynamically weaken when staff are moved.
+7. Raise Commander level to each readiness benchmark and confirm the extra underlevel multiplier disappears exactly: T5 Lv6, T7 Lv9, T9 Lv12 and T12 Lv16. Enemy difficulty should then fall back to the accepted v0.7.4 rolled-level + threat curve.
+8. Confirm Threat 1–3 are unchanged by the readiness gate and remain appropriate early progression zones.
+9. Confirm enemy counter accuracy receives additional underlevel pressure in dangerous maps, while Commander SPD/Intel still reduce it and player attack accuracy remains 94–100%.
+10. Load an active v0.7.4 fight under v0.7.5. Confirm enemy level/roll do not reroll, HP percentage is preserved, stats recalibrate once, and repeated refreshes do not heal or re-scale again.
+
+## A-0. Inherited v0.7.4 base threat curve — RELEASE BLOCKING
+
+1. Verify the v0.7.4 base threat factors are unchanged beneath the new progression gate: Threat 1 remains 0.94× HP / 0.96× ATK / 0.96× DEF / 0.98× SPD before level growth, while Threat 12 remains approximately 1.48× / 1.40× / 1.22× / 1.08× before level growth.
+2. Use a Commander at or above each readiness benchmark and verify `underlevel_gap=0`; enemy stats must then match the inherited v0.7.4 rolled-level + threat formula exactly.
+3. Confirm the same enemy type/rolled level still grows monotonically through Threat 5/7/9/12 before any underlevel pressure is applied.
+4. Confirm enemy ATK remains a single input to `msw_damage()` and the historical ATK×ATK counter bug does not return.
+5. Confirm Security interception/covering-fire formulas are byte-for-byte unchanged from v0.7.4.
+6. Confirm bosses remain on their dedicated curve and do not inherit the normal underlevel readiness gate.
+
+## A-1. Threat-aware enemy level progression — RELEASE BLOCKING
+
+1. Use a **Commander Lv5** account in **Threat 12 / Iron Citadel Interior** and create at least 30 new field encounters. Every enemy must be **Lv8–10**; no Lv5/equal contact is valid in this case. Across a larger sample, Lv9–10 should clearly dominate and Lv10 should occur frequently.
+2. Use a **Commander Lv20** account in Threat 12 and sample new encounters. Every enemy must remain within **Lv19–25**, proving the requested −1..+5 mature-player variety.
+3. Compare the same Commander across the map progression. Verify the legal upper level offset rises coherently: Threat 1 → +0, Threat 3 → +1, Threat 5 → +2, Threat 7 → +3, Threat 9 → +4, Threat 12 → +5.
+4. Confirm lower-threat maps still produce below-player contacts and do not inherit the Threat 12 ceiling/bias. The difficulty source must be the selected warzone, not simply Commander levelling.
+5. For Commander Lv5 / Threat 12, the exhaustive server mapping is +3 ≈19%, +4 ≈33%, +5 ≈48%. For Commander Lv20 / Threat 12, confirm the complete −1..+5 window can occur while upper offsets are more common than lower offsets.
+6. Compare the same enemy type and same rolled level at Threat 1 versus Threat 12 using Intel display/debug inspection. Threat 12 must have higher HP, ATK, DEF and SPD.
+7. Verify representative Threat 12 Shield Troopers around Commander Lv5 retain the Lv8–10 legal range and, because Lv5 is far below the Threat 12 readiness benchmark, land around **220–230 HP / 44–47 ATK / 42–43 DEF / 9–10 SPD** under v0.7.5.
+8. Keep an active v0.7.3/v0.7.4 encounter, deploy v0.7.5, and load that battle. Confirm it retains the already-rolled committed enemy level, recalculates stats through v5 while retaining prior HP percentage, and never rerolls/heals on refresh. Also verify an older pre-v0.7.3 state receives one deterministic legal-window level migration before v5.
+9. Confirm new encounter state records `warzone_player_threat_window_v5`, `level_roll`, `min_offset`, `max_offset`, final `enemy_level_offset`, readiness benchmark and underlevel multiplier metadata.
+10. Confirm bosses remain dangerous but use their separate tighter level window rather than the normal +5 warzone window.
+
+
+## A0. Command Centre navigation label — RELEASE BLOCKING
+
+1. Log in and inspect the primary top navigation. Confirm the former **FOB** tab now reads **COMMAND CENTRE** (case may be styled by CSS).
+2. Click **COMMAND CENTRE** and confirm it opens the existing `fob.php` Invasion Command Centre page shown by the established Command Centre hero/content.
+3. Confirm legitimate FOB terminology still appears where appropriate inside FOB maps, enemy-target surfaces, shields, raids and related operations.
+
+## A. Immediate Mother Base staff-to-stat progression — RELEASE BLOCKING
+
+1. On Staff Management, record Commander HP/ATK/DEF/SPD and the live Mother Base contribution values.
+2. Take an eligible **Reserve** staff member with a non-zero R&D stat and assign them to **R&D** while the R&D sector remains below its next 120-point whole-level threshold. Confirm R&D score rises immediately and the R&D contribution shows non-zero ATK and SPD without requiring the displayed R&D level to increase; with R&D as the only contributing source for the checked stat, the first valid staff assignment must not round back to zero.
+3. Repeat with Combat, Medical, Security and Intel and confirm the intended primary mapping: Combat → ATK, Medical → HP, Security → DEF, Intel → SPD. Verify Support/Mess mixed contributions as well.
+4. Confirm the reassignment success message reports any resulting whole-stat delta and the live Commander power panel reflects the new totals after redirect.
+5. Cross a 120-point sector boundary and confirm the displayed sector level increases normally while combat growth remains continuous rather than jumping from zero.
+6. Test score around 1080/2280 points and confirm the documented late-game diminishing curve still applies.
+7. Reload/logout/login/restart Apache+MySQL and confirm totals reproduce from persisted sector score with no new schema fields.
+
+## B. SPD and player attack accuracy — RELEASE BLOCKING
+
+1. Start a fresh PvE encounter and inspect every attack pattern. Confirm the UI displays final **ACC** and no option is below 94%.
+2. Raise Commander SPD through Mother Base development and start/reload combat. Confirm final attack accuracy never decreases because the enemy is faster; there is no enemy-speed offensive penalty path.
+3. Use low-base-accuracy attacks (Grenade / Armor Piercer) repeatedly and confirm the authoritative hit rate corresponds to the displayed boosted accuracy rather than the raw catalog value.
+4. Raise Combat and Intel where practical and confirm their small supporting accuracy bonuses can only improve/cap accuracy, never reduce it.
+5. Verify enemy counter accuracy separately: higher Commander SPD reduces counter accuracy and Intel Lv8 stacks with the SPD benefit. Confirm the final enemy counter accuracy never drops below 55%.
+
+## C. Player-relative enemy level and threat fairness — RELEASE BLOCKING
+
+1. Repeat the A-1 matrix at Commander levels 1, 5, 10, 15, 20 and 30. Every result must remain inside the server-reported min/max offset for that player/threat pair.
+2. Confirm average/median enemy offset rises as threat increases for a fixed Commander level.
+3. Confirm higher Commander level widens the lower side of dangerous-map windows rather than raising the +5 cap further; at Lv20+ Threat 12 must remain −1..+5.
+4. Confirm normal Threat 12 enemies are meaningfully more durable/dangerous than low-threat equivalents but remain beatable by appropriately progressed Commanders using sensible attacks, Mother Base development, Security support and medical gear.
+5. Confirm lower maps remain practical for recovery/progression and do not become globally harder simply because the Commander gained levels.
+6. Confirm the stored encounter roll/window prevents refresh-based fishing for a weaker enemy after combat begins.
+
+## D. Enemy counter damage correction — RELEASE BLOCKING
+
+1. Compare an enemy's displayed ATK and actual counter damage across several levels. Confirm counter move power does not equal/copy the enemy ATK value.
+2. Confirm class/threat still influence counter pressure: higher-threat heavy/vehicle enemies should hit harder than low-threat infantry when other conditions are similar.
+3. Verify enemy ATK is applied once by the shared damage formula and no superlinear ATK×ATK-style escalation returns at higher enemy levels.
+4. Test normal field contacts at several Commander levels and confirm ordinary engagements are consistently winnable with sensible move selection, while the highest-threat zones/bosses remain meaningfully more dangerous.
+
+## E. Security escort interception/support — RELEASE BLOCKING
+
+1. Select two eligible Security escorts and begin PvE. Confirm both display battle-local HP/max HP and rotate interception duty.
+2. On successful enemy counters, confirm a living escort absorbs a visibly larger share than v0.7.0 (roughly 20% at the low end, scaling toward but never beyond 40%).
+3. Confirm absorbed damage is removed from escort battle HP and only the remainder reaches the Commander.
+4. Confirm KO'd escorts stop guarding and firing, and refresh/reload does not heal them.
+5. Confirm covering fire lands more consistently than v0.7.0 but remains bounded: normal per-hit cap 9%/11% around Security Lv7 and boss cap 4.5%.
+
+## F. v0.7.5 persistence and regression boundary — RELEASE BLOCKING
+
+1. Confirm `config/app.php` reports 0.7.5 and schema revision remains 8.
+2. Run Update / Repair against the existing database and confirm no new migration is requested.
+3. Verify inventory/recovery, R&D manufacturing/unlocks, Dispatch, PvP, FOB/world state, autonomous Commanders, social systems and persistence remain functional.
+4. Confirm CSS/layout, JavaScript interactions and runtime images are unchanged by this hotfix.
+5. Complete the inherited v0.7.3/v0.6.1/v0.6.0 regression matrix before accepting v0.7.5 as the new baseline.
+
+---
+
+# Inherited regression matrix from v0.7.0 / v0.6.1
 
 ## 0. Production copy and visual-regression review — RELEASE BLOCKING
 
@@ -14,7 +110,7 @@ This v0.6.1 candidate inherits the accepted v0.6.0 gameplay/schema test matrix b
 ## 1. Upgrade and schema integrity — RELEASE BLOCKING
 
 1. Back up the accepted database.
-2. Replace the runtime files with the v0.6.1 candidate while preserving the package layout.
+2. Replace the runtime files with the v0.7.0 candidate while preserving the package layout.
 3. Open `_setup.php` locally and run **Update / Repair**. Do **not** Fresh Install.
 4. Run **Confirm Installation** and require:
    - schema revision `8`;
