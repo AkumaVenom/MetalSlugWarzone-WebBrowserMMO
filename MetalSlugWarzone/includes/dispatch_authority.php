@@ -51,7 +51,11 @@ function msw_dispatch_resolve_due_for_user(int $uid,int $limit=20,?bool $botMode
                     'mission_id'=>(int)$mission['id'],'mission_key'=>(string)$mission['mission_key'],'result'=>$result,'units'=>count($ids),
                 ]);
             }
-        }catch(Throwable $e){$db->rollback();throw $e;}
+        }catch(Throwable $e){
+            $db->rollback();
+            if(!$botMode)throw $e;
+            error_log('[MSW AI dispatch '.(int)$dueRow['id'].'] '.$e->getMessage());
+        }
     }
     return $resolved;
 }

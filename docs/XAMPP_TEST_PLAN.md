@@ -1,3 +1,140 @@
+# v0.8.4.6 — Access-denied setup acceptance
+
+1. Deploy the complete archive's public_html contents over the existing game.
+   Use Update / Repair and Confirm Installation; schema remains 9.
+2. Check that the game database reports completion even if Automatic World
+   reports a native startup error. The error must remain visible in that panel.
+3. Enable / Retry must preserve player data and operate without a database repair.
+   If Access is denied persists, use the GUI recovery in UPGRADE_v0.8.4.6.md.
+4. Require Running automatically. Close all game browsers while leaving
+   Apache/MySQL running for 10–15 minutes; check real AI progression and arrivals.
+5. Restart Apache with browsers closed and check progression resumes within the
+   next automatic startup check. Retain the existing rewards/raid bindings.
+6. Desktop XAMPP uses the signed-in Windows account; locking the screen is okay.
+   A service-hosted deployment must use its actual service account and confirm
+   automatic execution under that identity.
+
+Portable checks pass for the real setup route with Access denied injected,
+account selection, task identities, XML and the native adapter's COM call contract.
+The Windows native registration/permissions check remains unexecuted here.
+
+Historical acceptance guidance follows; v0.8.4.6 supersedes earlier setup steps.
+
+---
+
+# v0.8.4.5 — Native Windows automatic-world acceptance
+
+1. Merge the update's MetalSlugWarzone folder into the existing XAMPP htdocs.
+   Open the local setup page and choose **Update / Repair**. Existing progress stays.
+2. Wait for **Automatic World → Running automatically** and then **Confirm
+   Installation**. Require schema 9, global arrival index OK and automatic world OK.
+   A registration error or stale heartbeat is a failed native gate, not a pass.
+3. Close every game browser, including setup. Leave Apache/MySQL running for
+   10–15 minutes. Reopen and verify real AI XP/levels/Base Power progressed and
+   pending strikes produced exactly one committed outcome.
+4. Close every browser again. Stop and restart Apache in XAMPP. The task should
+   resume on the next automatic check, normally within one minute, without opening
+   the game or any command window. Confirm continued progress afterward.
+5. Stop and restart MySQL while Apache remains up. The existing background process
+   must reconnect and resume. Repeated starts must not duplicate rewards or resets.
+6. Watch Rankings and a live incoming strike. Connection status and reports update;
+   selected planner staff/targets remain intact. Refresh/replay does not award again.
+
+Native Windows registration was not executable in the development workspace.
+This host check remains required. No CMD commands or manual worker launch are part
+of installation. Details: `../UPGRADE_v0.8.4.5.md` and `AUTOMATIC_WORLD.md`.
+
+## Developer checks
+
+`tests/background_world_regression.py` runs the actual PHP engine against a random
+database and a temporary copy of the deployed game. It creates no native OS task.
+It also exercises real HTTP routes under `/MetalSlugWarzone`.
+`tests/world_runtime_regression.php` covers transaction and population behavior;
+`tests/world_runtime_client.test.js` covers the shipped browser script.
+The database-only `setup_http_regression.py` suite runs on Linux so it cannot
+register a Windows startup task against a disposable test database.
+See `BUILD_VALIDATION.md` for results and the distinction between these checks and
+native Windows/browser-renderer acceptance.
+
+---
+
+# v0.8.4.4 — Setup regression acceptance
+
+For an existing v0.8.4.3 installation, apply the single-file setup hotfix described
+in `../UPGRADE_v0.8.4.4.md`, then click **Confirm Installation**. Confirm the report
+reaches `database_clock` and `fob_spatial_distribution` without SQL error 1064.
+Use **Update / Repair** only if the report identifies missing objects, then
+confirm again. Keep the existing player accounts and progress; this correction
+requires no Fresh Install.
+
+The automated setup suite is `tests/setup_http_regression.py`; its 33 checks passed
+against real PHP HTTP routes and MariaDB. It includes full confirmation,
+repeatable repair and data-preservation checks. See `BUILD_VALIDATION.md`.
+
+The existing world-runtime acceptance below still applies to the complete build.
+
+---
+
+# v0.8.4.3 Durable Arrivals / Sustained AI Acceptance — RELEASE BLOCKING
+
+The local regression results do not replace acceptance against your existing XAMPP
+world. Follow `../UPGRADE_v0.8.4.3.md`; preserve the database and use Update / Repair.
+
+1. **Upgrade:** Confirm schema 9 and `global_arrival_index = OK`. Confirm existing
+   account identities, levels, resources, staff, FOB homes and histories remain.
+2. **Stuck incoming operation:** Open Command Centre with an already-expired enemy
+   strike. It must settle into the original raid/defense ledger or a shield abort.
+   Revisit/replay it and confirm only one resource transfer and XP award occurred.
+3. **Live arrival:** Watch a future inbound strike reach arrival while planning an
+   outbound strike. Pending counts and the defense report update in place; selected
+   form inputs remain intact. Use the report to access the existing retaliation flow.
+4. **Protection:** Activate a defender shield after launch but before arrival. The
+   strike must withdraw with no material loss or fabricated battle report. Verify
+   an older operation cannot release staff reserved by a newer mission.
+5. **Rankings:** Leave only Rankings open for 10–15 minutes. Confirm persistent AI
+   levels/Base Power change across the population while the page stays responsive.
+   Recruited/trained staff and sector totals must explain the Base Power increases.
+6. **Mature roster:** Inspect an established AI base whose early staff are already
+   capped. Other available staff below their assignment-stat cap must keep training.
+   The 99-stat limit and real roster caps remain valid; no infinite-stat growth is intended.
+7. **Idle server:** Confirm Automatic World is running; close every browser for 10–15 minutes.
+   Reopen and confirm AI work and completed incoming strikes persisted. Restart the
+   automatic server and verify continued progress; it must not reset identities or ledgers.
+8. **Outage:** With the worker running, temporarily stop and restart MySQL. It must
+   log the outage, reconnect and continue once MySQL is available. An open page must
+   retry temporary heartbeat errors and resume after visibility/network recovery.
+9. **Concurrency/privacy:** Use two tabs/accounts plus the worker. Navigation must
+   stay responsive, the shared pulse rate must not multiply, and defense report
+   responses must be limited to their authenticated defender.
+10. **Inherited gameplay:** Recheck Dispatch and FOB success/failure/shield outcomes,
+    automatic battle facing/Replay/Skip, one-use retaliation, resources and XP,
+    Warzone movement/PvE, Mother Base, PvP and relog persistence. Artwork and the
+    original combat presentation files are unchanged.
+
+## Reproducible local checks
+
+From the release root, with a local MySQL/MariaDB test service available:
+
+```bat
+C:\xampp\php\php.exe tests\world_runtime_regression.php
+node tests\world_runtime_client.test.js
+```
+
+The PHP suite creates a randomly named `msw_test_world_*` database and deletes
+only that database afterward. It never resets the configured game database. Test
+connection overrides are `MSW_TEST_DB_HOST`, `MSW_TEST_DB_PORT` and
+`MSW_TEST_DB_USER`; the test DB password follows the blank-password contract.
+The user must be allowed to create a temporary database. `MSW_TEST_PHP` can specify
+an equivalent PHP executable/wrapper for the two concurrent child processes.
+
+The population tests accelerate servicing of one-, two- and seven-day overdue
+schedules. They prove bounded catch-up/fairness under those states, not a literal
+seven-day uptime soak. The JavaScript suite is a behavior harness, not a visual
+browser renderer. The older acceptance sections below remain regression references;
+this release supersedes their scheduling and schema expectations.
+
+---
+
 # v0.8.4.2 Responsive AI Pulse Corrective Acceptance — RELEASE BLOCKING
 
 1. Upgrade an existing v0.8.4/v0.8.4.1 database in place with **Update / Repair**. Do not wipe. Confirm login, Dashboard, Rankings, AI Commanders, Command Centre, PvP and Warzone navigation all return promptly with no indefinite spinner/freeze.

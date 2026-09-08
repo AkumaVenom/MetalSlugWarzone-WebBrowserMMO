@@ -3,6 +3,7 @@ declare(strict_types=1);
 
 $config = require __DIR__ . '/../config/app.php';
 date_default_timezone_set((string)$config['timezone']);
+require_once __DIR__ . '/database_clock.php';
 
 if (session_status() !== PHP_SESSION_ACTIVE) {
     session_set_cookie_params([
@@ -29,16 +30,23 @@ function msw_config(?string $key = null): mixed {
     return $key === null ? $config : ($config[$key] ?? null);
 }
 
-function msw_db(): mysqli {
+function msw_db(bool $reconnect=false): mysqli {
     static $db = null;
+    if($reconnect){
+        if($db instanceof mysqli){try{$db->close();}catch(Throwable $_){}}
+        $db=null;
+    }
     if ($db instanceof mysqli) return $db;
     $cfg = msw_config('db');
     mysqli_report(MYSQLI_REPORT_ERROR | MYSQLI_REPORT_STRICT);
     try {
         $db = new mysqli((string)$cfg['host'], (string)$cfg['user'], (string)$cfg['pass'], (string)$cfg['name'], (int)$cfg['port']);
         $db->set_charset((string)$cfg['charset']);
+        msw_sync_database_clock($db);
         $db->query("SET SESSION sql_mode='STRICT_TRANS_TABLES,ERROR_FOR_DIVISION_BY_ZERO,NO_ENGINE_SUBSTITUTION'");
     } catch (mysqli_sql_exception $e) {
+        $db=null;
+        if(PHP_SAPI==='cli')throw new RuntimeException('Game database is not ready. Check MySQL and the game configuration.',0,$e);
         http_response_code(503);
         exit('Game database is not ready. On XAMPP, open _setup.php on this PC first.');
     }
@@ -106,4 +114,5 @@ require_once __DIR__ . '/server_console.php';
 require_once __DIR__ . '/dispatch_authority.php';
 require_once __DIR__ . '/fob_world.php';
 require_once __DIR__ . '/bots.php';
+require_once __DIR__ . '/world_runtime.php';
 msw_console_register_request_traffic();

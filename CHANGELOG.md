@@ -1,3 +1,52 @@
+## v0.8.4.5 — Automatic Offline World — XAMPP Test Candidate
+
+## v0.8.4.6 — Automatic World access-denied setup repair
+
+- Fixed Fresh Install and Update / Repair reporting a setup failure after the
+  database had completed because Windows denied scheduled-task registration.
+- Release database maintenance before starting automatic execution. Keep native
+  failures visible in their own status and add CSRF-protected Enable / Retry
+  without database writes. Database confirmation reports its own integrity.
+- Register through the windowless Task Scheduler API under the actual Apache
+  identity: InteractiveToken for desktop XAMPP, service mode for built-in service
+  accounts, and S4U for a custom service identity. No passwords or elevated task
+  privileges are requested. Same-account task names avoid old ownership conflicts.
+- Preserve indefinite automatic restart, actual heartbeat verification, duplicate
+  guards, canonical strike settlement, continuous AI and database schema 9.
+- Added Access-denied HTTP regression, native adapter contract tests, account-mode
+  and Windows-path checks. Shipping every original file and all 67 images.
+
+
+## v0.8.4.5 complete package correction — 2026-09-08
+
+- Rebuilt the full distributable after a truncated full ZIP and an unclear
+  update-only download. The runtime version remains 0.8.4.5.
+- Includes every original v0.8.4.2 package file, all 67 unchanged original images,
+  the retained game content and the tested setup, strike and offline-AI repairs.
+- Shortened the enclosing folder to `MetalSlugWarzone_Package`, clarified the
+  existing-world copy steps and added a SHA-256 inventory for extracted files.
+- Runtime behavior is unchanged by this packaging correction. The native
+  Windows task registration acceptance gate still applies.
+
+
+- Replaced the manually launched worldworker PHP/batch files with an internal automatic server entry point. Local Update / Repair registers and starts a per-installation Windows task using XAMPP's windowless `php-win.exe` and the actual absolute game/INI paths.
+- AI careers and strike arrivals continue with every player offline while Apache and MySQL are running. Native scheduling checks every minute, ignores duplicate instances and has no default 72-hour execution limit. The engine stops when Apache stops, reconnects after MySQL outages, and retires between batches when deployed source changes.
+- Added verified background health to local setup. Registration alone is not reported as Running: the process must complete a world update first. Local settings/status files return 404 with no body over HTTP. Public gameplay cannot register or launch operating-system tasks.
+- Setup repair shares the world lock, retains the corrected SQL clock alias, and reports database-repair success separately when automatic startup registration fails. No credentials or Windows passwords are requested or stored by the task installer.
+- Added lifetime recovery of invalid future scheduler/lease timestamps and future retry metadata. The shared pulse throttle still prevents accounts/tabs/processes from multiplying progression.
+- Background browser tabs now continue a lower-rate heartbeat; connection failures, server retries and expired sessions have honest status feedback. The incoming board uses server-owned countdown data and preserves draft controls.
+- Added reproducible background/HTTP tests and setup health coverage. The PHP/MariaDB engine was tested with zero HTTP traffic, stopped/restarted database and web services, duplicate starts and deployment changes. Generated task definitions validate against Microsoft's official schema. Native Windows registration and a real browser renderer were unavailable; target-host acceptance remains required.
+- Schema remains 9; all 67 images and the original CSS/JavaScript remain unchanged. See UPGRADE_v0.8.4.5.md.
+
+## v0.8.4.4 — Setup Confirmation Fix — XAMPP Test Candidate
+
+- Fixed the MariaDB syntax error near `current_time` in the actual Confirm Installation action. The database-clock report now uses the unreserved `server_clock` alias.
+- A missing global arrival index now produces an error status even when the stored schema revision is already 9.
+- Added a real HTTP setup regression suite with an isolated MariaDB database: the old query reproduces error 1064; corrected confirmation completes; Update / Repair is repeatable; existing human and AI progress remains; fresh setup works on the disposable test database. All 33 checks passed.
+- The prior v0.8.4.3 HTTP tests did not submit Confirm Installation. Their passing results did not cover this regression; the new test closes that gap.
+- Runtime code changes are limited to `_setup.php` and application version metadata. Schema remains 9. Durable incoming strikes, continuous AI, the worker, all assets and presentation code are retained.
+- Existing v0.8.4.3 users can apply the separate one-file setup hotfix without overwriting configuration or reinstalling the world. See `UPGRADE_v0.8.4.4.md`.
+
 ## v0.8.4.2 — Responsive Autonomous Commander Pulse Corrective Patch — XAMPP Test Candidate
 
 ### Critical performance fix
@@ -17,6 +66,28 @@
 ### Presentation regression protection
 - `msw.css`, `msw.js` and all 67 runtime image assets are byte-identical to the accepted v0.8.3 presentation baseline. No sprite dimensions, image files, UI sizing rules or battle-facing rules were changed.
 - Application version advances **0.8.4.1 → 0.8.4.2** only to identify the corrective build and refresh the existing cache-busted asset URLs.
+
+## v0.8.4.3 — Durable Strike Arrivals + Continuous AI — XAMPP Test Candidate
+
+### Fixed
+- Extracted a canonical, row-locked single-strike arrival resolver. Command Centre now services incoming as well as outgoing due strikes, and global settlement works even if the attacker is offline, disabled or has not received its next AI tick.
+- Aligned MySQL session time with the configured PHP timezone in runtime, setup and the CLI worker. This fixes the reproduced zero-countdown/future-SQL-arrival mismatch without rewriting historical DATETIME values.
+- Filtered capped and deployed staff before the training selection limit. Saturated low-level veterans no longer starve higher-level personnel with trainable assignment stats.
+- Removed synchronous AI simulation from navigation and map-presence routes. Shared authenticated background pulses now run on every signed-in page, including Rankings and base pages that previously had no recurring update.
+- Added in-place standings and incoming-defense updates, server-clock-adjusted arrival timers, reconnect backoff, visibility resumption and back-forward cache recovery. Existing draft forms and unchanged incoming rows are preserved.
+- Isolated failed arrivals, retained their pending state after rollback, and added bounded retry backoff plus a rotating global arrival cursor. Failed standard AI dispatch rows no longer prevent the bot's career action/catch-up.
+- Refreshed the human power anchor during long-running workers and repaired implausibly future legacy schedules/leases on first activation.
+
+### Operations and upgrade
+- Added `worldworker.php` (`--once`, `--loop`, `--status`) and a portable XAMPP `worldworker.bat` launcher. The worker and browser heartbeat share database-scoped serialization and throttling; temporary DB outages trigger a reconnect/retry.
+- Added schema revision **9**, consisting of `idx_fob_dispatch_due(result,id,finish_at)`, with idempotent Update / Repair support and a Confirm Installation check.
+- Added an in-place upgrade guide, operator notes and reproducible PHP/JavaScript regression suites. No database reset is needed.
+
+### Validation and preserved behavior
+- Passed 37 real PHP/MariaDB checks, including simultaneous exactly-once settlement, rollback/retry and 1,000-commander progression across one-, two- and seven-day backlog cases.
+- Passed 16 HTTP integration checks and 10 JavaScript behavior checks. See `docs/BUILD_VALIDATION.md` for scope and limitations.
+- Preserved existing staff-strike odds, transfers, protection, one-use retaliation, conditional reservation release and report playback. Actual staff/sector calculations still own AI Base Power.
+- Preserved root + blank database password and every runtime image. Existing `msw.css` and `msw.js` remain byte-identical to v0.8.4.2; no artwork or battle-animation changes.
 
 ## v0.8.4 — Competitive Autonomous Commander Activity — XAMPP Test Candidate
 

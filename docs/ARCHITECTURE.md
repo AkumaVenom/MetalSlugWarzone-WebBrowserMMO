@@ -1,4 +1,70 @@
-# Architecture — Metal Slug Warzone v0.8.0
+# Architecture — Metal Slug Warzone v0.8.4.5
+
+## Current autonomous world runtime
+
+`includes/world_runtime.php` is the shared scheduler used by the authenticated
+`world_pulse.php` endpoint and automatic `includes/world_service.php`. `includes/ui.php` loads the
+separate `assets/js/world_runtime.js` script after normal page rendering. Heavy
+AI simulation no longer runs in navigation or map-presence requests.
+
+A non-blocking advisory lock is scoped to the configured database name. While
+holding it, a durable `schema_meta` timestamp limits the world to one pulse per
+configured interval (2 seconds by default), regardless of tab/account/worker
+count. Each pulse has separate arrival and AI budgets. The default arrival batch
+is at most 4 rows with a 120 ms cooperative deadline; detailed AI work remains at
+most 4 commanders with a 180 ms cooperative deadline. Limits are checked between
+operations, so one transaction can exceed the cooperative time boundary. Runtime
+work uses a 2-second InnoDB lock-wait limit to avoid indefinite queue waits.
+
+Arrivals use the original settlement formulas through
+`msw_fob_resolve_staff_dispatch()`. It rechecks pending/due state under the mission
+row lock, then locks commanders in ID order and commits resources, protection,
+unit XP, reservation release and the canonical raid link together. A failed
+transaction leaves its original mission pending. The worker applies a 60-second
+retry delay and rotates its global cursor, preventing a failed record from
+monopolizing service. Inbound work for the viewing defender gets priority within
+the same bounded batch; global processing also covers offline/disabled attackers.
+The original attacker-specific wrapper remains for existing outbound call sites.
+
+AI selection is globally oldest-due, independent of the currently viewed map.
+The existing capped catch-up policy, competitive classes, roster/stat ceilings and
+real sector-derived Base Power remain authoritative. Training filters capped or
+currently deployed staff before LIMIT. The human-power anchor cache expires after
+5 seconds so a long-running worker can follow player progression.
+
+The endpoint authenticates and verifies CSRF/origin before releasing the PHP
+session lock. It returns only public leaderboard fields and the authenticated
+commander's incoming/report references, never private snapshots, resources or
+another defender's reports. Readouts use server timestamps and committed results;
+JavaScript has no gameplay settlement authority. Retry, tab visibility and browser
+back-forward restoration are handled in the new script, preserving `msw.js`.
+
+## Clock and upgrade contract
+
+The existing database uses local DATETIME values. Runtime and setup now set the
+MySQL session timezone to PHP's current numeric offset; the worker refreshes that
+offset every cycle. This aligns SQL `NOW()` with PHP-written deadlines without
+requiring installed MySQL timezone tables or converting saved history. Session
+timezones affect SQL clock functions; they do not rewrite stored DATETIME values.
+See the [MySQL timezone documentation](https://dev.mysql.com/doc/en/time-zone-support.html).
+Transaction settlement continues to use the existing InnoDB commit/rollback
+contract described in the [PHP mysqli transaction documentation](https://www.php.net/manual/en/mysqli.quickstart.transactions.php).
+
+Schema revision 9 adds only `idx_fob_dispatch_due(result,id,finish_at)`.
+`msw_schema_upgrade_world_runtime()` is idempotent and is called by the existing
+Update / Repair installer. Runtime activation and a periodic lifetime check repair schedules or leases
+outside the supported scheduling horizon while preserving valid schedules and
+earned data. No pending-strike deletion or leaderboard reseed is used to fix stalls.
+
+Windows local setup installs an indefinite one-minute startup check for the
+windowless PHP engine. The engine runs bounded two-second updates while Apache
+is reachable and reconnects after MySQL outages. A file lock prevents duplicate
+processes; the existing database lock/throttle also serializes browser requests.
+Source/configuration updates retire the engine between batches for automatic
+restart. No player request or browser visibility is needed for offline progress.
+See `AUTOMATIC_WORLD.md` and `../UPGRADE_v0.8.4.5.md`.
+
+## Inherited architecture
 
 
 > **v0.8.0 automatic-operations note:** Dispatch and FOB gameplay settlement remains fully server-authoritative. The new automatic battle layer is a deterministic post-settlement projection: it reads committed mission/raid snapshots and results, then visualizes them in a Peace Walker-inspired opposing-force report without owning success rolls, rewards, resource transfer, protection, XP or persistent combat state. The accepted v0.7.5 warzone progression gate and all prior Commander/Mother Base/Security authority remain preserved.

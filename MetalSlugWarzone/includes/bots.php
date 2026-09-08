@@ -59,13 +59,14 @@ function msw_bot_competitive_profile(int $botIndex,string $personality='balanced
 }
 
 function msw_bot_power_anchor(): array {
-    static $anchor=null;
-    if(is_array($anchor))return $anchor;
+    static $anchor=null,$expires=0.0;
+    if(is_array($anchor)&&microtime(true)<$expires)return $anchor;
     $row=msw_one('SELECT COALESCE(MAX(base_power),0) base_power,COALESCE(MAX(level),1) level FROM users WHERE is_bot=0');
     $anchor=[
         'base_power'=>max((int)(msw_config('bot_competitive_anchor_power')??3500),(int)($row['base_power']??0)),
         'level'=>max(1,(int)($row['level']??1)),
     ];
+    $expires=microtime(true)+5.0;
     return $anchor;
 }
 
@@ -83,9 +84,7 @@ function msw_bot_roster_cap_for(int $uid,?array $bot=null): int {
 
 /**
  * One-time runtime activation for upgrades from older builds. This deliberately
- * does not rewrite rank, staff, resources or combat history. It only makes all
- * existing bots immediately overdue so the elapsed-time catch-up system can
- * advance the entire population as requests arrive.
+ * does not rewrite rank, staff, resources, combat history or valid schedules.
  */
 function msw_bot_competitive_activation_once(): void {
     static $checked=false;if($checked)return;$checked=true;
@@ -101,7 +100,7 @@ function msw_bot_competitive_activation_once(): void {
 }
 
 function msw_bot_set_activity(int $uid,string $activity,?string $enemyKey=null): void {
-    $activity=mb_substr(trim($activity),0,160);
+    $activity=msw_console_clip(trim($activity),160);
     msw_stmt('UPDATE bot_commanders SET activity=?,last_enemy_key=?,last_action_at=NOW() WHERE user_id=?','ssi',[$activity,$enemyKey,$uid]);
 }
 
@@ -380,7 +379,9 @@ function msw_bot_recruitable_enemy_keys(?string $mapKey=null): array {
 
 function msw_bot_train_staff(int $uid,array $profile,int $intensity=1): int {
     $intensity=max(1,min(8,$intensity));
-    $rows=msw_all("SELECT id,assignment,level,combat,rd,support,intel,medical,mess,security FROM units WHERE owner_user_id=? AND assignment IN ('combat','rd','support','intel','medical','mess','security') ORDER BY level ASC,id ASC LIMIT {$intensity}",'i',[$uid]);
+    // Filter before LIMIT: capped low-level veterans previously occupied every
+    // training slot forever, starving the rest of an established roster.
+    $rows=msw_all("SELECT id,assignment,level,combat,rd,support,intel,medical,mess,security FROM units WHERE owner_user_id=? AND (dispatched_until IS NULL OR dispatched_until<=NOW()) AND CASE assignment WHEN 'combat' THEN combat WHEN 'rd' THEN rd WHEN 'support' THEN support WHEN 'intel' THEN intel WHEN 'medical' THEN medical WHEN 'mess' THEN mess WHEN 'security' THEN security ELSE 99 END < 99 ORDER BY level ASC,id ASC LIMIT {$intensity}",'i',[$uid]);
     $trained=0;
     foreach($rows as $row){
         $assignment=(string)$row['assignment'];$meta=msw_sectors()[$assignment]??null;if(!$meta)continue;$stat=(string)$meta['stat'];
@@ -431,8 +432,8 @@ function msw_bot_development_action(int $uid,array $user,?array $bot=null): void
 }
 
 function msw_bot_due_operation_count(array $bot,array $profile): int {
-    $next=strtotime((string)($bot['next_action_at']??''));if($next===false)return 1;
-    $overdue=max(0,time()-$next);
+    if(isset($bot['overdue_seconds']))$overdue=max(0,(int)$bot['overdue_seconds']);
+    else{$next=strtotime((string)($bot['next_action_at']??''));if($next===false)return 1;$overdue=max(0,time()-$next);}
     $baseMin=max(3,(int)(msw_config('bot_action_min_seconds')??4));$baseMax=max($baseMin,(int)(msw_config('bot_action_max_seconds')??11));
     $cadence=max(2,(int)round((($baseMin+$baseMax)/2)*(float)$profile['pace']));
     $ops=1+(int)floor($overdue/$cadence);
@@ -528,14 +529,16 @@ function msw_bot_simulate_one(int $uid,?array $leasedBot=null): void {
     if($ops>1)msw_bot_catch_up($uid,$user,$bot,$ops-1);
 }
 
-function msw_bot_simulation_pulse(?string $mapKey=null,int $budget=12): void {
-    if(!(bool)(msw_config('bot_population_enabled')??true))return;
+function msw_bot_simulation_pulse(?string $mapKey=null,int $budget=12): array {
+    $stats=['processed'=>0,'failed'=>0];
+    if(!(bool)(msw_config('bot_population_enabled')??true))return $stats;
 
     // Only one PHP request may advance autonomous commanders at a time. Multiple
     // map-presence polls/tabs can otherwise pile up on the same XAMPP/MySQL server
     // and make normal navigation wait behind several heavy AI batches.
-    $lock=msw_one("SELECT GET_LOCK('msw_bot_pulse',0) acquired");
-    if((int)($lock['acquired']??0)!==1)return;
+    $lockName='msw_bots_'.substr(hash('sha256',(string)msw_config('db')['name']),0,40);
+    $lock=msw_one('SELECT GET_LOCK(?,0) acquired','s',[$lockName]);
+    if((int)($lock['acquired']??0)!==1)return $stats;
 
     try{
         msw_bot_competitive_activation_once();
@@ -548,16 +551,17 @@ function msw_bot_simulation_pulse(?string $mapKey=null,int $budget=12): void {
 
         $where="b.enabled=1 AND b.next_action_at<=NOW() AND (b.lease_until IS NULL OR b.lease_until<NOW())";$types='';$params=[];
         if($mapKey!==null&&$mapKey!==''){$where.=' AND u.active_map=?';$types='s';$params=[$mapKey];}
-        $ids=msw_all("SELECT b.user_id,b.bot_index,b.personality,b.next_action_at FROM bot_commanders b JOIN users u ON u.id=b.user_id WHERE {$where} ORDER BY b.next_action_at,b.bot_index LIMIT {$budget}",$types,$params);
+        $ids=msw_all("SELECT b.user_id,b.bot_index,b.personality,b.next_action_at,TIMESTAMPDIFF(SECOND,b.next_action_at,NOW()) overdue_seconds FROM bot_commanders b JOIN users u ON u.id=b.user_id WHERE {$where} ORDER BY b.next_action_at,b.bot_index LIMIT {$budget}",$types,$params);
         foreach($ids as $row){
             if(microtime(true)>=$deadline)break;
             $uid=(int)$row['user_id'];
             $claim=msw_stmt('UPDATE bot_commanders SET lease_until=DATE_ADD(NOW(),INTERVAL 15 SECOND) WHERE user_id=? AND enabled=1 AND next_action_at<=NOW() AND (lease_until IS NULL OR lease_until<NOW())','i',[$uid]);
             if($claim->affected_rows!==1)continue;
-            try{msw_bot_simulate_one($uid,$row);msw_bot_schedule_next($uid,false,$row);}
-            catch(Throwable $e){error_log('[MSW bot '.$uid.'] '.$e->getMessage());msw_bot_set_activity($uid,'Regrouping');msw_bot_schedule_next($uid,true,$row);}
+            try{msw_bot_simulate_one($uid,$row);msw_bot_schedule_next($uid,false,$row);$stats['processed']++;}
+            catch(Throwable $e){$stats['failed']++;error_log('[MSW bot '.$uid.'] '.$e->getMessage());msw_bot_set_activity($uid,'Regrouping');msw_bot_schedule_next($uid,true,$row);}
         }
     } finally {
-        try{msw_db()->query("DO RELEASE_LOCK('msw_bot_pulse')");}catch(Throwable $e){error_log('[MSW bot pulse unlock] '.$e->getMessage());}
+        try{msw_stmt('DO RELEASE_LOCK(?)','s',[$lockName]);}catch(Throwable $e){error_log('[MSW bot pulse unlock] '.$e->getMessage());}
     }
+    return $stats;
 }

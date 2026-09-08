@@ -1,4 +1,37 @@
+# Automatic world execution — v0.8.4.5
+
+- Only the existing loopback-only, CSRF-protected setup POST can register the
+  native Windows startup task. No public game route executes operating-system commands.
+- Registration uses structured process arguments and XML-escaped absolute paths,
+  with XAMPP's current Windows SID and least privileges. No Windows password or
+  database-password environment override is introduced.
+- The service entry point returns 404 outside PHP CLI. Generated local settings
+  and health files have a PHP 404/exit guard and expose no body through HTTP.
+- Setup status is read-only. A recent heartbeat from a completed background update
+  is required before setup reports Running automatically.
+- The canonical shared world lock, arrival transaction and existing player pulse
+  authentication/CSRF/origin checks remain in force.
+
 # Security and Exploit-Resistance Contract — v0.6.0
+
+## v0.8.4.3 world-update boundary
+
+- `world_pulse.php` requires a signed-in human account, POST, the existing CSRF
+  token and the existing same-origin validation. It sends `Cache-Control: no-store`.
+- Supplied commander IDs cannot select the requester. Incoming/result queries bind
+  the session user as defender; watched IDs are bounded positive integers. Public
+  Rankings responses expose only the existing public ranking/profile fields.
+- The endpoint releases the PHP session lock before autonomous work, serializes
+  batches by database, enforces a shared cooldown and bounds per-pulse work.
+- Mission state, rewards, transfers, protection and XP remain server-authoritative
+  and transaction-protected. Errors retain pending work and use bounded retries.
+- Heartbeat polls are excluded from the human navigation console feed. Operator
+  diagnostics use the local setup panel; SQL exceptions are logged server-side and not sent
+  to public gameplay responses.
+- `includes/world_service.php` returns 404 outside PHP CLI. It is not an HTTP
+  cron endpoint and has no public process-control route.
+- Existing root/blank XAMPP DB authentication and player password hashing remain
+  unchanged. The new JavaScript creates text nodes for names and same-origin links.
 
 The development target is local XAMPP, but gameplay state is still designed around server authority, validation and transactional persistence.
 

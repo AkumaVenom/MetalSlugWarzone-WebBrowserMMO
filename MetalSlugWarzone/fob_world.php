@@ -1,7 +1,7 @@
 <?php
 declare(strict_types=1);
 require __DIR__.'/includes/ui.php';
-$user=msw_require_user();$uid=(int)$user['id'];msw_fob_resolve_due_dispatches($uid,8);msw_bot_simulation_pulse(null,10);
+$user=msw_require_user();$uid=(int)$user['id'];msw_fob_resolve_due_dispatches($uid,8,true);
 $membership=msw_fob_membership($uid);if(!$membership)msw_redirect('fob_globe.php');
 $requestedWorld=(int)($_GET['world']??0);$worldId=$requestedWorld>0?$requestedWorld:(int)$membership['world_id'];$world=msw_fob_world_row($worldId);if(!$world){http_response_code(404);exit('That FOB shard is unavailable.');}
 $isHome=$worldId===(int)$membership['world_id'];$biome=msw_fob_biome_catalog()[(string)$world['biome_key']]??null;if(!$biome)throw new RuntimeException('That FOB region is unavailable.');

@@ -1,7 +1,7 @@
 <?php
 declare(strict_types=1);
 require __DIR__.'/includes/ui.php';
-$user=msw_require_user();$uid=(int)$user['id'];msw_fob_resolve_due_dispatches($uid,8);msw_bot_simulation_pulse(null,8);
+$user=msw_require_user();$uid=(int)$user['id'];msw_fob_resolve_due_dispatches($uid,8,true);
 $ownProtection=msw_fob_commander_protection($uid);$membership=msw_fob_membership($uid);if(!$membership)msw_redirect('fob_globe.php');$worldId=(int)($_GET['world']??0);if($worldId<=0)$worldId=(int)$membership['world_id'];$world=msw_fob_world_row($worldId);if(!$world){http_response_code(404);exit('FOB world unavailable.');}$isHome=$worldId===(int)$membership['world_id'];$targets=msw_fob_targets_in_world($uid,$worldId,144);
 $history=msw_all('SELECT r.*,a.username attacker,d.username defender FROM fob_raids r JOIN users a ON a.id=r.attacker_user_id JOIN users d ON d.id=r.defender_user_id WHERE r.attacker_user_id=? OR r.defender_user_id=? ORDER BY r.id DESC LIMIT 16','ii',[$uid,$uid]);
 msw_header('FOB Raid Targets','fob.php');msw_alert(msw_flash());msw_resource_strip($uid);

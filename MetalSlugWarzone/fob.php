@@ -2,8 +2,8 @@
 declare(strict_types=1);
 require __DIR__.'/includes/ui.php';
 $user=msw_require_user();$uid=(int)$user['id'];
-msw_fob_resolve_due_dispatches($uid,20);
-msw_bot_simulation_pulse(null,8);
+msw_fob_resolve_due_dispatches($uid,20,true);
+
 $membership=msw_fob_membership($uid);
 if(!$membership)msw_redirect('fob_globe.php');
 
@@ -59,7 +59,7 @@ msw_header('FOB Command Centre','fob.php');msw_alert(msw_flash());msw_resource_s
         <?php if($isProtected):?><span>Expires in <b data-countdown="<?=msw_e(date(DATE_ATOM,strtotime((string)$protectionUntil)))?>"></b></span><em>Launching an invasion or retaliation immediately drops the rest of this shield.</em><?php else:?><span>Your FOB can be attacked</span><em>After an enemy attack finishes, your FOB gains a temporary recovery shield.</em><?php endif;?>
     </div>
     <div class="fob-command-status"><small>ACTIVE INVASIONS</small><strong><?=number_format((int)$counts['active_outbound'])?></strong><span>Strike teams en route</span><em><?=number_format(count($units))?> staff available · up to <?=$parallelCapacity?> additional 2-person teams</em></div>
-    <div class="fob-command-status <?=count($incomingOps)?'warning':''?>"><small>INBOUND STRIKES</small><strong><?=number_format((int)$counts['active_inbound'])?></strong><span>Enemy strike teams detected</span><em>Your shield is checked again when the enemy team arrives.</em></div>
+    <div class="fob-command-status <?=count($incomingOps)?'warning':''?>"><small>INBOUND STRIKES</small><strong data-world-incoming-count><?=number_format((int)$counts['active_inbound'])?></strong><span>Enemy strike teams detected</span><em>Your shield is checked again when the enemy team arrives.</em></div>
     <div class="fob-command-status <?=$retaliationReady?'warning':''?>"><small>RETALIATION ORDERS</small><strong><?=number_format($retaliationOpen)?></strong><span>Available counterattacks</span><em><?=number_format($retaliationReady)?> ready now · each enemy raid can be answered once.</em></div>
     <div class="fob-command-status"><small>GLOBAL TARGETS</small><strong><?=number_format($openTargets)?></strong><span>Open FOBs across populated shards</span><em><?=number_format(count($worldDirectory))?> populated FOB shards available on the war map.</em></div>
 </section>
@@ -132,10 +132,11 @@ msw_header('FOB Command Centre','fob.php');msw_alert(msw_flash());msw_resource_s
 </section>
 
 <section class="panel">
-    <div class="panel-head"><div><small>EARLY WARNING</small><h2>Incoming Strike Teams</h2></div><span class="badge"><?=count($incomingOps)?> DETECTED</span></div>
+    <div class="panel-head"><div><small>EARLY WARNING</small><h2>Incoming Strike Teams</h2></div><span class="badge" data-world-incoming-count="badge"><?=number_format((int)$counts['active_inbound'])?> DETECTED</span></div>
     <div class="panel-body">
-    <?php if($incomingOps):?><div class="fob-operation-list inbound"><?php foreach($incomingOps as $op):?><article class="fob-operation-row"><div><small>INBOUND #<?=intval($op['id'])?> · <?=msw_e(msw_fob_world_name($op))?></small><h3><?=msw_e((string)$op['attacker'])?> <span><?=msw_e((string)$op['attacker_grade'])?></span></h3><p>Enemy staff team · estimated success <?=number_format((float)$op['success_chance']*100,1)?>%</p></div><div class="fob-operation-eta"><small>ETA</small><b data-countdown="<?=msw_e(date(DATE_ATOM,strtotime((string)$op['finish_at'])))?>"></b></div></article><?php endforeach;?></div>
-    <?php else:?><div class="empty">No enemy staff strike teams are currently heading toward your FOB.</div><?php endif;?>
+    <p class="muted-copy" data-world-live-status role="status">Strike reports update automatically.</p>
+    <div class="fob-operation-list inbound" data-world-incoming><?php if($incomingOps):?><?php foreach($incomingOps as $op):?><article class="fob-operation-row" data-incoming-id="<?=intval($op['id'])?>"><div><small>INBOUND #<?=intval($op['id'])?> · <?=msw_e(msw_fob_world_name($op))?></small><h3><?=msw_e((string)$op['attacker'])?> <span><?=msw_e((string)$op['attacker_grade'])?></span></h3><p>Enemy staff team · estimated success <?=number_format((float)$op['success_chance']*100,1)?>%</p></div><div class="fob-operation-eta"><small>ETA</small><b data-world-eta="<?=(int)strtotime((string)$op['finish_at'])*1000?>"></b></div></article><?php endforeach;?>
+    <?php else:?><div class="empty">No enemy staff strike teams are currently heading toward your FOB.</div><?php endif;?></div>
     </div>
 </section>
 </div>

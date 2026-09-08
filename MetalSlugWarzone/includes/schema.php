@@ -2,7 +2,7 @@
 declare(strict_types=1);
 require_once __DIR__ . '/catalog.php';
 
-const MSW_SCHEMA_REVISION = 8;
+const MSW_SCHEMA_REVISION = 9;
 
 function msw_schema_statements(): array {
     return [
@@ -251,6 +251,7 @@ function msw_schema_statements(): array {
  FOREIGN KEY(world_id) REFERENCES fob_worlds(id) ON DELETE CASCADE,
  INDEX idx_fob_dispatch_attacker(attacker_user_id,result,finish_at),
  INDEX idx_fob_dispatch_target(defender_user_id,result,finish_at),
+ INDEX idx_fob_dispatch_due(result,id,finish_at),
  INDEX idx_fob_dispatch_world(world_id,result,finish_at)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci",
 "CREATE TABLE IF NOT EXISTS fob_raids (
@@ -573,6 +574,13 @@ function msw_schema_index_is_unique(mysqli $db, string $table, string $index): b
     return $row!==null&&(int)$row['NON_UNIQUE']===0;
 }
 
+/** Additive v8 -> v9 migration; safe to repeat on an existing world. */
+function msw_schema_upgrade_world_runtime(mysqli $db): void {
+    if (!msw_schema_index_exists($db, 'fob_strike_dispatches', 'idx_fob_dispatch_due')) {
+        $db->query('ALTER TABLE fob_strike_dispatches ADD INDEX idx_fob_dispatch_due(result,id,finish_at)');
+    }
+}
+
 function msw_install_schema(mysqli $db): void {
     foreach (msw_schema_statements() as $sql) $db->query($sql);
 
@@ -620,6 +628,8 @@ function msw_install_schema(mysqli $db): void {
     if (!msw_schema_index_exists($db, 'fob_raids', 'uq_fob_retaliation_source')) {
         $db->query('ALTER TABLE fob_raids ADD UNIQUE INDEX uq_fob_retaliation_source(retaliation_for_raid_id)');
     }
+
+    msw_schema_upgrade_world_runtime($db);
 
     // Keep the encounter enum forward-compatible with the production PvE surfaces.
     $db->query("ALTER TABLE encounters MODIFY context_type ENUM('field','mission','sidequest','trainer','boss') NOT NULL DEFAULT 'field'");

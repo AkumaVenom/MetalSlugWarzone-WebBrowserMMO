@@ -12,13 +12,6 @@ if($map==='' || !isset(msw_map_catalog()[$map])){
     exit;
 }
 
-// Advance a bounded local batch plus a smaller global batch. The local share keeps
-// the viewed warzone lively while the global share lets commanders elsewhere keep
-// progressing even when no human currently has their warzone open. Lease and
-// next_action_at checks prevent extra browser clients from accelerating a bot.
-msw_bot_simulation_pulse($map,12);
-msw_bot_simulation_pulse(null,6);
-
 // Keep the polling player legal if a map revision changed beneath an already
 // open browser session, then refresh mandatory presence at that safe position.
 [$selfX,$selfY]=msw_map_safe_position($map,(int)$user['map_x'],(int)$user['map_y']);

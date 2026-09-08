@@ -32,6 +32,7 @@ function msw_console_suppressed_routes(): array {
     return [
         'map_move.php',
         'map_presence.php',
+        'world_pulse.php',
         'mother_base_move.php',
         'mother_base_presence.php',
         'pvp_state.php',

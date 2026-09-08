@@ -3,7 +3,7 @@ declare(strict_types=1);
 require __DIR__.'/includes/pvp_engine.php';
 require_once __DIR__.'/includes/ui.php';
 $u=msw_require_user();$uid=(int)$u['id'];
-msw_bot_simulation_pulse(null,6);
+
 if(msw_is_post()){
     msw_verify_post();$opp=(int)($_POST['opponent_id']??0);$mode=(string)($_POST['match_mode']??'live');
     $target=msw_one('SELECT id,username,is_bot FROM users WHERE id=?','i',[$opp]);

@@ -1,5 +1,13 @@
 # Local WorldServer Console — v0.3.5
 
+## Automatic world updates — v0.8.4.5
+
+World progression is installed and checked through the local setup page's
+**Automatic World** panel. Update / Repair installs windowless automatic startup;
+no command window or manual worker launch is needed. The optional legacy activity
+viewer below does not run the world and is not required for gameplay.
+See `AUTOMATIC_WORLD.md` and `../UPGRADE_v0.8.4.5.md`.
+
 `serverconsole.bat` opens the server-operator activity console. It is designed for the server PC only and does not expose a browser administration page.
 
 ## What the console shows

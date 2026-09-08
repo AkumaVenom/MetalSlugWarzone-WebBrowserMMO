@@ -1,5 +1,29 @@
 # Global FOB World System — v0.6.0
 
+## v0.8.4.3 arrival repair
+
+Incoming and outgoing staff strikes share one canonical single-operation resolver.
+The defender can service an expired inbound strike on Command Centre, and the
+background runtime services the global queue even if its attacker is not active.
+The original row remains the authority; no result is fabricated from a countdown.
+
+Settlement still revalidates the defender shield, commits one raid/report and one
+resource transfer, awards XP once and conditionally releases only the old staff
+reservation. Shielded arrivals resolve to `protected_abort` without a raid or
+transfer. A database error rolls back the whole transaction and leaves the
+operation pending for retry; later operations can continue.
+
+The incoming board now refreshes through authenticated background requests. When a
+watched strike settles, it shows the corresponding defense report or shield-blocked
+result. It updates that panel without navigating away or resetting planner inputs.
+A timer at arrival displays “AWAITING REPORT…” until the server commits settlement.
+The existing retaliation desk is refreshed on page load; the defense report links
+into the existing retaliation flow.
+
+Local Update / Repair installs automatic background arrivals while XAMPP runs,
+including with every player offline. No command window is required.
+See `../UPGRADE_v0.8.4.5.md`, `AUTOMATIC_WORLD.md` and `BUILD_VALIDATION.md`.
+
 ## Integrated invasion command layer
 
 For a deployed commander, `fob.php` is now the strategic **Invasion Command Centre** rather than a redirect. It composes existing FOB authority into one coordinated surface:

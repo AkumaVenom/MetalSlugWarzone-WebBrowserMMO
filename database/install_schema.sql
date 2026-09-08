@@ -259,6 +259,7 @@ CREATE TABLE IF NOT EXISTS fob_strike_dispatches (
  FOREIGN KEY(world_id) REFERENCES fob_worlds(id) ON DELETE CASCADE,
  INDEX idx_fob_dispatch_attacker(attacker_user_id,result,finish_at),
  INDEX idx_fob_dispatch_target(defender_user_id,result,finish_at),
+ INDEX idx_fob_dispatch_due(result,id,finish_at),
  INDEX idx_fob_dispatch_world(world_id,result,finish_at)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
@@ -358,4 +359,4 @@ CREATE TABLE IF NOT EXISTS login_attempts (
  PRIMARY KEY(ip_hash,username_key)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
-INSERT INTO schema_meta(meta_key,meta_value) VALUES ("schema_revision","8") ON DUPLICATE KEY UPDATE meta_value=VALUES(meta_value);
+INSERT INTO schema_meta(meta_key,meta_value) VALUES ("schema_revision","9") ON DUPLICATE KEY UPDATE meta_value=VALUES(meta_value);

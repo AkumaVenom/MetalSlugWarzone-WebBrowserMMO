@@ -357,58 +357,68 @@ function msw_fob_launch_staff_dispatch(int $attackerId,int $defenderId,array $un
     }catch(Throwable $e){$db->rollback();throw $e;}
 }
 
-function msw_fob_resolve_due_dispatches(int $attackerId,int $limit=8): int {
+/** Canonical, exactly-once arrival settlement, independent of the attacker session. */
+function msw_fob_resolve_staff_dispatch(int $dispatchId): bool {
+    $db=msw_db();$db->begin_transaction();
+    try{
+        $mission=msw_one("SELECT * FROM fob_strike_dispatches WHERE id=? AND result='pending' AND finish_at<=NOW() FOR UPDATE",'i',[$dispatchId]);
+        if(!$mission){$db->rollback();return false;}
+        $attackerId=(int)$mission['attacker_user_id'];
+        $defenderId=(int)$mission['defender_user_id'];$low=min($attackerId,$defenderId);$high=max($attackerId,$defenderId);
+        $lockedUsers=msw_all('SELECT * FROM users WHERE id IN (?,?) ORDER BY id FOR UPDATE','ii',[$low,$high]);$users=[];foreach($lockedUsers as $u)$users[(int)$u['id']]=$u;
+        $attacker=$users[$attackerId]??null;$defender=$users[$defenderId]??null;
+        if(!$attacker||!$defender) throw new RuntimeException('One of the FOB commanders is unavailable.');
+        $unitIds=array_values(array_unique(array_filter(array_map('intval',json_decode((string)$mission['unit_ids_json'],true)?:[]),fn($id)=>$id>0)));sort($unitIds,SORT_NUMERIC);
+    
+        if(!empty($defender['fob_protection_until'])&&strtotime((string)$defender['fob_protection_until'])>time()){
+            msw_stmt("UPDATE fob_strike_dispatches SET result='protected_abort',resolved_at=NOW(),transfer_json='{}' WHERE id=? AND result='pending'",'i',[(int)$mission['id']]);
+            foreach($unitIds as $unitId){msw_add_unit_xp($attackerId,$unitId,10);msw_stmt('UPDATE units SET dispatched_until=NULL WHERE id=? AND owner_user_id=? AND (dispatched_until IS NULL OR dispatched_until<=?)','iis',[$unitId,$attackerId,(string)$mission['finish_at']]);}
+            $db->commit();return true;
+        }
+    
+        $rr=msw_all('SELECT * FROM player_resources WHERE user_id IN (?,?) ORDER BY user_id FOR UPDATE','ii',[$low,$high]);$resources=[];foreach($rr as $r)$resources[(int)$r['user_id']]=$r;
+        if(!isset($resources[$attackerId],$resources[$defenderId])) throw new RuntimeException('Strike-team resources could not be loaded. Please try again.');
+    
+        $chance=max(0.0,min(1.0,(float)$mission['success_chance']));
+        $win=(random_int(1,10000)/10000)<=$chance;
+        $transfer=$win?msw_fob_resource_transfer($attackerId,$defenderId,$resources[$defenderId],0.06,['default'=>2100,'precious_metal'=>325]):['common_metal'=>0,'minor_metal'=>0,'precious_metal'=>0,'fuel'=>0,'biological'=>0];
+        $protectedUntil=msw_fob_apply_protection($defenderId);
+        $as=json_decode((string)$mission['attacker_snapshot_json'],true)?:[];$ds=json_decode((string)$mission['defender_snapshot_json'],true)?:[];
+        $as['resolution']=['mode'=>'staff_dispatch','success_chance'=>$chance,'dispatch_id'=>(int)$mission['id']];
+        $ds['resolution']=['protected_until'=>$protectedUntil];
+        $result=$win?'attacker_win':'defender_win';
+        msw_stmt('INSERT INTO fob_raids(attacker_user_id,defender_user_id,attacker_snapshot_json,defender_snapshot_json,result,transfer_json) VALUES(?,?,?,?,?,?)','iissss',[$attackerId,$defenderId,json_encode($as,JSON_UNESCAPED_SLASHES),json_encode($ds,JSON_UNESCAPED_SLASHES),$result,json_encode($transfer,JSON_UNESCAPED_SLASHES)]);
+        $raidId=(int)$db->insert_id;
+        msw_stmt('UPDATE fob_strike_dispatches SET result=?,resolved_at=NOW(),transfer_json=?,raid_id=? WHERE id=? AND result=\'pending\'','ssii',[$result,json_encode($transfer,JSON_UNESCAPED_SLASHES),$raidId,(int)$mission['id']]);
+        foreach($unitIds as $unitId){msw_add_unit_xp($attackerId,$unitId,$win?95:35);msw_stmt('UPDATE units SET dispatched_until=NULL WHERE id=? AND owner_user_id=? AND (dispatched_until IS NULL OR dispatched_until<=?)','iis',[$unitId,$attackerId,(string)$mission['finish_at']]);}
+        msw_level_up_user($attackerId,$win?80:25);msw_recalculate_base($attackerId);
+        if((int)($attacker['is_bot']??0)===1)msw_stmt('UPDATE bot_commanders SET fob_attacks=fob_attacks+1,fob_wins=fob_wins+? WHERE user_id=?','ii',[$win?1:0,$attackerId]);
+        $db->commit();
+    
+        if((int)($attacker['is_bot']??0)===0){
+            msw_console_event_for_user($attackerId,'FOB','DISPATCH_RESOLVE','Staff FOB invasion against '.(string)$defender['username'].' resolved: '.strtoupper(str_replace('_',' ',$result)).'.',[
+                'dispatch_id'=>(int)$mission['id'],'raid_id'=>$raidId,'result'=>$result,'materials_transferred'=>(int)array_sum($transfer),
+            ]);
+        }
+        if((int)($defender['is_bot']??0)===0){
+            msw_console_event_for_user($defenderId,'FOB','DEFENSE','A staff invasion from '.(string)$attacker['username'].' reached your FOB: '.strtoupper(str_replace('_',' ',$result)).'.',[
+                'dispatch_id'=>(int)$mission['id'],'raid_id'=>$raidId,'attacker_id'=>$attackerId,'attacker_is_ai'=>(bool)($attacker['is_bot']??0),'result'=>$result,'materials_transferred'=>(int)array_sum($transfer),
+            ]);
+        }
+        return true;
+    }catch(Throwable $e){$db->rollback();throw $e;}
+}
+
+/** A failed row must not prevent other arrivals or the commander's career tick. */
+function msw_fob_resolve_due_dispatches(int $commanderId,int $limit=8,bool $includeIncoming=false): int {
     $limit=max(1,min(20,$limit));
-    $due=msw_all("SELECT id FROM fob_strike_dispatches WHERE attacker_user_id=? AND result='pending' AND finish_at<=NOW() ORDER BY id LIMIT {$limit}",'i',[$attackerId]);
+    $where=$includeIncoming?'(attacker_user_id=? OR defender_user_id=?)':'attacker_user_id=?';
+    $types=$includeIncoming?'ii':'i';$params=$includeIncoming?[$commanderId,$commanderId]:[$commanderId];
+    $due=msw_all("SELECT id FROM fob_strike_dispatches WHERE {$where} AND result='pending' AND finish_at<=NOW() ORDER BY finish_at,id LIMIT {$limit}",$types,$params);
     $resolved=0;
     foreach($due as $row){
-        $db=msw_db();$db->begin_transaction();
-        try{
-            $mission=msw_one("SELECT * FROM fob_strike_dispatches WHERE id=? AND attacker_user_id=? AND result='pending' FOR UPDATE",'ii',[(int)$row['id'],$attackerId]);
-            if(!$mission||strtotime((string)$mission['finish_at'])>time()){$db->rollback();continue;}
-            $defenderId=(int)$mission['defender_user_id'];$low=min($attackerId,$defenderId);$high=max($attackerId,$defenderId);
-            $lockedUsers=msw_all('SELECT * FROM users WHERE id IN (?,?) ORDER BY id FOR UPDATE','ii',[$low,$high]);$users=[];foreach($lockedUsers as $u)$users[(int)$u['id']]=$u;
-            $attacker=$users[$attackerId]??null;$defender=$users[$defenderId]??null;
-            if(!$attacker||!$defender) throw new RuntimeException('One of the FOB commanders is unavailable.');
-            $unitIds=array_values(array_unique(array_filter(array_map('intval',json_decode((string)$mission['unit_ids_json'],true)?:[]),fn($id)=>$id>0)));sort($unitIds,SORT_NUMERIC);
-
-            if(!empty($defender['fob_protection_until'])&&strtotime((string)$defender['fob_protection_until'])>time()){
-                msw_stmt("UPDATE fob_strike_dispatches SET result='protected_abort',resolved_at=NOW(),transfer_json='{}' WHERE id=? AND result='pending'",'i',[(int)$mission['id']]);
-                foreach($unitIds as $unitId){msw_add_unit_xp($attackerId,$unitId,10);msw_stmt('UPDATE units SET dispatched_until=NULL WHERE id=? AND owner_user_id=? AND (dispatched_until IS NULL OR dispatched_until<=?)','iis',[$unitId,$attackerId,(string)$mission['finish_at']]);}
-                $db->commit();$resolved++;
-                continue;
-            }
-
-            $rr=msw_all('SELECT * FROM player_resources WHERE user_id IN (?,?) ORDER BY user_id FOR UPDATE','ii',[$low,$high]);$resources=[];foreach($rr as $r)$resources[(int)$r['user_id']]=$r;
-            if(!isset($resources[$attackerId],$resources[$defenderId])) throw new RuntimeException('Strike-team resources could not be loaded. Please try again.');
-
-            $chance=max(0.0,min(1.0,(float)$mission['success_chance']));
-            $win=(random_int(1,10000)/10000)<=$chance;
-            $transfer=$win?msw_fob_resource_transfer($attackerId,$defenderId,$resources[$defenderId],0.06,['default'=>2100,'precious_metal'=>325]):['common_metal'=>0,'minor_metal'=>0,'precious_metal'=>0,'fuel'=>0,'biological'=>0];
-            $protectedUntil=msw_fob_apply_protection($defenderId);
-            $as=json_decode((string)$mission['attacker_snapshot_json'],true)?:[];$ds=json_decode((string)$mission['defender_snapshot_json'],true)?:[];
-            $as['resolution']=['mode'=>'staff_dispatch','success_chance'=>$chance,'dispatch_id'=>(int)$mission['id']];
-            $ds['resolution']=['protected_until'=>$protectedUntil];
-            $result=$win?'attacker_win':'defender_win';
-            msw_stmt('INSERT INTO fob_raids(attacker_user_id,defender_user_id,attacker_snapshot_json,defender_snapshot_json,result,transfer_json) VALUES(?,?,?,?,?,?)','iissss',[$attackerId,$defenderId,json_encode($as,JSON_UNESCAPED_SLASHES),json_encode($ds,JSON_UNESCAPED_SLASHES),$result,json_encode($transfer,JSON_UNESCAPED_SLASHES)]);
-            $raidId=(int)$db->insert_id;
-            msw_stmt('UPDATE fob_strike_dispatches SET result=?,resolved_at=NOW(),transfer_json=?,raid_id=? WHERE id=? AND result=\'pending\'','ssii',[$result,json_encode($transfer,JSON_UNESCAPED_SLASHES),$raidId,(int)$mission['id']]);
-            foreach($unitIds as $unitId){msw_add_unit_xp($attackerId,$unitId,$win?95:35);msw_stmt('UPDATE units SET dispatched_until=NULL WHERE id=? AND owner_user_id=? AND (dispatched_until IS NULL OR dispatched_until<=?)','iis',[$unitId,$attackerId,(string)$mission['finish_at']]);}
-            msw_level_up_user($attackerId,$win?80:25);msw_recalculate_base($attackerId);
-            if((int)($attacker['is_bot']??0)===1)msw_stmt('UPDATE bot_commanders SET fob_attacks=fob_attacks+1,fob_wins=fob_wins+? WHERE user_id=?','ii',[$win?1:0,$attackerId]);
-            $db->commit();$resolved++;
-
-            if((int)($attacker['is_bot']??0)===0){
-                msw_console_event_for_user($attackerId,'FOB','DISPATCH_RESOLVE','Staff FOB invasion against '.(string)$defender['username'].' resolved: '.strtoupper(str_replace('_',' ',$result)).'.',[
-                    'dispatch_id'=>(int)$mission['id'],'raid_id'=>$raidId,'result'=>$result,'materials_transferred'=>(int)array_sum($transfer),
-                ]);
-            }
-            if((int)($defender['is_bot']??0)===0){
-                msw_console_event_for_user($defenderId,'FOB','DEFENSE','A staff invasion from '.(string)$attacker['username'].' reached your FOB: '.strtoupper(str_replace('_',' ',$result)).'.',[
-                    'dispatch_id'=>(int)$mission['id'],'raid_id'=>$raidId,'attacker_id'=>$attackerId,'attacker_is_ai'=>(bool)($attacker['is_bot']??0),'result'=>$result,'materials_transferred'=>(int)array_sum($transfer),
-                ]);
-            }
-        }catch(Throwable $e){$db->rollback();throw $e;}
+        try{if(msw_fob_resolve_staff_dispatch((int)$row['id']))$resolved++;}
+        catch(Throwable $e){error_log('[MSW FOB arrival '.(int)$row['id'].'] '.$e->getMessage());}
     }
     return $resolved;
 }

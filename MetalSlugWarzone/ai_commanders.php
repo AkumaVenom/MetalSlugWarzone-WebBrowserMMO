@@ -1,7 +1,7 @@
 <?php
 declare(strict_types=1);
 require __DIR__.'/includes/ui.php';
-$u=msw_require_user();msw_bot_simulation_pulse(null,2);$summary=msw_bot_population_summary();$maps=msw_map_catalog();$biomes=msw_fob_biome_catalog();
+$u=msw_require_user();$summary=msw_bot_population_summary();$maps=msw_map_catalog();$biomes=msw_fob_biome_catalog();
 $fobDist=[];foreach(msw_all("SELECT w.biome_key,COUNT(*) c,COUNT(DISTINCT w.id) shards FROM bot_commanders b JOIN fob_world_memberships m ON m.user_id=b.user_id JOIN fob_worlds w ON w.id=m.world_id WHERE b.enabled=1 GROUP BY w.biome_key ORDER BY w.biome_key") as $r)$fobDist[(string)$r['biome_key']]=['count'=>(int)$r['c'],'shards'=>(int)$r['shards']];
 $rows=msw_all("SELECT u.id,u.username,u.character_key,u.active_map,u.map_x,u.map_y,u.level,u.base_grade,u.base_power,b.*,m.world_id,m.slot_index,w.biome_key,w.shard_index FROM bot_commanders b JOIN users u ON u.id=b.user_id LEFT JOIN fob_world_memberships m ON m.user_id=u.id LEFT JOIN fob_worlds w ON w.id=m.world_id WHERE b.enabled=1 ORDER BY COALESCE(b.last_action_at,b.created_at) DESC,b.bot_index ASC LIMIT 80");
 $chars=msw_character_catalog();msw_header('AI Commanders','ai_commanders.php');?>

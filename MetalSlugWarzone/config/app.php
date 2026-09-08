@@ -3,7 +3,7 @@ declare(strict_types=1);
 
 return [
     'name' => 'Metal Slug Warzone',
-    'version' => '0.8.4.2',
+    'version' => '0.8.4.6',
     'timezone' => 'Australia/Melbourne',
     'db' => [
         'host' => getenv('MSW_DB_HOST') ?: '127.0.0.1',
@@ -21,6 +21,9 @@ return [
     'fob_attack_cooldown_seconds' => 0,
     'fob_staff_dispatch_seconds' => 120,
     'fob_defender_protection_seconds' => 900,
+    'world_pulse_interval_ms' => 2000,
+    'world_arrival_batch_size' => 4,
+    'world_arrival_time_budget_ms' => 120,
     'bot_population_enabled' => true,
     'bot_population_size' => 1000,
     'bot_presence_limit_per_map' => 240,

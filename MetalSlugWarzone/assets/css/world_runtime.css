@@ -1,0 +1,9 @@
+/* Connection feedback follows the existing command-network presentation. */
+[data-world-connection][data-state="connecting"] i,
+[data-world-connection][data-state="retrying"] i,
+[data-world-connection][data-state="reconnecting"] i{background:#e7b75c;box-shadow:0 0 10px rgba(231,183,92,.45)}
+[data-world-connection][data-state="connecting"] b,
+[data-world-connection][data-state="retrying"] b,
+[data-world-connection][data-state="reconnecting"] b{color:#e7c886}
+[data-world-connection][data-state="expired"] i{background:#ba7771;box-shadow:none;animation:none}
+[data-world-connection][data-state="expired"] b{color:#dba39b}
