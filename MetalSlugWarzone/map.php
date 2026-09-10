@@ -1,6 +1,7 @@
 <?php
 declare(strict_types=1);
 require __DIR__.'/includes/ui.php';
+require_once __DIR__.'/includes/battle_engine.php';
 
 $user=msw_require_user();
 $uid=(int)$user['id'];
@@ -26,6 +27,7 @@ $facing=in_array((string)($user['facing']??'right'),['up','down','left','right']
 msw_presence_touch($uid,$key,$x,$y,$facing);
 $character=msw_character_catalog()[$user['character_key']]??reset(msw_character_catalog());
 $progress=msw_user_progress($user);
+$enemyWindow=msw_enemy_level_window((int)$progress['level'],(int)$map['level']);
 $spriteR=(string)($character['sprite_r']??$character['sprite']);
 $spriteL=(string)($character['sprite_l']??$spriteR);
 $mirrorLeft=!empty($character['mirror_left']);
@@ -75,6 +77,7 @@ msw_header($map['name'],'map_select.php');
                 <button type="button" class="right" data-move="right" aria-label="Move right">▶</button>
             </div>
             <div class="movement-status" data-movement-status>Ready · WASD / Arrow Keys</div>
+            <p>Local enemies: Lv <?=max(1,(int)$progress['level']+(int)$enemyWindow['min_offset'])?>–<?=max(1,(int)$progress['level']+(int)$enemyWindow['max_offset'])?>. Higher threat increases combat pressure.</p>
         </section>
         <section class="map-operative-card">
             <img src="<?=msw_e(msw_url($character['sprite']))?>" alt="">

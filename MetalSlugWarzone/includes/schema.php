@@ -450,6 +450,27 @@ function msw_seed_bot_population(mysqli $db,int $target=1000): void {
         $stmt=$db->prepare('UPDATE bot_commanders SET enabled=1 WHERE bot_index BETWEEN 1 AND ?');$stmt->bind_param('i',$target);$stmt->execute();
         $stmt=$db->prepare('UPDATE users u JOIN bot_commanders b ON b.user_id=u.id SET u.is_bot=1 WHERE b.bot_index BETWEEN 1 AND ?');$stmt->bind_param('i',$target);$stmt->execute();
 
+        // v0.8.5: existing identities must join the expanded world too. Run only
+        // once, in this same transaction, under setup's world-maintenance lock.
+        // A failed repair rolls back both placement and marker; subsequent repairs
+        // preserve patrol positions, careers, staff, reservations and FOB homes.
+        $db->query("INSERT IGNORE INTO schema_meta(meta_key,meta_value) VALUES('warzone_expansion_v085','0')");
+        $expansion=$db->query("SELECT meta_value FROM schema_meta WHERE meta_key='warzone_expansion_v085' FOR UPDATE")->fetch_assoc();
+        if((string)($expansion['meta_value']??'0')!=='1'){
+            $placementRows=$db->query('SELECT b.bot_index,b.user_id FROM bot_commanders b JOIN users u ON u.id=b.user_id WHERE b.bot_index BETWEEN 1 AND '.(int)$target.' ORDER BY b.bot_index FOR UPDATE');
+            $placementStmt=$db->prepare('UPDATE users SET active_map=?,map_x=?,map_y=? WHERE id=? AND is_bot=1');
+            while($placement=$placementRows->fetch_assoc()){
+                $index=(int)$placement['bot_index']-1;$uid=(int)$placement['user_id'];
+                $mapIndex=$index%count($maps);$mapKey=$maps[$mapIndex];$ordinal=intdiv($index,count($maps));
+                $positions=msw_schema_bot_positions($mapKey);
+                $expected=intdiv($target,count($maps))+($mapIndex<($target%count($maps))?1:0);
+                $positionIndex=min(count($positions)-1,(int)floor($ordinal*count($positions)/max(1,$expected)));
+                [$x,$y]=$positions[$positionIndex];
+                $placementStmt->bind_param('siii',$mapKey,$x,$y,$uid);$placementStmt->execute();
+            }
+            $db->query("UPDATE schema_meta SET meta_value='1' WHERE meta_key='warzone_expansion_v085'");
+        }
+
         // Production repair contract: every *individual warzone* must contain
         // a real mixture of the same selectable operative skins available to
         // human players. Earlier global modulo assignment correlated skin slot
@@ -459,15 +480,14 @@ function msw_seed_bot_population(mysqli $db,int $target=1000): void {
         // independently per map. Only users.character_key is changed.
         $charCount=count($chars);
         if($charCount>0){
-            $mapOrder=array_flip($maps);$mapOrdinals=[];
+            $skinOrdinal=0;
             $skinRows=$db->query("SELECT b.bot_index,b.user_id,u.active_map,u.character_key FROM bot_commanders b JOIN users u ON u.id=b.user_id WHERE b.bot_index BETWEEN 1 AND ".(int)$target." ORDER BY u.active_map,b.bot_index");
             $skinStmt=$db->prepare('UPDATE users SET character_key=? WHERE id=? AND is_bot=1');
             while($skinRow=$skinRows->fetch_assoc()){
-                $botIndex=(int)$skinRow['bot_index'];$uid=(int)$skinRow['user_id'];$mapKey=(string)($skinRow['active_map']??'');
-                $mapIndex=isset($mapOrder[$mapKey])?(int)$mapOrder[$mapKey]:(($botIndex-1)%count($maps));
-                $groupKey=isset($mapOrder[$mapKey])?$mapKey:'__fallback_'.$mapIndex;
-                $ordinal=(int)($mapOrdinals[$groupKey]??0);$mapOrdinals[$groupKey]=$ordinal+1;
-                $characterKey=$chars[($ordinal+$mapIndex)%$charCount];
+                $uid=(int)$skinRow['user_id'];
+                // Carry the sequence between sorted map groups. Both each map
+                // and the entire 1,000-person population then have spread <=1.
+                $characterKey=$chars[$skinOrdinal++%$charCount];
                 if((string)$skinRow['character_key']===$characterKey) continue;
                 $skinStmt->bind_param('si',$characterKey,$uid);$skinStmt->execute();
             }

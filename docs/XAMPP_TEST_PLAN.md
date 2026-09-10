@@ -1,3 +1,41 @@
+# v0.8.5.1 — Higher-level enemy acceptance
+
+1. Apply the complete update and use Update / Repair → Confirm Installation.
+2. Finish or retreat from any active fight. Check new-map cards and the deployed
+   map agree on your current enemy range.
+3. At low Commander level, confirm Swamp Encampment enemies start at Lv20,
+   Alpine Radar Station at Lv45, and Lunar Outpost at Lv70. Sample other new maps
+   for the five-level minimum increments. Higher Commanders can push ranges higher.
+4. Capture an eligible enemy and confirm the recovered unit retains its level.
+   Inspect new AI recoveries on low-career commanders to confirm map floors apply.
+5. Existing captures and saved fights must retain their previous values. Verify
+   old-map/boss balance and existing AI progression remain intact.
+
+# v0.8.5 — Expanded warzone host acceptance
+
+1. Back up, copy public_html contents over the existing installation, then run
+   Update / Repair and Confirm Installation. Require 17 maps and 1,000 AI commanders
+   with 58–59 per map and six mixed operative skins. Repeat repair and confirm
+   unchanged earned progress and patrol positions.
+2. Compare your existing accounts, staff, XP, captured units, resources and FOB
+   homes. Resume an existing field/boss encounter and confirm its enemy level and
+   remaining HP are retained.
+3. Deploy into each of the eleven new maps. Confirm native sharpness, full camera
+   coverage, legal spawns, open lanes and blocked solid terrain. Use WASD, arrows
+   and the touch movement pad. Check Warzone Select remains responsive.
+4. Put two accounts in the same new map, then separate maps. Confirm movement and
+   AI presence synchronize only within the selected warzone.
+5. With the same Commander, sample Threat 13,18 and23 encounters. Confirm displayed
+   and actual enemy ranges match, and later maps apply higher combat pressure.
+   Attempt Fulton recovery with eligible personnel and Cargo Fulton for bikers.
+6. Compare AI career and staff records on the new maps over time. Check real XP,
+   levels, field wins/recoveries and training advance; full rosters retain their
+   established caps. Check old maps still progress too.
+7. Require Automatic World: Running automatically. Close browsers for 10–15 minutes
+   while Apache/MySQL stay running, then check AI progression and strategic arrivals.
+   Restart Apache and confirm automatic updates resume. Native Windows registration
+   and visual/gameplay feel require this actual-host check.
+
 # v0.8.4.6 — Access-denied setup acceptance
 
 1. Deploy the complete archive's public_html contents over the existing game.
@@ -223,13 +261,13 @@ This v0.8.4 candidate is an autonomous-competition update built on the accepted 
 
 ## A-1. Threat-aware enemy level progression — RELEASE BLOCKING
 
-1. Use a **Commander Lv5** account in **Threat 12 / Iron Citadel Interior** and create at least 30 new field encounters. Every enemy must be **Lv8–10**; no Lv5/equal contact is valid in this case. Across a larger sample, Lv9–10 should clearly dominate and Lv10 should occur frequently.
-2. Use a **Commander Lv20** account in Threat 12 and sample new encounters. Every enemy must remain within **Lv19–25**, proving the requested −1..+5 mature-player variety.
+1. Use a **Commander Lv 5** account in **Threat 12 / Iron Citadel Interior** and create at least 30 new field encounters. Every enemy must be **Lv8–10**; no Lv 5/equal contact is valid in this case. Across a larger sample, Lv9–10 should clearly dominate and Lv10 should occur frequently.
+2. Use a **Commander Lv 20** account in Threat 12 and sample new encounters. Every enemy must remain within **Lv19–25**, proving the requested −1..+5 mature-player variety.
 3. Compare the same Commander across the map progression. Verify the legal upper level offset rises coherently: Threat 1 → +0, Threat 3 → +1, Threat 5 → +2, Threat 7 → +3, Threat 9 → +4, Threat 12 → +5.
 4. Confirm lower-threat maps still produce below-player contacts and do not inherit the Threat 12 ceiling/bias. The difficulty source must be the selected warzone, not simply Commander levelling.
-5. For Commander Lv5 / Threat 12, the exhaustive server mapping is +3 ≈19%, +4 ≈33%, +5 ≈48%. For Commander Lv20 / Threat 12, confirm the complete −1..+5 window can occur while upper offsets are more common than lower offsets.
+5. For Commander Lv 5 / Threat 12, the exhaustive server mapping is +3 ≈19%, +4 ≈33%, +5 ≈48%. For Commander Lv 20 / Threat 12, confirm the complete −1..+5 window can occur while upper offsets are more common than lower offsets.
 6. Compare the same enemy type and same rolled level at Threat 1 versus Threat 12 using Intel display/debug inspection. Threat 12 must have higher HP, ATK, DEF and SPD.
-7. Verify representative Threat 12 Shield Troopers around Commander Lv5 retain the Lv8–10 legal range and, because Lv5 is far below the Threat 12 readiness benchmark, land around **220–230 HP / 44–47 ATK / 42–43 DEF / 9–10 SPD** under v0.7.5.
+7. Verify representative Threat 12 Shield Troopers around Commander Lv 5 retain the Lv8–10 legal range and, because Lv 5 is far below the Threat 12 readiness benchmark, land around **220–230 HP / 44–47 ATK / 42–43 DEF / 9–10 SPD** under v0.7.5.
 8. Keep an active v0.7.3/v0.7.4 encounter, deploy v0.7.5, and load that battle. Confirm it retains the already-rolled committed enemy level, recalculates stats through v5 while retaining prior HP percentage, and never rerolls/heals on refresh. Also verify an older pre-v0.7.3 state receives one deterministic legal-window level migration before v5.
 9. Confirm new encounter state records `warzone_player_threat_window_v5`, `level_roll`, `min_offset`, `max_offset`, final `enemy_level_offset`, readiness benchmark and underlevel multiplier metadata.
 10. Confirm bosses remain dangerous but use their separate tighter level window rather than the normal +5 warzone window.
@@ -263,7 +301,7 @@ This v0.8.4 candidate is an autonomous-competition update built on the accepted 
 
 1. Repeat the A-1 matrix at Commander levels 1, 5, 10, 15, 20 and 30. Every result must remain inside the server-reported min/max offset for that player/threat pair.
 2. Confirm average/median enemy offset rises as threat increases for a fixed Commander level.
-3. Confirm higher Commander level widens the lower side of dangerous-map windows rather than raising the +5 cap further; at Lv20+ Threat 12 must remain −1..+5.
+3. Confirm higher Commander level widens the lower side of dangerous-map windows rather than raising the +5 cap further; at Lv 20+ Threat 12 must remain −1..+5.
 4. Confirm normal Threat 12 enemies are meaningfully more durable/dangerous than low-threat equivalents but remain beatable by appropriately progressed Commanders using sensible attacks, Mother Base development, Security support and medical gear.
 5. Confirm lower maps remain practical for recovery/progression and do not become globally harder simply because the Commander gained levels.
 6. Confirm the stored encounter roll/window prevents refresh-based fishing for a weaker enemy after combat begins.

@@ -51,9 +51,11 @@ $resultLabel=msw_dispatch_status_label((string)$run['result']);
 <p>Team Power: <b><?=number_format((int)$run['snapshot_power'])?></b></p>
 <p>Mission Chance: <b><?=number_format((float)$run['success_chance']*100,1)?>%</b></p>
 <p>Status: <span class="badge"><?=msw_e($resultLabel)?></span></p>
+<?php $reportMap=msw_map_catalog()[(string)($definition['map_key']??'')]??null;if($reportMap):?><p>Warzone: <b><?=msw_e($reportMap['name'])?></b> · Threat <?=intval($reportMap['level'])?></p><?php endif;?>
 <p class="muted-copy">Started <?=msw_e((string)$run['started_at'])?> · Resolved <?=msw_e((string)($run['resolved_at']??'--'))?></p>
 <?php msw_panel_end(); ?>
 <?php msw_panel('Mission Rewards','AFTER ACTION'); ?>
+<p>Staff XP: <b>+<?=number_format(msw_dispatch_staff_xp($definition,(string)$run['result']==='success'))?></b> per assigned unit.</p>
 <?php if($reward):?><table><tbody><?php foreach($reward as $key=>$amount):?><tr><td><?=msw_e(ucwords(str_replace('_',' ',(string)$key)))?></td><td>+<?=number_format((int)$amount)?></td></tr><?php endforeach;?></tbody></table><?php else:?><div class="empty">No rewards were earned on this mission.</div><?php endif;?>
 <?php msw_panel_end(); ?>
 </div>

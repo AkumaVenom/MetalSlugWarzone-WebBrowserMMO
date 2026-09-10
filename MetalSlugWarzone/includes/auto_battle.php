@@ -114,11 +114,13 @@ function msw_auto_battle_fob_force(array $snapshot,string $name,bool $defense): 
 function msw_auto_battle_dispatch_opposition(array $definition,int $slots): array {
     $difficulty=max(1,(int)($definition['difficulty']??50));
     $keys=['rifle','bazooka','minigun','biker'];
+    $map=msw_map_catalog()[(string)($definition['map_key']??'')]??null;
+    if($map)$keys=array_values($map['encounters']);
     $out=[];$count=max(2,min(4,$slots));
     for($i=0;$i<$count;$i++){
-        $key=$keys[min(count($keys)-1,(int)floor(($difficulty/120)+$i/2))];
+        $key=$map?$keys[$i%count($keys)]:$keys[min(count($keys)-1,(int)floor(($difficulty/120)+$i/2))];
         $meta=msw_enemy_catalog()[$key]??msw_enemy_catalog()['rifle'];
-        $level=max(1,(int)ceil($difficulty/55)+$i);
+        $level=$map?msw_warzone_enemy_level_floor((int)$map['level'])+$i:max(1,(int)ceil($difficulty/55)+$i);
         $combat=max(15,(int)round($difficulty/$count)+($i*3));
         $out[]=[
             'id'=>900000+$i,

@@ -1,6 +1,16 @@
 <?php
 declare(strict_types=1);
 
+/** Shared launch odds; clients only preview this server-authoritative value. */
+function msw_dispatch_success_chance(int $power,int $difficulty): float {
+    return max(.18,min(.95,.45+(($power-$difficulty)/600)));
+}
+
+/** Legacy assignments retain their original staff XP, including pending runs. */
+function msw_dispatch_staff_xp(array $definition,bool $success): int {
+    return max(0,(int)($definition[$success?'staff_xp_success':'staff_xp_failure']??($success?80:25)));
+}
+
 /**
  * Resolve completed standard Combat Unit Dispatch missions from authoritative
  * MySQL timestamps. FOB staff strikes share units.dispatched_until, so both
@@ -35,7 +45,7 @@ function msw_dispatch_resolve_due_for_user(int $uid,int $limit=20,?bool $botMode
             $ids=array_values(array_unique(array_filter(array_map('intval',json_decode((string)$mission['unit_ids_json'],true)?:[]),fn($id)=>$id>0)));sort($ids,SORT_NUMERIC);
             $oldFinish=(string)$mission['finish_at'];
             foreach($ids as $unitId){
-                msw_add_unit_xp($uid,$unitId,$success?80:25);
+                msw_add_unit_xp($uid,$unitId,msw_dispatch_staff_xp($definition??[],$success));
                 msw_stmt('UPDATE units SET dispatched_until=NULL WHERE id=? AND owner_user_id=? AND (dispatched_until IS NULL OR dispatched_until<=?)','iis',[$unitId,$uid,$oldFinish]);
             }
             msw_grant_resources($uid,$reward);

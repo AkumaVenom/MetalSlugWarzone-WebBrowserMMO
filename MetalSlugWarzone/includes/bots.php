@@ -263,10 +263,16 @@ function msw_bot_try_capture(int $uid,string $enemyKey,int $enemyLevel): bool {
     return true;
 }
 
+function msw_bot_field_enemy_level(string $mapKey): int {
+    $threat=(int)(msw_map_catalog()[$mapKey]['level']??1);
+    if($threat>12)return msw_warzone_enemy_level_floor($threat)+random_int(0,3);
+    return max(1,$threat+random_int(-1,2));
+}
+
 function msw_bot_field_action(int $uid,array $user): void {
     $mapKey=(string)($user['active_map']??'');$map=msw_map_catalog()[$mapKey]??null;if(!$map)return;
     $enemyKey=msw_random_enemy_for_map($mapKey);$enemy=msw_enemy_catalog()[$enemyKey]??null;if(!$enemy)return;
-    $enemyLevel=max(1,(int)$map['level']+random_int(-1,2));$level=max(1,(int)$user['level']);
+    $enemyLevel=msw_bot_field_enemy_level($mapKey);$level=max(1,(int)$user['level']);
     $winChance=max(45,min(95,76+($level*2)-((int)$map['level']*3)));
     $won=random_int(1,100)<=$winChance;
     msw_stmt('UPDATE bot_commanders SET field_battles=field_battles+1,last_enemy_key=? WHERE user_id=?','si',[$enemyKey,$uid]);
@@ -304,17 +310,28 @@ function msw_bot_dispatch_action(int $uid): void {
 
     $catalog=msw_dispatch_catalog();$availableCount=msw_one("SELECT COUNT(*) c FROM units WHERE owner_user_id=? AND (dispatched_until IS NULL OR dispatched_until<=NOW())",'i',[$uid]);
     $count=(int)($availableCount['c']??0);if($count<2)return;
-    $eligible=[];foreach($catalog as $key=>$definition)if((int)$definition['slots']<=$count)$eligible[$key]=$definition;
+    // Expansion assignments require a squad that can meet their power benchmark.
+    // Original assignments keep their existing eligibility and selection behavior.
+    $strongest=msw_all("SELECT combat,level FROM units WHERE owner_user_id=? AND (dispatched_until IS NULL OR dispatched_until<=NOW()) ORDER BY (combat+3*level) DESC,combat DESC,level DESC,id ASC LIMIT 4",'i',[$uid]);
+    $eligible=[];
+    foreach($catalog as $key=>$definition){
+        $slots=(int)$definition['slots'];if($slots>$count)continue;
+        $power=array_sum(array_map(fn($r)=>(int)$r['combat']+3*(int)$r['level'],array_slice($strongest,0,$slots)));
+        if(isset($definition['map_key'])&&$power<(int)$definition['difficulty'])continue;
+        $eligible[$key]=$definition;
+    }
     if(!$eligible)return;
     $keys=array_keys($eligible);$key=(string)$keys[array_rand($keys)];$definition=$eligible[$key];$slots=(int)$definition['slots'];
 
     $db=msw_db();$db->begin_transaction();
     try{
-        $units=msw_all("SELECT id,combat,level,dispatched_until FROM units WHERE owner_user_id=? AND (dispatched_until IS NULL OR dispatched_until<=NOW()) ORDER BY combat DESC,level DESC,id ASC LIMIT {$slots} FOR UPDATE",'i',[$uid]);
+        $order=isset($definition['map_key'])?'(combat+3*level) DESC,combat DESC,level DESC,id ASC':'combat DESC,level DESC,id ASC';
+        $units=msw_all("SELECT id,combat,level,dispatched_until FROM units WHERE owner_user_id=? AND (dispatched_until IS NULL OR dispatched_until<=NOW()) ORDER BY {$order} LIMIT {$slots} FOR UPDATE",'i',[$uid]);
         if(count($units)!==$slots){$db->rollback();return;}
         $ids=array_map(fn($r)=>(int)$r['id'],$units);
         $power=array_sum(array_map(fn($r)=>(int)$r['combat']+((int)$r['level']*3),$units));
-        $chance=max(.18,min(.95,.45+(($power-(int)$definition['difficulty'])/600)));
+        if(isset($definition['map_key'])&&$power<(int)$definition['difficulty']){$db->rollback();return;}
+        $chance=msw_dispatch_success_chance($power,(int)$definition['difficulty']);
         $finish=date('Y-m-d H:i:s',time()+(int)$definition['duration']);
         msw_stmt('INSERT INTO dispatch_missions(user_id,mission_key,unit_ids_json,snapshot_power,success_chance,started_at,finish_at) VALUES(?,?,?,?,?,NOW(),?)','issids',[$uid,$key,json_encode($ids),$power,$chance,$finish]);
         foreach($ids as $unitId)msw_stmt('UPDATE units SET dispatched_until=? WHERE id=? AND owner_user_id=?','sii',[$finish,$unitId,$uid]);
@@ -394,6 +411,14 @@ function msw_bot_train_staff(int $uid,array $profile,int $intensity=1): int {
     return $trained;
 }
 
+function msw_bot_local_recruit_level(string $mapKey,int $careerLevel): int {
+    $threat=(int)(msw_map_catalog()[$mapKey]['level']??1);
+    // Original-map career recruitment stays unchanged. Expansion recovery uses
+    // the same local contact levels as field actions before the existing career
+    // boost and Lv99 staff ceiling are applied by msw_bot_create_recruit().
+    return $threat>12?max(1,$careerLevel,msw_bot_field_enemy_level($mapKey)):max(1,$careerLevel);
+}
+
 function msw_bot_development_action(int $uid,array $user,?array $bot=null): void {
     $bot=$bot??msw_bot_row($uid);if(!$bot)return;$profile=msw_bot_competitive_profile((int)$bot['bot_index'],(string)$bot['personality']);
     $target=msw_bot_target_power($user,$bot);$power=max(0,(int)$user['base_power']);$ratio=$target>0?$power/$target:1.0;
@@ -421,7 +446,7 @@ function msw_bot_development_action(int $uid,array $user,?array $bot=null): void
     $created=0;$vehicles=0;$keys=msw_bot_recruitable_enemy_keys((string)($user['active_map']??''));
     for($i=0;$i<$batch&&$keys;$i++){
         $enemyKey=(string)$keys[array_rand($keys)];$enemy=msw_enemy_catalog()[$enemyKey]??null;
-        if(msw_bot_create_recruit($uid,$enemyKey,max(1,(int)$user['level']),true)!==null){$created++;if(($enemy['class']??'')==='vehicle')$vehicles++;}
+        if(msw_bot_create_recruit($uid,$enemyKey,msw_bot_local_recruit_level((string)($user['active_map']??''),(int)$user['level']),true)!==null){$created++;if(($enemy['class']??'')==='vehicle')$vehicles++;}
     }
     if($created>0)msw_stmt('UPDATE bot_commanders SET field_battles=field_battles+?,field_wins=field_wins+?,recoveries=recoveries+?,vehicle_recoveries=vehicle_recoveries+? WHERE user_id=?','iiiii',[$created,$created,$created,$vehicles,$uid]);
     $trainIntensity=$ratio<0.70?3:($ratio<1.0?2:1);if((string)$profile['tier']==='elite')$trainIntensity++;if((string)$profile['tier']==='apex')$trainIntensity+=2;
@@ -466,7 +491,7 @@ function msw_bot_catch_up(int $uid,array $user,array $bot,int $extraOps): void {
         $desired=1;$keys=msw_bot_recruitable_enemy_keys((string)($user['active_map']??''));
         for($i=0;$i<$desired&&$keys;$i++){
             $enemyKey=(string)$keys[array_rand($keys)];$enemy=msw_enemy_catalog()[$enemyKey]??null;
-            if(msw_bot_create_recruit($uid,$enemyKey,max((int)$user['level'],(int)($fresh['level']??1)),true)!==null){$created++;if(($enemy['class']??'')==='vehicle')$vehicles++;}
+            if(msw_bot_create_recruit($uid,$enemyKey,msw_bot_local_recruit_level((string)($user['active_map']??''),max((int)$user['level'],(int)($fresh['level']??1))),true)!==null){$created++;if(($enemy['class']??'')==='vehicle')$vehicles++;}
         }
         if($created>0)msw_stmt('UPDATE bot_commanders SET recoveries=recoveries+?,vehicle_recoveries=vehicle_recoveries+? WHERE user_id=?','iii',[$created,$vehicles,$uid]);
     }

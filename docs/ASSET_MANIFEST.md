@@ -1,3 +1,28 @@
+# Runtime Asset Manifest — v0.8.5
+
+## v0.8.5 expansion delta
+
+All 67 baseline runtime images are retained byte-for-byte. All 11 files from
+`v4maps.zip` are copied byte-for-byte to the named paths below. Every new map is
+1672×941 native. Small previews for all 17 warzones live in
+`assets/maps/thumbnails/<map_key>.jpg`; only previews are resized/recompressed.
+
+| Uploaded filename | Runtime path | Threat |
+| --- | --- | ---: |
+| `ChatGPT Image Sep 8, 2026, 07_10_00 PM (4).png` | `assets/maps/swamp_encampment.png` | 13 |
+| `ChatGPT Image Sep 8, 2026, 07_10_00 PM (5).png` | `assets/maps/abandoned_carnival.png` | 14 |
+| `ChatGPT Image Sep 8, 2026, 07_10_00 PM (3).png` | `assets/maps/neon_district.png` | 15 |
+| `ChatGPT Image Sep 8, 2026, 07_10_01 PM (10).png` | `assets/maps/scrapyard_depot.png` | 16 |
+| `ChatGPT Image Sep 8, 2026, 07_10_00 PM (6).png` | `assets/maps/canyon_missile_base.png` | 17 |
+| `ChatGPT Image Sep 8, 2026, 07_10_00 PM (7).png` | `assets/maps/alpine_radar.png` | 18 |
+| `ChatGPT Image Sep 8, 2026, 07_10_01 PM (8).png` | `assets/maps/offshore_platform.png` | 19 |
+| `ChatGPT Image Sep 8, 2026, 07_10_01 PM (9).png` | `assets/maps/subterranean_terminus.png` | 20 |
+| `ChatGPT Image Sep 8, 2026, 07_10_00 PM (2).png` | `assets/maps/volcanic_forge.png` | 21 |
+| `ChatGPT Image Sep 8, 2026, 07_10_02 PM (11).png` | `assets/maps/containment_laboratory.png` | 22 |
+| `ChatGPT Image Sep 8, 2026, 07_10_02 PM (12).png` | `assets/maps/lunar_outpost.png` | 23 |
+
+## Historical asset documentation
+
 # Runtime Asset Manifest — v0.6.0
 
 The XAMPP package is runtime-only. It contains no `source_assets/` tree and no nested development/source ZIP archives.

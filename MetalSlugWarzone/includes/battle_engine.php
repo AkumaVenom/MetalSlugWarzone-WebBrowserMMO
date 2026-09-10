@@ -137,6 +137,12 @@ function msw_battle_threat_level(string $context,string $contextKey,?array $defi
  * the warzone's readiness benchmark; Mother Base growth remains the player's direct way
  * to overcome the same enemy at a lower personal level through higher HP/ATK/DEF/SPD.
  */
+// Bounded continuation of the accepted Threat 1..12 balance. Keeping this
+// separate avoids diluting the original curve when the world gains new maps.
+function msw_warzone_expansion_steps(int $threat): int {
+    return max(0,min(11,$threat-12));
+}
+
 function msw_warzone_readiness_pressure(int $playerLevel,int $threat,string $context='field'): array {
     $playerLevel=max(1,$playerLevel);
     $threatCap=min(12,max(1,$threat));
@@ -154,6 +160,8 @@ function msw_warzone_readiness_pressure(int $playerLevel,int $threat,string $con
     $recommended=match($threatCap){
         1=>1,2=>2,3=>3,4=>5,5=>6,6=>7,7=>9,8=>10,9=>12,10=>13,11=>15,default=>16,
     };
+    $recommended+=2*msw_warzone_expansion_steps($threat);
+    $recommended=max($recommended,msw_warzone_enemy_level_floor($threat));
     $gap=$threatCap>=4?max(0,$recommended-$playerLevel):0;
 
     return [
@@ -198,6 +206,10 @@ function msw_enemy_level_window(int $playerLevel,int $threat,string $context='fi
         $threatCap<=9=>4,
         default=>5,
     };
+    // Stronger expansion contacts: +10 at Threat13, rising by two per map to
+    // +30 at Threat23. Original maps retain their accepted level window.
+    $extra=msw_warzone_expansion_steps($threat);
+    if($extra>0)$maxOffset=8+2*$extra;
 
     // As the Commander matures the window deliberately widens downward to preserve
     // encounter variety. This gives the requested Threat 12 behavior:
@@ -211,6 +223,12 @@ function msw_enemy_level_window(int $playerLevel,int $threat,string $context='fi
         default=>6,
     };
     $minOffset=max(-3,$maxOffset-$spread);
+    if($extra>0){
+        // Shift the entire window when the map's minimum exceeds relative
+        // scaling. Preserve variety instead of clamping all rolls to one level.
+        $minOffset=max($minOffset,msw_warzone_enemy_level_floor($threat)-$playerLevel);
+        $maxOffset=$minOffset+$spread;
+    }
     return ['min_offset'=>$minOffset,'max_offset'=>$maxOffset];
 }
 
@@ -301,6 +319,10 @@ function msw_enemy_scaled_stats(array $enemy,int $enemyLevel,int $threat,string 
             'defense'=>0.96+(0.26*$threatPressure),
             'speed'=>0.98+(0.10*$threatPressure),
         ];
+        $extra=msw_warzone_expansion_steps($threat);
+        foreach(['hp'=>0.060,'attack'=>0.050,'defense'=>0.025,'speed'=>0.007] as $stat=>$rate){
+            $threatFactors[$stat]+=$extra*$rate;
+        }
     }
 
     $pressure=$boss?msw_warzone_readiness_pressure($playerLevel,$threat,'boss'):msw_warzone_readiness_pressure($playerLevel,$threat,$context);
@@ -557,9 +579,13 @@ function msw_enemy_counter_profile(array $state): array {
     // separate difficulty curve. Threat never creates a player attack-accuracy penalty.
     $isBoss=(string)($state['enemy']['class']??'')==='boss';
     $threatAccuracyBonus=$isBoss?0:(int)round(4*$threatPressure);
+    if(!$isBoss)$threatAccuracyBonus+=(int)round(2*msw_warzone_expansion_steps($threat)/11);
     $playerLevel=max(1,(int)($state['player']['level']??$state['scaling']['player_level']??1));
     $readiness=msw_warzone_readiness_pressure($playerLevel,$threat,$isBoss?'boss':(string)($state['context']??'field'));
-    $underlevelAccuracyBonus=$isBoss?0:(int)($readiness['counter_accuracy_bonus']??0);
+    // Existing encounters retain the readiness gap committed with their stats.
+    // A balance update must not silently change counters mid-battle.
+    $committedGap=max(0,(int)($state['scaling']['underlevel_gap']??$readiness['underlevel_gap']??0));
+    $underlevelAccuracyBonus=$isBoss||$threat<5?0:min(6,(int)ceil($committedGap*0.55));
     $baseAccuracy=min(99,88+$threatAccuracyBonus+$underlevelAccuracyBonus);
     return [
         'base_accuracy'=>$baseAccuracy,
@@ -586,7 +612,9 @@ function msw_enemy_counter_power(array $state): int {
     // Enemy ATK is still consumed exactly once by msw_damage(); this does not restore
     // the old ATK×ATK escalation bug.
     $threatBonus=(int)round(($class==='boss'?7:8)*pow($progress,1.10));
-    return min($class==='boss'?31:27,$base+$threatBonus);
+    $extra=$class==='boss'?0:msw_warzone_expansion_steps($threat);
+    $threatBonus+=(int)round(4*$extra/11);
+    return min($class==='boss'||$extra>0?31:27,$base+$threatBonus);
 }
 
 function msw_enemy_turn(array &$state): void {
@@ -701,7 +729,7 @@ function msw_finalize_battle(int $uid,int $encounterId,array &$state): void {
             $xp=650;
         }elseif(in_array($context,['mission','sidequest','trainer'],true)){
             $reward=$definition['reward']??['gmp'=>500,'common_metal'=>100];
-            $xp=$context==='trainer'?220:($context==='sidequest'?120:180);
+            $xp=$context==='trainer'?220:($context==='sidequest'?120:max(0,(int)($definition['commander_xp']??180)));
         }else{
             $reward=['gmp'=>350,'common_metal'=>90,'fuel'=>55];
             $xp=75;

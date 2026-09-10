@@ -1,4 +1,26 @@
-# Architecture — Metal Slug Warzone v0.8.4.5
+# Architecture — Metal Slug Warzone v0.8.5.1
+
+## v0.8.5.1 enemy-level correction
+
+`catalog.php::msw_warzone_enemy_level_floor()` supplies the shared Threat 13–23
+minimums (Lv20–70) to battle generation and all autonomous recovery paths. Keeping
+this helper in the common catalog supports offline bot execution without loading
+the battle UI. `msw_enemy_level_window()` shifts the full relative window above
+the floor and preserves its maturity spread. Both map readouts consume this same
+function. `msw_enemy_counter_profile()` uses the committed `underlevel_gap` when
+available, with the existing calculation as fallback for older snapshots.
+No schema migration, unit rewrite or AI redistribution is added.
+
+## v0.8.5 expanded map catalog
+
+The map and collision catalogs are the single source of truth for all 17 warzones.
+Battle threat, runtime movement, human presence, autonomous enemy pools and setup
+placement consume these catalogs. Above Threat 12, a bounded continuation extends
+normal combat; no old balance denominator or committed encounter is changed.
+`msw_seed_bot_population()` performs one-time transactional placement tracked by
+`warzone_expansion_v085`, while setup retains its shared world-maintenance lock.
+The existing schema revision 9 and global scheduler remain unchanged.
+See [WARZONE_EXPANSION.md](WARZONE_EXPANSION.md) for formulas and preservation rules.
 
 ## Current autonomous world runtime
 
@@ -146,7 +168,7 @@ The personal-level curve is also slightly stronger in v0.7.1 (HP +3.8/level step
 
 - Lv1: standard Fulton manufacturing/recovery.
 - Lv4: Fulton+.
-- Lv5: Cargo Fulton, including ground-vehicle recovery.
+- Lv 5: Cargo Fulton, including ground-vehicle recovery.
 - Lv8: Wormhole Fulton, including aircraft recovery.
 
 `msw_fulton_catalog()` controls battle capability and `msw_rd_catalog()` controls manufacturing. Both are checked server-side.
@@ -213,7 +235,7 @@ Encounter model marker `warzone_player_threat_window_v4` distinguishes the calib
 
 ## Threat-aware player-relative enemy scaling (v0.7.3)
 
-PvE encounter creation deliberately separates **enemy level selection** from **threat stat pressure**, but v0.7.3 makes threat authoritative in both stages rather than using one universal level window. `msw_enemy_level_window()` first derives the legal level offset range from current Commander level and threat. Normal-map ceilings progress from +0 at Threat 1 through +1/+2/+3/+4 and finally +5 at Threat 10–12. Commander maturity then widens the lower side of the range: Lv1–5 use a two-level spread, Lv6–9 three, Lv10–14 four, Lv15–19 five and Lv20+ six, with a normal floor of −3. This produces **Commander Lv5 / Threat 12 = +3..+5 (enemy Lv8–10)** and **Commander Lv20 / Threat 12 = −1..+5 (enemy Lv19–25)**. Bosses use a separate tighter window because their authored catalog values are already exceptional.
+PvE encounter creation deliberately separates **enemy level selection** from **threat stat pressure**, but v0.7.3 makes threat authoritative in both stages rather than using one universal level window. `msw_enemy_level_window()` first derives the legal level offset range from current Commander level and threat. Normal-map ceilings progress from +0 at Threat 1 through +1/+2/+3/+4 and finally +5 at Threat 10–12. Commander maturity then widens the lower side of the range: Lv1–5 use a two-level spread, Lv6–9 three, Lv10–14 four, Lv15–19 five and Lv 20+ six, with a normal floor of −3. This produces **Commander Lv 5 / Threat 12 = +3..+5 (enemy Lv8–10)** and **Commander Lv 20 / Threat 12 = −1..+5 (enemy Lv19–25)**. Bosses use a separate tighter window because their authored catalog values are already exceptional.
 
 `msw_enemy_level_offset_for_roll()` applies a threat-driven weight blend across that legal window. Low threat favors the lower offsets; increasing threat shifts probability toward the upper offsets without removing range variety. The 1–100 mapping is deterministic for a supplied roll. `msw_roll_enemy_level()` persists the selected roll, final offset and min/max offsets in encounter state under `warzone_player_threat_window_v3`, so an established battle never rerolls from a browser refresh.
 

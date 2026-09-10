@@ -1,3 +1,179 @@
+# v0.8.6.1 — Dispatch restoration validation
+
+The corrected presentation was tested using PHP8.3.6/MariaDB10.11.14 in an isolated
+HTTP installation with a disposable database. No installed game database was used.
+
+- **160 HTTP assertions** pass: all15 player missions launch correctly, with
+  appropriate threat/levels and real victory settlement; all15 mission cards are
+  text-only and contain no staff-dispatch controls; the staff catalog cannot be
+  launched as player combat.
+- The original **Available Dispatches** section,15 independent mission forms,
+  each form's staff controls, required slots, name/difficulty, original4 ordering,
+  eleven added rewards and original **Dispatch History** table are verified.
+- There is no assignment dropdown, review step, mission image block, or load of the
+  rejected operations layout. Obsolete selector URLs cannot hide missions.
+- Staff launch, ownership, exact staff counts, malformed IDs, CSRF, forged odds,
+  reservations, timers, duplicate-payout protection, staff XP and all14 pending
+  records remain correct in the restored routes.
+- **134 control assertions** run the actual unchanged `msw.js` with15 forms:
+  original2/3/4 staff counts, new four-staff teams, submit enablement, slot limits,
+  deselection and isolation between each card's selections.
+- Shared UI, coreCSS/JS, every accepted image/map asset, schema, setup and background
+  runtime match v0.8.5.1 byte-for-byte. Combat, catalog, dispatch authority, AI,
+  playback and result code match tested v0.8.6 byte-for-byte. Its7,930 DB/catalog
+  assertions and combat differential below are historical retained evidence,
+  not a claim that those unchanged systems were rerun for this layout correction.
+- All **74 PHP files**, Python scripts and shipped browser JavaScript parse.
+- Complete and small-update ZIPs use plain STORE records, DOS-compatible attributes,
+  no ZIP64/encryption/extensions. Both are fully extracted with Info-ZIP and each
+  extracted file is compared byte-for-byte. Applying the update to either accepted
+  v0.8.5.1 or v0.8.6 produces the same complete corrected web root.
+
+Current reports: `tests/operations_http_0861_results.json` and
+`tests/operations_ui_0861_results.json`. Run the matching scripts described below.
+No browser screenshot or native Windows/XAMPP startup test was performed; actual
+host display/gameplay acceptance remains with the installed game. Earlier sections
+are retained release records and describe superseded layouts where stated.
+
+# v0.8.6 — Expanded Tactical Operations validation
+
+Executed against the delivered v0.8.5.1 baseline using **PHP 8.3.6 / MariaDB
+10.11.14**, isolated disposable databases and actual HTTP routes. No installed
+player database was accessed.
+
+- **7,930 database/catalog assertions:** exact original four mission/dispatch
+  definitions and old replay payloads; complete eleven-map coverage; 6,600 mission
+  versus field level rolls; all 15 mission victories; all 30 dispatch success and
+  failure paths; rewards, Commander/staff XP, clears, healing and unit returns.
+- Due-only settlement, repeated payout prevention, owner isolation, newer staff
+  reservation protection, and deterministic replay without gameplay writes pass.
+- **88 real AI launches:** 24 underpowered squads choose only core assignments;
+  the mixed roster exercise observed 51 expansion assignments using four Lv70
+  veterans at power1,232, plus 13 core assignments preserving Combat-first ordering.
+  Persisted odds, required slots and staff reservations were checked in every case.
+- **170 HTTP checks:** real signup/login, all 15 mission launches and dispatch
+  reviews, high-tier level floors and location labels, a real final-hit victory,
+  duplicate battle-order protection, CSRF rejection, invalid/foreign/duplicate staff,
+  server rejection of forged power/odds, pending timer and replay ownership, 420 XP
+  per returned orbital staff, repeat replay protection, and all 14 pending runs
+  visible alongside a completed report. Four-decimal persisted odds are respected.
+- **13 dispatch preview checks:** selection/deselection, complete-team odds, lower
+  and upper caps, original two-staff assignments and an empty roster.
+- **Combat differential:** 200,200 roll/stat/counter samples per tree across 2,002
+  scenarios, zero legacy differences; 2,256 committed v5 states preserved and
+  472,432 expansion progression assertions pass.
+- All **74 PHP files**, **6 Python scripts** and **4 shipped browser JavaScript
+  files** parse. All previously shipped images, previews, core CSS/JS, map layouts,
+  schema, setup and background runtime files are byte-identical to v0.8.5.1.
+
+Reports and reproducible scripts are under `tests/`. Run the database suite with
+`php tests/operations_regression.php /absolute/current/package /absolute/v0851/package`.
+Connection settings are `MSW_TEST_DB_HOST`, `MSW_TEST_DB_PORT`, `MSW_TEST_DB_USER`
+and `MSW_TEST_DB_PASSWORD`; only a freshly generated test database is created/dropped.
+Run HTTP checks with `python tests/operations_http_regression.py --php /path/to/php
+--db-port 3306` on one line. Run `node tests/operations_ui_regression.js` for preview
+logic. HTTP tests copy the web root to a temporary directory and disable autonomous
+world activity only in that temporary test copy.
+
+No browser screenshot/visual approval or native Windows/XAMPP startup test was
+performed for this release. Responsive CSS was reviewed; actual display, gameplay
+feel and native host startup remain host acceptance items. Historical validation
+below describes earlier releases and is not a claim that every old gate was rerun.
+
+# v0.8.5.1 — Higher enemy level validation
+
+Executed on **PHP 8.3.6 / MariaDB 10.11.14**, against the delivered v0.8.5 source
+and disposable databases. No existing player database was accessed.
+
+- **359,088 dedicated level-floor assertions:** all eleven minimums (Lv20–70),
+  maturity boundaries, readiness, stronger same-roll encounters, higher derived
+  stats and low-career AI contact/recruitment helpers. This includes **25,344
+  committed expansion encounters**, each retaining its state and counter behavior.
+- **Legacy combat differential:** 200,200 samples per tree across 2,002 scenarios,
+  with zero changes to Threat1–12/boss behavior. A further 2,256 committed fixtures
+  and the existing 472,432 expansion checks pass.
+- **175 real database checks:** saved progress, upgrade/idempotence, map population,
+  encounters and recoveries. Each new map explicitly exercises field, development
+  and catch-up recovery with a Lv1 AI commander, preventing career level from
+  masking a missing map minimum.
+- **202 HTTP checks:** real signup, map cards/readouts, deployment, movement,
+  local player/AI presence and security checks. New-map ranges displayed for
+  Lv1 Commanders exactly match the minimum-based encounter window.
+- **12 background-engine checks plus 20 HTTP checks:** unattended XP/captures,
+  arrivals, duplicate protection and restart recovery through the existing engine.
+- All **73 PHP files** and all Python scripts parse. Native image files, map
+  layouts, schema and deployment marker are unchanged from v0.8.5.
+
+The HTTP movement harness now respects the server's retry interval. The existing
+background HTTP harness also recognizes a legitimate protected withdrawal without
+inventing a replay URL. These changes affect tests only, not production behavior.
+
+Reports are included under `tests/`: `level_floor_results.json`,
+`combat_0851_results.json`, `database_0851_results.json`,
+`map_http_0851_results.json`, and `background_0851_results.json`.
+Run `php tests/level_floor_regression.php /path/to/v0.8.5/MetalSlugWarzone_Package
+/path/to/current/MetalSlugWarzone_Package` on one line for the dedicated comparison.
+
+New levels apply to new encounters. Saved v5 fights retain their committed values;
+finish or retreat from an old encounter when validating the stronger new enemies.
+Windows native startup and actual gameplay feel remain host acceptance items.
+The records below are historical v0.8.5 and earlier validation.
+
+# v0.8.5 — Expanded warzone validation
+
+Executed on **PHP 8.3.6 / MariaDB 10.11.14**, using isolated disposable databases
+and temporary HTTP deployments. No existing player world was accessed.
+
+| Area | Executed result |
+| --- | --- |
+| Legacy combat compatibility | 2,002 scenarios / 200,200 roll-stat-counter samples per tree, zero differences against v0.8.4.6 |
+| Committed encounters | 2,256 v5 fixtures unchanged after two synchronization passes each |
+| Threat 13–23 progression | 472,432 checks: increasing levels and pressure, readiness, counter bounds, Intel/SPD, threat caps |
+| Native maps and geometry | All 17 image sizes/previews valid; all 11 new maps connected on the exact 18px player lattice; all available AI seed positions movable |
+| Database expansion | 142 checks, including a failed-migration rollback, all 1,000 identities, 58–59 distribution, local/global skin balance, progress preservation and idempotent repair |
+| Per-map progression | Each new map passed persisted movement/presence/encounters and real AI field captures, Commander level-up, development/catch-up XP and local recoveries |
+| Map HTTP routes | 170 checks with two real accounts: signup, all 17 map cards/previews, every new native map route, movement, local AI/player presence, cross-map exclusion, CSRF and invalid-map handling |
+| Setup HTTP | 33 checks: real repair/confirmation, exact row preservation, repeat repair, missing-index recovery, destructive reset guard and no PHP diagnostics |
+| Existing world runtime | 41 checks: serialized settlement, rollback/retry, concurrent idempotency, staff training and every one of 1,000 commanders progressing across every warzone after 1-, 2- and 7-day backlogs |
+| Existing background engine | 12 checks plus 19 authenticated HTTP checks: real progression without browser requests, arrivals, duplicate launch rejection and restart recovery |
+| Client/runtime contracts | 13 world-client checks and 7 Windows adapter contract checks |
+| Parse checks | All 72 PHP files, all JavaScript files and all Python scripts parsed |
+| Asset preservation | All 67 original runtime images and all 11 supplied PNGs byte-identical; original map definitions/collision preserved except optional thumbnail metadata |
+
+These are separate overlapping suites, not a sum of unique gameplay requirements.
+The exact reports are included under `tests/`: `combat_results.json`,
+`geometry_results.json`, `database_085_results.json`, `map_http_085_results.json`,
+`setup_085_results.json`, `world_runtime_085_results.json`, and
+`background_085_results.json`.
+
+The core `msw.css`, `msw.js`, world scheduler, Windows startup implementation and
+schema revision 9 remain unchanged. HTTP checks execute actual application routes;
+no browser screenshot/visual playtest is claimed. Native Windows Task Scheduler
+registration cannot be verified in this Linux environment. Final terrain feel,
+difficulty feel, camera presentation, and actual-host offline startup should be
+confirmed using `XAMPP_TEST_PLAN.md` on the user's XAMPP installation.
+
+## Re-running focused gates
+
+Use PHP with mysqli/mysqlnd and mbstring. Database tests require a local test DB
+account able to create/drop disposable databases and the standard root/blank
+credential unless the fixture explicitly supplies isolated test credentials.
+
+```text
+php tests/warzone_geometry_regression.php
+php tests/warzone_database_regression.php /absolute/path/MetalSlugWarzone_Package
+python3 tests/warzone_http_regression.py --php php --db-port 3306
+python3 tests/setup_http_regression.py --php php --db-port 3306
+python3 tests/compare_combat.py /absolute/path/v0.8.4.6/MetalSlugWarzone_Package /absolute/path/MetalSlugWarzone_Package --php php
+```
+
+PHP suites use `MSW_TEST_DB_HOST`, `MSW_TEST_DB_PORT`, and `MSW_TEST_DB_USER` for
+alternate disposable database servers. Keep the original baseline extracted for
+the differential combat comparison. The local setup page remains the normal
+installation/upgrade path; test scripts never replace host acceptance.
+
+## Historical validation records
+
 # v0.8.4.6 — Access-denied setup repair
 
 Verified on PHP 8.2.32 and MariaDB 10.11.18 using real HTTP and database calls:

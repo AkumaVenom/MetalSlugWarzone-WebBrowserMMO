@@ -86,6 +86,18 @@ if(($_SERVER['REQUEST_METHOD']??'GET')==='POST'){
             }catch(Throwable $_){}
             $report['schema_revision']=$revision;
             $report['expected_revision']=(string)MSW_SCHEMA_REVISION;
+            try{
+                $expansion=$mysqli->query("SELECT meta_value FROM schema_meta WHERE meta_key='warzone_expansion_v085'")->fetch_assoc();
+                $report['warzone_expansion']=($expansion['meta_value']??'')==='1'?'OK · expanded AI deployment applied':'MISSING · run Update / Repair';
+                $mapIssues=[];
+                foreach(msw_map_catalog() as $mapKey=>$map){
+                    $size=@getimagesize(__DIR__.'/'.$map['image']);
+                    if(!$size||(int)$size[0]!==$map['w']||(int)$size[1]!==$map['h'])$mapIssues[]=$mapKey.' image';
+                    if(!is_file(__DIR__.'/'.($map['thumbnail']??$map['image'])))$mapIssues[]=$mapKey.' preview';
+                    if(msw_schema_bot_collision_reason($mapKey,(int)$map['spawn'][0],(int)$map['spawn'][1])!==null)$mapIssues[]=$mapKey.' spawn';
+                }
+                $report['warzone_content']=$mapIssues?'ERROR · '.implode(', ',$mapIssues):'OK · '.count(msw_map_catalog()).' native maps, previews and legal spawns';
+            }catch(Throwable $_){$report['warzone_expansion']='MISSING';}
             $report['global_arrival_index']=msw_schema_index_exists($mysqli,'fob_strike_dispatches','idx_fob_dispatch_due')?'OK':'MISSING · run Update / Repair';
             $report['database_clock']=$mysqli->query('SELECT NOW() AS server_clock')->fetch_assoc()['server_clock'].' · '.date_default_timezone_get();
             try{$botRow=$mysqli->query("SELECT COUNT(*) c,COUNT(DISTINCT bot_index) indexes,MIN(bot_index) min_i,MAX(bot_index) max_i FROM bot_commanders WHERE enabled=1")->fetch_assoc();$report['autonomous_commanders']=((int)($botRow['c']??0)===1000&&(int)($botRow['indexes']??0)===1000&&(int)($botRow['min_i']??0)===1&&(int)($botRow['max_i']??0)===1000)?'OK · 1000 persistent':'ERROR · '.(int)($botRow['c']??0);}catch(Throwable $_){$report['autonomous_commanders']='MISSING';}

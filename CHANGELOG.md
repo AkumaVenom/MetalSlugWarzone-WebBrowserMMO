@@ -1,4 +1,76 @@
-## v0.8.4.5 — Automatic Offline World — XAMPP Test Candidate
+## v0.8.6.1 — Restore original Dispatch menu
+
+- Restore the accepted Dispatch page: Available Dispatches, one staff-selection
+  form per mission, and the original Dispatch History table.
+- Keep all four original staff missions first and append all eleven new high-threat
+  staff missions in that same section. Remove the assignment selector/review screen.
+- Restore player Combat Missions to text cards. Remove every mission-card image,
+  Local Staff Dispatch button and mission-page staff-dispatch shortcut.
+- Restore shared UI, core styling and dispatch-selection controls to the accepted
+  v0.8.5.1 presentation. Retain backend level/reward/XP additions and input guards.
+- Keep all pending deployments visible in the original history table.
+- Replace rejected-layout assets with inactive compatibility files for existing
+  v0.8.6 installs. Update HTTP and control tests to enforce menu separation.
+- Provide a small correction usable over v0.8.5.1 or v0.8.6 and a complete ZIP,
+  both using plain ZIP STORE format with independent extraction verification.
+
+## v0.8.6 — Expanded Tactical Operations — 2026-09-10
+
+- Add eleven Combat Missions and eleven Staff Dispatch assignments, covering every
+  Threat 13–23 warzone and bringing both catalogs to fifteen.
+- Use the existing Lv20–70 map minimums and adaptive combat scaling for mission
+  targets; add authored Commander XP and distinct resource rewards per mission.
+- Add longer four-staff expeditions with rising difficulty, resource rewards and
+  success/failure staff XP. Keep original definitions and 80/25 XP fallbacks exact.
+- Show new mission/location briefings in battle, plus local enemy pools and proper
+  map-level opposition in dispatch replays. Playback still never grants rewards.
+- Expand mission cards with previews, readiness, level ranges, XP, clears and a
+  corresponding local staff-dispatch link.
+- Replace repeated staff grids with one assignment review and squad picker. Preview
+  combined power/success chance, preserve the selected assignment after launch,
+  and show all pending deployments separately from the latest twelve results.
+- Rank expansion staff candidates by Combat + 3 × level; filter AI expansion jobs
+  by squad power and recheck their benchmark inside the launch transaction.
+- Retain authoritative ownership, exact staff counts, reservations, timers,
+  transactional settlement and existing battle version guards. Reject malformed
+  operation keys and staff IDs. Keep all native assets and schema revision 9.
+- Add catalog, real database, HTTP and dispatch-preview regression tests.
+
+## v0.8.5.1 — Higher-level expansion enemies
+
+- Added ascending map minimum enemy levels of 20–70 in five-level steps for the
+  eleven Threat 13–23 warzones. Keep the existing Commander-maturity range widths.
+- Increased the player-relative upper offset to +10 on Threat 13, rising by two
+  per map to +30 on Threat 23. Shift the whole range above each map minimum when
+  needed, preserving random variety. Higher levels also raise derived combat stats.
+- Aligned readiness recommendations and map text with the new progression.
+- Applied the shared minimum to AI field, development and catch-up recovery;
+  preserve existing captured units, career bonuses, staff caps and XP behavior.
+- Read counter accuracy from the committed encounter readiness gap so existing
+  fights do not gain a mid-battle penalty after this balance update.
+- Preserve original maps, bosses, native assets, AI deployment, schema 9 and all
+  existing player/AI progress. Added floor and low-career recovery regressions.
+
+## v0.8.5 — Expanded Warzones — 2026-09-10
+
+- Integrated all 11 supplied v4 maps at original native resolution, with authored
+  collision, safe spawns, habitat-specific Rebel pools and multiplayer deployment.
+- Extended normal threat progression from 12 to 23 without changing accepted
+  Threat 1–12 or boss balance. Every new threat raises the full enemy-level window
+  by one; readiness rises by two levels, reaching Commander Lv 38 at Threat 23.
+- Added bounded HP/ATK-focused high-threat pressure and modest counter increases;
+  preserve the current v5 encounter model and committed fights.
+- Added transactional, one-time AI redistribution across all 17 maps without
+  resetting careers, units, economies, FOB homes or operation history. Repeated
+  Update / Repair retains patrol positions. Balanced all six skins per map and
+  globally for the 1,000-commander population.
+- Extended local development/catch-up recruitment levels on expansion maps while
+  retaining existing field captures, unit caps, leveling and scheduler budgets.
+- Added lightweight previews for all 17 maps, lazy image loading, current enemy
+  ranges, recommended Commander levels, and setup content/redistribution checks.
+- Retained all 67 original images, all 11 supplied PNG bytes, core CSS/JS, schema 9
+  and Automatic World setup/restart behavior. Added focused regression tests and
+  upgrade/expansion documentation.
 
 ## v0.8.4.6 — Automatic World access-denied setup repair
 
@@ -198,8 +270,8 @@
 ## v0.7.5 — Underlevel High-Threat Progression Gate — XAMPP Test Candidate
 
 ### Low-level late-warzone progression gate
-- Preserved the complete v0.7.3/v0.7.4 player-relative enemy level-window contract, including Threat ceilings +0/+1/+2/+3/+4/+5 and the required Lv5/Threat12 = Lv8–10 plus Lv20/Threat12 = Lv19–25 anchors.
-- Added `msw_warzone_readiness_pressure()` as a second difficulty axis for ordinary Threat 4–12 contacts. Readiness benchmarks are T4 Lv5, T5 Lv6, T6 Lv7, T7 Lv9, T8 Lv10, T9 Lv12, T10 Lv13, T11 Lv15 and T12 Lv16; Threat 1–3 have no underlevel gate.
+- Preserved the complete v0.7.3/v0.7.4 player-relative enemy level-window contract, including Threat ceilings +0/+1/+2/+3/+4/+5 and the required Lv 5/Threat 12 = Lv8–10 plus Lv 20/Threat 12 = Lv19–25 anchors.
+- Added `msw_warzone_readiness_pressure()` as a second difficulty axis for ordinary Threat 4–12 contacts. Readiness benchmarks are T4 Lv 5, T5 Lv6, T6 Lv7, T7 Lv9, T8 Lv10, T9 Lv12, T10 Lv13, T11 Lv15 and T12 Lv16; Threat 1–3 have no underlevel gate.
 - When Commander level falls below the benchmark, normal-enemy HP/ATK/DEF/SPD receive capped multipliers of up to +55% / +85% / +35% / +18%. This extra pressure stacks after the accepted rolled-level + map-threat factors and disappears completely at/above the benchmark.
 - Added up to +6 underlevel points to normal enemy counter base accuracy before Commander SPD/Intel reductions. Player accuracy is unchanged and SPD remains beneficial-only.
 
@@ -219,7 +291,7 @@
 ## v0.7.4 — High-Threat Combat Pressure Calibration — XAMPP Test Candidate
 
 ### Upper-warzone threat pressure
-- Preserved the complete v0.7.3 player-relative enemy level-window system. Threat ceilings remain +0 / +1 / +2 / +3 / +4 / +5 across the established map bands, including the required Lv5/Threat12 = Lv8–10 and Lv20/Threat12 = Lv19–25 contracts.
+- Preserved the complete v0.7.3 player-relative enemy level-window system. Threat ceilings remain +0 / +1 / +2 / +3 / +4 / +5 across the established map bands, including the required Lv 5/Threat 12 = Lv8–10 and Lv 20/Threat 12 = Lv19–25 contracts.
 - Recalibrated normal-enemy threat multipliers so upper maps no longer feel too close to low/mid threat when the Commander has only light Mother Base development and active Security escorts. Threat 12 now reaches approximately **1.48× HP, 1.40× ATK, 1.22× DEF and 1.08× SPD** before enemy-level growth.
 - Changed the normal threat-pressure exponent from 1.25 to 1.10 and widened the upper multipliers while preserving the accepted Threat 1 factors exactly. Threat 5/7/9 therefore ramp earlier and more coherently instead of saving too much of the curve for the final band. HP/ATK receive the strongest lift; DEF remains intentionally restrained to avoid excessive sponge fights.
 - Normal enemy counter move threat contribution now reaches +8 instead of +6, while still keeping enemy ATK as a single input to `msw_damage()` and therefore preserving the v0.7.1 anti-double-scaling fix.
@@ -242,8 +314,8 @@
 
 ### Threat-driven enemy level windows
 - Replaced the universal Commander −3..+2 normal-PvE level window with a dynamic window derived from both **Commander level** and **warzone/operation threat**. The maximum enemy offset rises progressively with threat: Threat 1 caps at +0, Threat 2–3 at +1, Threat 4–5 at +2, Threat 6–7 at +3, Threat 8–9 at +4, and Threat 10–12 at +5.
-- Added Commander-maturity spread control. Commanders Lv1–5 use a 2-level span below each threat ceiling; Lv6–9 use 3; Lv10–14 use 4; Lv15–19 use 5; Lv20+ use 6, with the normal lower bound capped at −3. This yields the requested **Lv5 / Threat 12 = Lv8–10** and **Lv20 / Threat 12 = Lv19–25** contracts.
-- Added threat-weighted probability blending across the legal window. Safe maps favor the lower side; dangerous maps progressively favor the upper side. At Lv5/Threat12 the exhaustive 1–100 mapping is +3 19%, +4 33%, +5 48%. At Lv20/Threat12 the complete −1..+5 range remains available.
+- Added Commander-maturity spread control. Commanders Lv1–5 use a 2-level span below each threat ceiling; Lv6–9 use 3; Lv10–14 use 4; Lv15–19 use 5; Lv 20+ use 6, with the normal lower bound capped at −3. This yields the requested **Lv 5 / Threat 12 = Lv8–10** and **Lv 20 / Threat 12 = Lv19–25** contracts.
+- Added threat-weighted probability blending across the legal window. Safe maps favor the lower side; dangerous maps progressively favor the upper side. At Lv 5/Threat 12 the exhaustive 1–100 mapping is +3 19%, +4 33%, +5 48%. At Lv 20/Threat 12 the complete −1..+5 range remains available.
 - Encounter state now persists the v3 scaling model, level roll, min/max offsets and final offset so reloads never reroll enemy level.
 
 ### Threat/stat pressure correction

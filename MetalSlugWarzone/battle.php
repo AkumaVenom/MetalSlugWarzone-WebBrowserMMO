@@ -44,6 +44,9 @@ if(!empty($fx['player_hit']))$fxClasses[]='fx-player-hit';if(!empty($fx['enemy_c
 $character=msw_character_catalog()[$u['character_key']]??reset(msw_character_catalog());$characterSprite=(string)($character['sprite_r']??$character['sprite']);$recommended=msw_battle_recommended_move($s);
 msw_header('Combat Engagement');if(!$flash)$flash=msw_flash();msw_alert($flash);
 ?>
+<?php $operation=$s['context']==='mission'?(msw_mission_catalog()[(string)$s['context_key']]??null):null;
+$operationMap=msw_map_catalog()[(string)($operation['map_key']??'')]??null;
+if($operationMap): ?><section class="panel"><div class="panel-body"><div class="eyebrow">TACTICAL OPERATION · <?=msw_e($operationMap['name'])?></div><h2><?=msw_e($operation['name'])?></h2><p><?=msw_e($operation['brief'])?></p></div></section><?php endif; ?>
 <div class="grid g2 battle-layout">
 <section><?php msw_panel(ucfirst((string)$s['context']).' Battle','TURN '.(int)$s['round'].' · LIVE COMBAT'); ?>
 <div class="battle-scene <?=msw_e(implode(' ',$fxClasses))?>" data-battle-fx-seq="<?=intval($fx['seq']??0)?>">
