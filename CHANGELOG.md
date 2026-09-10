@@ -1,3 +1,31 @@
+## v0.8.7 — Characters V2 & Tactical Operations — 2026-09-10
+
+- Integrate all 16 supplied V2 PNGs at their original bytes and native dimensions:
+  four personnel, six ground vehicles, four aircraft and two non-capturable bosses.
+- Extend all eleven expansion encounter pools while preserving the original six
+  maps. Place Alien, Alien Walker and Mini-UFO together on Lunar Outpost; anchor
+  the UFO Boss and every new alien-targeted operation there.
+- Add 16 player Combat Missions and 16 staff Dispatch assignments, covering every
+  V2 enemy. Preserve the original 15 definitions/order in each catalog and retain
+  text-only mission cards, per-card Dispatch staff forms and the history table.
+- Add Hi-Do and UFO Boss to Boss Operations with dedicated boss encounters and
+  existing server-authoritative battle/reward settlement. Boss mission targets also
+  retain boss combat rules and cannot be recovered with any Fulton system.
+- Use existing permanent roster, team, Mother Base and hangar paths for the 14
+  recruits. Keep personnel, Cargo Lv5 and Wormhole Lv8 recovery compatibility,
+  item requirements, map-level floors and committed battle state.
+- Resolve AI live recovery gear by enemy class. Fabricate aircraft recovery gear
+  from the shared Wormhole recipe; enforce the aircraft R&D Lv8 unlock in direct
+  recruitment, development and elapsed catch-up without changing the established
+  background supply abstraction or ground recruitment behavior.
+- Let eligible AI squads use the new Dispatch assignments through existing power,
+  reservation and settlement checks. Record authored V2 dispatch opposition in
+  the existing replay snapshot; display aircraft at hardware scale.
+- Preserve schema revision 9, public blank-password configuration, active battles,
+  deployments, worlds, player progress and the persistent AI population. Add
+  focused catalog/gameplay/HTTP regressions and upgrade/host acceptance guidance.
+  Executed results and limits are recorded separately in the release validation.
+
 ## v0.8.6.3 — Attached Character Markers — 2026-09-10
 
 - Put each remote character image and label inside one positioned map actor.

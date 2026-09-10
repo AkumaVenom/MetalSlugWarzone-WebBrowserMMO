@@ -1,3 +1,89 @@
+# v0.8.7 — Characters V2 and Tactical Operations validation
+
+This complete release was built from the supplied v0.8.6.3 Public Complete ZIP
+and all 16 original PNGs in Characters v2.zip. Validation below was executed
+for this release with PHP 8.3.6, MariaDB 10.11.14 and Node. Database and HTTP
+fixtures created disposable databases and test installations; no existing user
+world was opened, reset or modified.
+
+## Executed gates
+
+| Gate | Result | Evidence |
+| --- | --- | --- |
+| Human characters, maps, bosses and new operations over real HTTP | 679 assertions passed | `tests/characters_v2_http_087_results.json` |
+| AI field, development and catch-up capture | 889 assertions passed | `tests/characters_v2_ai_results.json` |
+| All 31 player missions and all 31 staff dispatches against baseline | 19,068 assertions passed | `tests/operations_087_results.json` |
+| Dispatch/FOB playback identity, complete enemy pools and authored targets | 8,930 assertions passed | `tests/characters_v2_replay_087_results.json` |
+| Existing mission/dispatch HTTP behavior with expanded catalogs | 272 assertions passed | `tests/operations_http_087_results.json` |
+| Independent staff-selection controls across all 31 forms | 278 assertions passed | `tests/operations_ui_087_results.json` |
+| Legacy combat differential | 2,002 scenarios, 200,200 samples per tree; zero differences | `tests/combat_087_results.json` |
+| Committed battle preservation | 2,256 v5 states preserved, checked twice | `tests/combat_087_results.json` |
+| Expansion threat and level progression | 472,432 checks passed | `tests/combat_087_results.json` |
+| Baseline/content/asset preservation | 65 checks passed; all 266 source files retained, 95 old assets unchanged, 16 supplied PNGs exact | `tests/preservation_087_results.json` |
+| Syntax | 76 PHP files, 9 JavaScript files, 8 Python sources and then-present JSON reports checked; no errors | `tests/syntax_087_results.json` |
+| Attached map markers and world client | 11 marker groups / 60 skin-direction-role cases; 13 world-client cases passed | `tests/map_presence_client.test.js`, `tests/world_runtime_client.test.js` |
+
+The HTTP gate launches encounters through real movement requests on all eleven
+expansion maps, captures every new regular unit through the real battle POST,
+relogs and checks the persistent roster/Mother Base sprite identity. It checks
+wrong equipment, R&D locks, inventory consumption, CSRF, other-owner access,
+stale turns and duplicate rewards. Both new Boss Operations are launched and
+won through their real page, with exact standard rewards and Fulton rejection.
+Every new Combat Mission is launched and won, including the non-capturable boss
+targets. All 31 cards on each mission page are checked for the absence of images.
+
+The operations database gate validates all 31 mission victories and both success
+and failure settlement for all 31 staff dispatches, with exact resources, XP,
+mission clears, ownership and staff-reservation behavior. All 16 new dispatches
+were also launched by actual eligible AI squads. The original 15 definitions
+and ordering in both catalogs are compared with the uploaded baseline.
+
+The AI gate exercises real SQL and actual shared random selectors for all 14 new
+recruits through field, development and elapsed-time catch-up. R&D 7 aircraft
+recovery is denied; R&D 8 recovery uses Wormhole Fulton. Aircraft can still be
+fought while recovery is locked. Automatic gear manufacture uses its authored
+recipe, with insufficient-material checks. Existing caps, level floors, career
+and scheduling contracts remain intact. Background recruitment retains the
+accepted abstraction of supplies spent during elapsed operations; it does not
+consume a live inventory item for each background recruit.
+
+Playback checks verify target identity, aircraft sizing, complete local encounter
+pool coverage, authored target/escort order and deterministic repeat reports.
+Persisted success/failure and FOB snapshots remain authoritative. Source checks
+confirm schema, battle engine, original mission pages, CSS/JS marker code, all
+six original map definitions and all seven original enemy definitions are retained.
+
+## Reproduce
+
+From the extracted package root, with PHP 8+ (`mysqli`, `mbstring`, `tokenizer`)
+and a local MySQL/MariaDB test account permitted to create/drop disposable test
+databases, run the following. The database tests generate their own random names;
+do not point them at a production database. `MSW_TEST_DB_PORT` configures the PHP
+integration scripts; the HTTP scripts take `--db-port`.
+
+```text
+php tests/characters_v2_ai_regression.php .
+php tests/operations_regression.php . /path/to/v0.8.6.3/MetalSlugWarzone_Package
+php tests/characters_v2_replay_regression.php . /path/to/v0.8.6.3/MetalSlugWarzone_Package
+python tests/characters_v2_http_regression.py --php php --db-port 3306
+python tests/operations_http_regression.py --php php --db-port 3306
+python tests/compare_combat.py /path/to/v0.8.6.3/MetalSlugWarzone_Package . --php php
+node tests/operations_ui_regression.js
+node tests/map_presence_client.test.js
+node tests/world_runtime_client.test.js
+```
+
+The real HTTP fixtures deliberately weaken targets to make reward/capture
+assertions reliable without changing production combat functions or capture odds.
+They validate integration and transaction behavior, not long-session difficulty
+balance. No manual browser visual review, Windows Task Scheduler exercise,
+existing-world XAMPP upgrade or human multiplayer soak test is claimed for this
+release. Those host acceptance checks remain in `docs/XAMPP_TEST_PLAN.md`.
+
+The complete archive includes a refreshed SHA-256 inventory and is independently
+extracted and byte-compared before delivery. See `PACKAGE_VERIFICATION.txt` and
+`UPGRADE_v0.8.7.md`. All sections below describe historical releases.
+
 # v0.8.6.3 — Attached character markers
 
 The earlier script-only fix handled initial vertical sprite visibility. The new

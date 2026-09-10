@@ -1,4 +1,36 @@
-# Runtime Asset Manifest — v0.8.5
+# Runtime Asset Manifest — v0.8.7
+
+## v0.8.7 Characters V2 delta
+
+All **16 supplied PNGs** from `Characters v2.zip` are retained at their original
+bytes and native dimensions. Runtime filenames normalize the source spellings;
+no sprite is resized, recompressed, cropped or repainted. Paths below are relative
+to `public_html`. All pre-existing runtime art remains in the complete package.
+
+| Uploaded filename | Runtime path | Native size | Bytes |
+| --- | --- | --- | --- |
+| `Alien Walker.png` | `assets/sprites/enemies/alien_walker.png` | 339 × 371 | 106,985 |
+| `Alien.png` | `assets/sprites/enemies/alien.png` | 212 × 188 | 45,916 |
+| `Arab Soldier.png` | `assets/sprites/enemies/arab_soldier.png` | 265 × 309 | 73,488 |
+| `General_T.png` | `assets/sprites/enemies/general_t.png` | 278 × 254 | 70,453 |
+| `Hi-Do Boss.png` | `assets/sprites/enemies/hi_do.png` | 222 × 198 | 37,051 |
+| `Japenese Hi Fighter.png` | `assets/sprites/enemies/japanese_hi_fighter.png` | 386 × 255 | 94,017 |
+| `Japenese Soldier.png` | `assets/sprites/enemies/japanese_soldier.png` | 197 × 239 | 56,258 |
+| `JapeneseTank.png` | `assets/sprites/enemies/japanese_tank.png` | 275 × 212 | 80,727 |
+| `Mini-UFO.png` | `assets/sprites/enemies/mini_ufo.png` | 49 × 45 | 1,150 |
+| `Rebel Bomber.png` | `assets/sprites/enemies/rebel_bomber.png` | 345 × 422 | 124,721 |
+| `Rebel Gear.png` | `assets/sprites/enemies/rebel_gear.png` | 275 × 246 | 78,025 |
+| `Rebel Helecopter.png` | `assets/sprites/enemies/rebel_helicopter.png` | 384 × 252 | 85,354 |
+| `Rebel S.A.M.png` | `assets/sprites/enemies/rebel_sam.png` | 327 × 334 | 136,672 |
+| `Rebel Slug.png` | `assets/sprites/enemies/rebel_slug.png` | 256 × 231 | 62,460 |
+| `Rebel Tank.png` | `assets/sprites/enemies/rebel_tank.png` | 299 × 235 | 94,795 |
+| `UFO BOSS.png` | `assets/sprites/enemies/ufo_boss.png` | 447 × 265 | 112,356 |
+
+These assets drive enemy battles, captured staff/hardware, Boss Operations and
+automatic battle reports through the enemy catalog. **Combat Mission and Dispatch
+cards remain text-only**. Mini-UFO retains its native 49 × 45 source; the existing
+renderer determines on-screen sprite sizing. No new Commander avatar is added.
+See [CHARACTERS_V2.md](CHARACTERS_V2.md) for recovery classes and gameplay placement.
 
 ## v0.8.5 expansion delta
 

@@ -1,4 +1,27 @@
-# Expanded warzones — v0.8.5.1
+# Expanded warzones — v0.8.7
+
+## v0.8.7 V2 encounter additions
+
+All eleven expansion encounter pools now include supplied V2 recruits, with the
+exact additions listed in [CHARACTERS_V2.md](CHARACTERS_V2.md). **Lunar Outpost**
+contains Alien, Alien Walker and Mini-UFO; its UFO Boss and all four new
+alien-targeted Combat Mission/Dispatch pairs also use the lunar theatre.
+Hi-Do is assigned to Offshore Platform. Bosses are excluded from random field
+encounter pools and all recovery catalogs.
+
+Existing expansion enemy types are retained alongside the new contacts. The
+original six-map pools are unchanged. Native map dimensions, thumbnails,
+collision, spawns, authoritative movement, attached presence markers, threat order
+and the Lv20–70 floors below remain in place. Field battles, AI live recovery,
+development and catch-up use the expanded local pools. Aircraft require Wormhole
+recovery capability at R&D Lv8; see the character guide for the AI supply details.
+
+This release adds no placement migration or reseeding pass. The existing 1,000
+AI commanders retain their locations, identities and progress. Existing fights
+retain committed enemy state. The v0.8.5 distribution and v0.8.5.1 progression
+notes below describe the retained foundation, not new setup actions for v0.8.7.
+
+## Retained map and progression foundation
 
 All eleven v4 PNGs are integrated at **1672 × 941**, without resizing or modifying
 the playable source image. Warzone Select now lists 17 maps in threat order.

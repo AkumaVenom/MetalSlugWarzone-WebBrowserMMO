@@ -211,6 +211,9 @@ function msw_bot_create_recruit(int $uid,string $enemyKey,int $level,bool $defer
     $catalog=msw_enemy_catalog();$enemy=$catalog[$enemyKey]??null;if(!$enemy||empty($enemy['recruitable']))return null;
     $bot=msw_bot_row($uid);if(!$bot)return null;$profile=msw_bot_competitive_profile((int)$bot['bot_index'],(string)$bot['personality']);
     $cap=(int)$profile['roster_cap'];if(msw_bot_roster_count($uid)>=$cap)return null;
+    // Background recruitment represents supplies used during elapsed operations,
+    // but aircraft must still respect the same Wormhole unlock as live recovery.
+    if((string)$enemy['class']==='air'&&msw_bot_rd_level($uid)<(int)msw_fulton_catalog()['wormhole_fulton']['rd'])return null;
     $user=msw_one('SELECT level,base_power FROM users WHERE id=?','i',[$uid])?:['level'=>1,'base_power'=>0];
     $anchor=msw_bot_power_anchor();$careerLevel=max((int)$user['level'],min(99,(int)$anchor['level']));
     $level=max(1,min(99,max($level,$careerLevel+random_int(-2,2))));
@@ -244,17 +247,31 @@ function msw_bot_restock_recovery(int $uid,string $item): bool {
     if($item==='cargo_fulton'&&msw_bot_rd_level($uid)>=5){
         if(msw_manufacture_item($uid,'cargo_fulton',2,['common_metal'=>120,'minor_metal'=>60]))return true;
     }
+    if($item==='wormhole_fulton'){
+        $recipe=msw_rd_catalog()[$item]??null;
+        if($recipe&&msw_bot_rd_level($uid)>=(int)$recipe['rd'])return msw_manufacture_item($uid,$item,(int)$recipe['quantity'],(array)$recipe['cost']);
+    }
     return false;
+}
+
+/** Keep established personnel/vehicle gear and resolve aircraft through the shared class rules. */
+function msw_bot_recovery_item_for_class(string $class): ?string {
+    $catalog=msw_fulton_catalog();
+    foreach(['fulton','cargo_fulton','wormhole_fulton'] as $key){
+        if(isset($catalog[$key])&&in_array($class,(array)$catalog[$key]['classes'],true))return $key;
+    }
+    return null;
 }
 
 function msw_bot_try_capture(int $uid,string $enemyKey,int $enemyLevel): bool {
     $enemy=msw_enemy_catalog()[$enemyKey]??null;if(!$enemy||empty($enemy['recruitable']))return false;
     $bot=msw_bot_row($uid);if(!$bot||msw_bot_roster_count($uid)>=msw_bot_roster_cap_for($uid,$bot))return false;
-    $vehicle=(string)$enemy['class']==='vehicle';$item=$vehicle?'cargo_fulton':'fulton';
-    if($vehicle&&msw_bot_rd_level($uid)<5)return false;
+    $class=(string)$enemy['class'];$vehicle=$class==='vehicle';$item=msw_bot_recovery_item_for_class($class);if($item===null)return false;
+    $fulton=msw_fulton_catalog()[$item];
+    if((int)$fulton['rd']>1&&msw_bot_rd_level($uid)<(int)$fulton['rd'])return false;
     $inv=msw_inventory($uid);if((int)($inv[$item]??0)<1){if(!msw_bot_restock_recovery($uid,$item))return false;$inv=msw_inventory($uid);}
     if(!msw_consume_item($uid,$item,1))return false;
-    $damagedRatio=random_int(18,45)/100.0;$classBase=$vehicle?0.10:0.20;$damageBonus=(1.0-$damagedRatio)*0.62;$bonus=$vehicle?0.08:0.00;
+    $damagedRatio=random_int(18,45)/100.0;$classBase=in_array($class,['infantry','heavy_infantry'],true)?0.20:0.10;$damageBonus=(1.0-$damagedRatio)*0.62;$bonus=(float)$fulton['bonus'];
     $profile=msw_bot_competitive_profile((int)$bot['bot_index'],(string)$bot['personality']);
     $chance=min(0.96,$classBase+$damageBonus+$bonus+(float)$profile['capture_bonus']);
     if((random_int(1,10000)/10000)>$chance)return false;
@@ -291,6 +308,7 @@ function msw_bot_manage_base(int $uid): void {
     $rd=msw_bot_rd_level($uid);$inv=msw_inventory($uid);
     if($rd>=4&&(int)($inv['fulton_plus']??0)<2)msw_manufacture_item($uid,'fulton_plus',2,['common_metal'=>80,'minor_metal'=>35]);
     if($rd>=5&&(int)($inv['cargo_fulton']??0)<2)msw_manufacture_item($uid,'cargo_fulton',2,['common_metal'=>120,'minor_metal'=>60]);
+    if($rd>=(int)msw_fulton_catalog()['wormhole_fulton']['rd']&&(int)($inv['wormhole_fulton']??0)<1)msw_bot_restock_recovery($uid,'wormhole_fulton');
     msw_bot_set_activity($uid,'Reorganizing Mother Base staff');
 }
 
@@ -385,12 +403,17 @@ function msw_bot_fob_dispatch_action(int $uid): bool {
 }
 
 
-function msw_bot_recruitable_enemy_keys(?string $mapKey=null): array {
+function msw_bot_recruitable_enemy_keys(?string $mapKey=null,?int $rdLevel=null): array {
     $catalog=msw_enemy_catalog();$keys=[];
     if($mapKey!==null&&isset(msw_map_catalog()[$mapKey])){
         foreach((array)msw_map_catalog()[$mapKey]['encounters'] as $key)if(!empty($catalog[(string)$key]['recruitable']))$keys[]=(string)$key;
     }
     if(!$keys)foreach($catalog as $key=>$enemy)if(!empty($enemy['recruitable']))$keys[]=(string)$key;
+    // Filter after local-pool resolution so a locked aircraft cannot cause a
+    // fallback into another warzone's recruits. Ground recovery stays unchanged.
+    if($rdLevel!==null&&$rdLevel<(int)msw_fulton_catalog()['wormhole_fulton']['rd']){
+        $keys=array_filter($keys,fn(string $key):bool=>(string)$catalog[$key]['class']!=='air');
+    }
     return array_values(array_unique($keys));
 }
 
@@ -443,7 +466,7 @@ function msw_bot_development_action(int $uid,array $user,?array $bot=null): void
     ]);
     msw_level_up_user($uid,(int)round(random_int(90,155)*$paceBonus));
 
-    $created=0;$vehicles=0;$keys=msw_bot_recruitable_enemy_keys((string)($user['active_map']??''));
+    $created=0;$vehicles=0;$keys=msw_bot_recruitable_enemy_keys((string)($user['active_map']??''),msw_bot_rd_level($uid));
     for($i=0;$i<$batch&&$keys;$i++){
         $enemyKey=(string)$keys[array_rand($keys)];$enemy=msw_enemy_catalog()[$enemyKey]??null;
         if(msw_bot_create_recruit($uid,$enemyKey,msw_bot_local_recruit_level((string)($user['active_map']??''),(int)$user['level']),true)!==null){$created++;if(($enemy['class']??'')==='vehicle')$vehicles++;}
@@ -488,7 +511,7 @@ function msw_bot_catch_up(int $uid,array $user,array $bot,int $extraOps): void {
         // already represented by the set-based resource/XP/battle gains above.
         // This keeps 1,000 commanders competitive without multiplying SQL work by
         // the number of missed 4-11 second action windows.
-        $desired=1;$keys=msw_bot_recruitable_enemy_keys((string)($user['active_map']??''));
+        $desired=1;$keys=msw_bot_recruitable_enemy_keys((string)($user['active_map']??''),msw_bot_rd_level($uid));
         for($i=0;$i<$desired&&$keys;$i++){
             $enemyKey=(string)$keys[array_rand($keys)];$enemy=msw_enemy_catalog()[$enemyKey]??null;
             if(msw_bot_create_recruit($uid,$enemyKey,msw_bot_local_recruit_level((string)($user['active_map']??''),max((int)$user['level'],(int)($fresh['level']??1))),true)!==null){$created++;if(($enemy['class']??'')==='vehicle')$vehicles++;}

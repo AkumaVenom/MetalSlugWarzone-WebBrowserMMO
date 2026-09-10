@@ -78,6 +78,7 @@ msw_header($map['name'],'map_select.php');
             </div>
             <div class="movement-status" data-movement-status>Ready · WASD / Arrow Keys</div>
             <p>Local enemies: Lv <?=max(1,(int)$progress['level']+(int)$enemyWindow['min_offset'])?>–<?=max(1,(int)$progress['level']+(int)$enemyWindow['max_offset'])?>. Higher threat increases combat pressure.</p>
+            <?php if((int)$map['level']>12):?><p><strong>Field contacts:</strong> <?=msw_e(implode(' · ',array_map(static fn(string $enemyKey):string=>(string)msw_enemy_catalog()[$enemyKey]['name'],$map['encounters'])))?></p><?php endif;?>
         </section>
         <section class="map-operative-card">
             <img src="<?=msw_e(msw_url($character['sprite']))?>" alt="">

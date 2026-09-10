@@ -42,6 +42,16 @@ $inv=msw_inventory($uid);$enemy=$s['enemy'];$player=$s['player'];$systems=(array
 $fxClasses=['msw-battle-arena','fx-action-'.preg_replace('/[^a-z0-9_-]/','',(string)($fx['action']??'contact'))];
 if(!empty($fx['player_hit']))$fxClasses[]='fx-player-hit';if(!empty($fx['enemy_counter']))$fxClasses[]='fx-enemy-counter';if(!empty($fx['enemy_hit']))$fxClasses[]='fx-enemy-hit';if(!empty($fx['backup_slots'])||!empty($fx['backup_guard_slot']))$fxClasses[]='fx-backup';if(!empty($fx['recovery_success']))$fxClasses[]='fx-recovery-success';
 $character=msw_character_catalog()[$u['character_key']]??reset(msw_character_catalog());$characterSprite=(string)($character['sprite_r']??$character['sprite']);$recommended=msw_battle_recommended_move($s);
+$recoveryOptions=[];$readyRecovery=null;$requiredRecovery=null;
+foreach(msw_fulton_catalog() as $key=>$fulton){
+    $compatible=in_array((string)$enemy['class'],(array)$fulton['classes'],true);
+    $unlocked=(int)($systems['rd']??1)>=(int)$fulton['rd'];
+    $stock=max(0,(int)($inv[$key]??0));
+    if($compatible&&$requiredRecovery===null)$requiredRecovery=$fulton;
+    $available=$compatible&&$unlocked&&$stock>0;
+    if($available&&$readyRecovery===null)$readyRecovery=$key;
+    $recoveryOptions[$key]=['definition'=>$fulton,'compatible'=>$compatible,'unlocked'=>$unlocked,'stock'=>$stock,'available'=>$available];
+}
 msw_header('Combat Engagement');if(!$flash)$flash=msw_flash();msw_alert($flash);
 ?>
 <?php $operation=$s['context']==='mission'?(msw_mission_catalog()[(string)$s['context_key']]??null):null;
@@ -87,7 +97,19 @@ if($operationMap): ?><section class="panel"><div class="panel-body"><div class="
 
     <div class="battle-command-module"><div class="field"><label>Combat Medical Gear</label><select name="medical_item"><?php foreach(msw_battle_item_catalog() as $k=>$item):$unlocked=msw_requirements_met($uid,(array)$item['requirements']);?><option value="<?=msw_e($k)?>" <?=$unlocked?'':'disabled'?>><?=msw_e($item['name'])?> · x<?=intval($inv[$k]??0)?> · HEAL <?=intval($item['heal'])?><?=$unlocked?'':' · LOCKED '.msw_requirement_label((array)$item['requirements'])?></option><?php endforeach;?></select><small>Using medical gear takes your turn. Support Lv 3 / 6 boosts healing by 15% / 25%.</small></div><button class="secondary" name="action" value="medical">Use Item</button></div>
 
-    <?php if((int)$enemy['recruitable']):?><div class="battle-command-module"><div class="field"><label>Fulton System</label><select name="item"><?php foreach(msw_fulton_catalog() as $k=>$f):$chance=((int)$systems['intel']>=6&&in_array((string)$enemy['class'],(array)$f['classes'],true))?(int)round(msw_recovery_chance($s,$f)*100):null;?><option value="<?=msw_e($k)?>"><?=msw_e($f['name'])?> · x<?=intval($inv[$k]??0)?> · R&D <?=intval($f['rd'])?><?=$chance!==null?' · '.$chance.'%':''?></option><?php endforeach;?></select><small><?=((int)$systems['intel']>=6)?'Intel Fulton Forecast is active: displayed percentages show your exact current recovery chance.':'Recovery probability rises as target HP falls. Intel Lv 6 unlocks exact pre-use forecasts.'?></small></div><button class="secondary" name="action" value="recover">Launch Fulton</button></div><?php endif;?>
+    <?php if((int)$enemy['recruitable']):?>
+    <div class="battle-command-module"><div class="field"><label for="recovery-system">Fulton System</label>
+        <select name="item" id="recovery-system">
+            <?php if($readyRecovery===null):?><option value="" selected disabled>No compatible recovery gear ready</option><?php endif;?>
+            <?php foreach($recoveryOptions as $k=>$option):$f=$option['definition'];
+                $chance=((int)$systems['intel']>=6&&$option['compatible'])?(int)round(msw_recovery_chance($s,$f)*100):null;
+                $reason=!$option['compatible']?' · INCOMPATIBLE':(!$option['unlocked']?' · LOCKED':($option['stock']<1?' · OUT OF STOCK':''));
+            ?><option value="<?=msw_e($k)?>" <?=$option['available']?'':'disabled'?> <?=$readyRecovery===$k?'selected':''?>><?=msw_e($f['name'])?> · x<?=$option['stock']?> · R&D <?=intval($f['rd'])?><?=msw_e($reason)?><?=$chance!==null?' · '.$chance.'%':''?></option><?php endforeach;?>
+        </select>
+        <?php if($requiredRecovery):?><small>Recovery requirement: <?=msw_e($requiredRecovery['name'])?> · R&D Lv <?=intval($requiredRecovery['rd'])?>. Manufacture recovery gear in R&D.</small><?php endif;?>
+        <small><?=((int)$systems['intel']>=6)?'Intel Fulton Forecast is active: displayed percentages show your exact current recovery chance.':'Recovery probability rises as target HP falls. Intel Lv 6 unlocks exact pre-use forecasts.'?></small>
+    </div><button class="secondary" name="action" value="recover" <?=$readyRecovery===null?'disabled':''?>>Launch Fulton</button></div>
+    <?php endif;?>
 </form>
 <?php else: ?>
 <?php $resultKind=$row['status']==='lost'?'warning':'success';$continuePage=match((string)$s['context']){'field'=>'map.php?zone='.urlencode((string)$s['context_key']),'boss'=>'bosses.php','sidequest'=>'sidequests.php','trainer'=>'commanders.php',default=>'missions.php'}; ?>

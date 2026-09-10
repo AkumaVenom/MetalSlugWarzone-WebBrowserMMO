@@ -62,7 +62,7 @@ function msw_auto_battle_unit(array $unit,int $index,string $fallbackName='Comba
         'combat'=>$combat,
         'grade'=>$grade,
         'sprite'=>(string)$enemy['sprite'],
-        'vehicle'=>$class==='vehicle',
+        'vehicle'=>in_array($class,['vehicle','air'],true),
         'hp'=>$hp,
         'max_hp'=>$maxHp,
         'attack'=>max(1,(int)($unit['attack']??($enemy['atk']??max(8,(int)round($combat*.65))))),
@@ -111,14 +111,23 @@ function msw_auto_battle_fob_force(array $snapshot,string $name,bool $defense): 
     return msw_auto_battle_normalize_units($out,$name.($defense?' Defense':' Assault'));
 }
 
-function msw_auto_battle_dispatch_opposition(array $definition,int $slots): array {
+function msw_auto_battle_dispatch_opposition(array $definition,int $slots,string $seed=''): array {
     $difficulty=max(1,(int)($definition['difficulty']??50));
     $keys=['rifle','bazooka','minigun','biker'];
     $map=msw_map_catalog()[(string)($definition['map_key']??'')]??null;
-    if($map)$keys=array_values($map['encounters']);
+    $authored=!empty($definition['enemies'])&&is_array($definition['enemies']);
+    if($authored)$keys=array_values($definition['enemies']);
+    elseif($map)$keys=array_values($map['encounters']);
+    // Target-specific operations commit their lead target and escorts through
+    // the catalog. Preserve that authored order, including boss targets.
+    // Expansion pools can exceed the four-unit replay limit. Rotate their full
+    // local roster deterministically so later contacts (including aircraft) can
+    // appear, without rerolling a report or changing settled mission authority.
+    // Keep the established selection for legacy pools of four or fewer enemies.
+    $offset=$map&&!$authored&&count($keys)>4?msw_auto_battle_hash_int('dispatch-opposition|'.(string)($definition['map_key']??'').'|'.$seed,0,0,count($keys)-1):0;
     $out=[];$count=max(2,min(4,$slots));
     for($i=0;$i<$count;$i++){
-        $key=$map?$keys[$i%count($keys)]:$keys[min(count($keys)-1,(int)floor(($difficulty/120)+$i/2))];
+        $key=($map||$authored)?$keys[($offset+$i)%count($keys)]:$keys[min(count($keys)-1,(int)floor(($difficulty/120)+$i/2))];
         $meta=msw_enemy_catalog()[$key]??msw_enemy_catalog()['rifle'];
         $level=$map?msw_warzone_enemy_level_floor((int)$map['level'])+$i:max(1,(int)ceil($difficulty/55)+$i);
         $combat=max(15,(int)round($difficulty/$count)+($i*3));
@@ -150,6 +159,7 @@ function msw_auto_battle_action_for_unit(array $unit): string {
         'vehicle'=>'armored assault',
         'heavy_infantry'=>'heavy-weapons burst',
         'air'=>'air-support strike',
+        'boss'=>'boss assault',
         default=>'rifle volley',
     };
 }
@@ -239,7 +249,8 @@ function msw_auto_battle_events(array $left,array $right,string $winner,string $
 
 function msw_auto_battle_model_dispatch(array $run,array $units,array $definition): array {
     $left=msw_auto_battle_normalize_units($units,'Dispatch Unit');
-    $right=msw_auto_battle_dispatch_opposition($definition,(int)($definition['slots']??count($left)));
+    $oppositionSeed='dispatch-force|'.(int)$run['id'].'|'.(string)($run['mission_key']??'');
+    $right=msw_auto_battle_dispatch_opposition($definition,(int)($definition['slots']??count($left)),$oppositionSeed);
     $success=(string)($run['result']??'failure')==='success';
     $winner=$success?'left':'right';
     $seed='dispatch|'.(int)$run['id'].'|'.(string)$run['result'].'|'.(int)$run['snapshot_power'];

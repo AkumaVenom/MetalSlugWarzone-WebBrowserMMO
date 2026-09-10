@@ -1,3 +1,61 @@
+# v0.8.7 — Characters V2 and operation host acceptance
+
+These are checks to perform on the deployed XAMPP host. Their inclusion here does
+not mean the native Windows/visual checks have already run; executed development
+results and their limits are in `BUILD_VALIDATION.md`.
+
+1. Follow `UPGRADE_v0.8.7.md`, preserving your existing database/configuration.
+   Require footer 0.8.7, schema 9 and Automatic World **Running automatically**.
+   Compare existing accounts, staff/hardware, resources, Mother Bases, AI
+   identities, current fights and pending deployments before/after the update.
+2. Deploy to each of the eleven expansion maps and sample the new local enemies
+   against the exact pool table in `CHARACTERS_V2.md`. Check native map art,
+   terrain collision, two-account presence and attached AI labels still behave
+   normally. The six original maps retain their original encounter pools.
+3. On Lunar Outpost, encounter Alien, Alien Walker and Mini-UFO. Confirm the new
+   Lunar Alien Contact, Lunar Walker Siege, Lunar Scout Intercept and Lunar UFO
+   Assault entries and their paired Dispatch assignments use the lunar location;
+   the complete mapping is in `TACTICAL_OPERATIONS.md`.
+4. Use new target-specific Combat Missions to reach all 14 recruitable V2 types
+   without relying solely on random field selection. Weaken each target, recover
+   it with compatible gear, then inspect identity, class, level and sprite in the
+   owned staff/hardware roster. Refresh/relog and confirm it persists. Recovery
+   must retain the normal 55 Commander XP outcome without a mission-clear reward.
+5. Check personnel with standard Fulton; vehicles reject personnel-only gear and
+   require Cargo at R&D Lv5 or Wormhole; aircraft reject normal/Cargo gear and
+   require Wormhole at R&D Lv8. Confirm unavailable equipment is explained and the correct
+   item/stock is used. A failed/locked action must not create a unit.
+6. Open **Boss Operations**. Huge Hermit and Rootmars remain first; Hi-Do and UFO
+   Boss are added. Start/finish both new fights and confirm boss victory rewards,
+   saved encounter results and repeatable entry. Every Fulton system must refuse
+   bosses.
+   Repeat this non-capture check in each new boss-targeted Combat Mission.
+7. Confirm **31 Combat Missions** and **31 Available Dispatches**. The existing 15
+   entries remain first and unchanged. Both pages keep text-only mission cards,
+   and Dispatch keeps per-card staff checkboxes/buttons and its history table.
+   Play all 16 new Combat Missions; each must encounter its named V2 target and
+   award the displayed victory rewards/XP once per committed win.
+8. Launch representative new personnel, vehicle, aircraft and both boss Dispatch
+   assignments using four available staff. Inspect durations, reservations and
+   displayed rewards. Reports must show the specified V2 opposition with properly
+   sized aircraft/boss art, and rewards/staff XP must settle only once. Replay,
+   refresh and reopening must not grant extra rewards or captured units. Verify
+   existing pending deployments still complete against their original snapshots.
+9. Observe AI commanders in multiple expansion maps, including Lunar Outpost.
+   New eligible recoveries must enter their permanent rosters. Low-R&D commanders
+   must not gain aircraft; developed R&D Lv8 commanders can recover aircraft with
+   Wormhole gear. Strong squads can launch new targeted dispatches. Existing
+   careers, cap-limited rosters and old-map progression must remain intact.
+10. With Automatic World running, close game browsers for 10–15 minutes while
+    Apache/MySQL remain on. Return and verify persisted AI progression and due
+    operation settlement. Restart Apache and confirm the automatic process
+    resumes with updated content, then replay a result to check idempotency.
+
+Historical acceptance plans follow. Their release-specific install instructions
+are superseded by `UPGRADE_v0.8.7.md` for this package.
+
+---
+
 # v0.8.5.1 — Higher-level enemy acceptance
 
 1. Apply the complete update and use Update / Repair → Confirm Installation.

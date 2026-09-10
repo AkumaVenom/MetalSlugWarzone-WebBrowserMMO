@@ -1,4 +1,41 @@
-# Architecture — Metal Slug Warzone v0.8.5.1
+# Architecture — Metal Slug Warzone v0.8.7
+
+## v0.8.7 character and operation extension
+
+`includes/catalog.php` remains the common source for enemy metadata, map encounter
+pools, recovery compatibility, R&D recipes, Boss Operations, Combat Missions and
+staff Dispatch assignments. The 16 V2 keys extend existing catalogs; the original
+keys retain their meaning. The six original maps and first 15 definitions in each
+mission catalog retain their accepted values and order. The eleven expansion
+pools include the new recruits. Lunar Outpost explicitly includes all three
+recruitable alien variants; all new alien-targeted operations use that map.
+
+The 14 recoverable definitions use existing `infantry`, `heavy_infantry`, `vehicle`
+and `air` classes. Permanent recruits retain `source_enemy_key`, `unit_class` and
+`affinity_type` through the existing owned-unit persistence paths. Hi-Do and UFO
+Boss use `class=boss`, `recruitable=0` and the existing boss encounter mode. Boss
+Combat Mission targets likewise retain boss combat and recovery exclusions.
+
+AI live recovery resolves a compatible item through the Fulton catalog. Aircraft
+require Wormhole at the shared R&D Lv8 threshold; restocking uses the same authored
+R&D recipe. The development/catch-up candidate filter and final recruit guard also
+apply that aircraft unlock. Existing background operations continue to represent
+supplies abstractly; the release does not retrofit per-item consumption into old
+elapsed-recruitment logic or alter ground-unit recovery progression. Existing
+local pool selection, staff caps, career boosts and bounded scheduler remain.
+
+V2 Dispatch entries name an explicit enemy target. The report builder snapshots
+that authored opposition into the existing automatic-battle data; untargeted
+historical dispatches retain their map-based fallback. Replay remains a projection
+of the committed result, with no capture or settlement authority. Aircraft use the
+existing hardware presentation size. Both mission menus retain their text-only
+cards and accepted controls.
+
+There are no new tables, columns, schema revisions or AI distribution markers.
+Active fights and deployments keep their committed snapshots. The resident world
+process reloads this release through the existing source-change retirement/startup
+mechanism. See [CHARACTERS_V2.md](CHARACTERS_V2.md),
+[TACTICAL_OPERATIONS.md](TACTICAL_OPERATIONS.md) and [../UPGRADE_v0.8.7.md](../UPGRADE_v0.8.7.md).
 
 ## v0.8.5.1 enemy-level correction
 

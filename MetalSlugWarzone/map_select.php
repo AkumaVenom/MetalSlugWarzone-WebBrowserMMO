@@ -23,6 +23,7 @@ msw_header('Warzone Select','map_select.php');msw_resource_strip((int)$u['id']);
             <h3><?=msw_e($m['name'])?></h3>
             <p><?=msw_e($m['region'])?> · <?=number_format((int)$m['w'])?>×<?=number_format((int)$m['h'])?> battlefield</p>
             <p><strong>Enemy Lv <?=$minimum?>–<?=$maximum?></strong><br>Recommended Commander Lv <?=intval($readiness['recommended_level'])?></p>
+            <?php if((int)$m['level']>12):?><p><strong>Field contacts:</strong> <?=msw_e(implode(' · ',array_map(static fn(string $enemyKey):string=>(string)msw_enemy_catalog()[$enemyKey]['name'],$m['encounters'])))?></p><?php endif;?>
             <a class="btn" href="<?=msw_e(msw_url('map.php?zone='.urlencode($key)))?>" aria-label="Deploy to <?=msw_e($m['name'])?>">Deploy</a>
         </div>
     </article>
