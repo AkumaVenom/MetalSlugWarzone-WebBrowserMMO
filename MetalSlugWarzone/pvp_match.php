@@ -5,14 +5,40 @@ require_once __DIR__.'/includes/ui.php';
 $u=msw_require_user();$uid=(int)$u['id'];$id=(int)($_GET['id']??$_POST['id']??0);
 if(msw_is_post()){
     msw_verify_post();$version=(int)($_POST['version']??0);$move=(string)($_POST['move']??'rifle_burst');
-    try{$result=msw_pvp_commit_turn($id,$uid,$version,$move);$moveCatalog=msw_move_catalog();$moveName=(string)($moveCatalog[$move]['name']??$move);msw_console_event_for_user($uid,'PVP','TURN','Committed '.$moveName.' in PvP match #'.$id.'.',['match_id'=>$id,'move'=>$moveName,'status'=>(string)($result['status']??'active'),'mode'=>(string)($result['mode']??'live')]);if($result['mode']==='snapshot'&&$result['status']==='active')msw_pvp_process_bot_turn($id,true);}catch(Throwable $e){msw_flash($e->getMessage(),'warning');}
+    try{
+        $result=msw_pvp_commit_turn($id,$uid,$version,$move);$moveCatalog=msw_move_catalog();$moveName=(string)($moveCatalog[$move]['name']??$move);
+        msw_console_event_for_user($uid,'PVP','TURN','Committed '.$moveName.' in PvP match #'.$id.'.',['match_id'=>$id,'move'=>$moveName,'status'=>(string)($result['status']??'active'),'mode'=>(string)($result['mode']??'live')]);
+        if($result['mode']==='snapshot'&&$result['status']==='active'){
+            // Quick AI duels resolve the human turn and AI reply before redirect.
+            // Keep the already-committed human cue so that both attacks are heard.
+            $audioTurn=msw_one('SELECT * FROM pvp_matches WHERE id=?','i',[$id]);
+            $audioState=$audioTurn?json_decode((string)$audioTurn['state_json'],true):null;
+            $audioEvent=is_array($audioState)?msw_audio_pvp_event($audioTurn,$audioState,$uid):null;
+            if(msw_pvp_process_bot_turn($id,true)&&$audioEvent){
+                $_SESSION['msw_audio_pvp_turns'][(string)$id]=['uid'=>$uid,'seq'=>(int)($audioState['fx']['seq']??0),'event'=>$audioEvent];
+                if(count($_SESSION['msw_audio_pvp_turns'])>8)$_SESSION['msw_audio_pvp_turns']=array_slice($_SESSION['msw_audio_pvp_turns'],-8,null,true);
+            }
+        }
+    }catch(Throwable $e){msw_flash($e->getMessage(),'warning');}
     msw_redirect('pvp_match.php?id='.$id);
 }
 $m=msw_one('SELECT p.*,u1.username p1,u2.username p2,u1.character_key c1,u2.character_key c2,u1.is_bot b1,u2.is_bot b2 FROM pvp_matches p JOIN users u1 ON u1.id=p.player1_id JOIN users u2 ON u2.id=p.player2_id WHERE p.id=? AND (p.player1_id=? OR p.player2_id=?)','iii',[$id,$uid,$uid]);if(!$m){http_response_code(404);exit('PvP match not found.');}
 $s=json_decode((string)$m['state_json'],true);$me=$s['fighters'][(string)$uid];$otherId=$uid===(int)$m['player1_id']?(int)$m['player2_id']:(int)$m['player1_id'];$foe=$s['fighters'][(string)$otherId];
 $chars=msw_character_catalog();$myChar=$chars[$uid===(int)$m['player1_id']?$m['c1']:$m['c2']]??reset($chars);$foeChar=$chars[$uid===(int)$m['player1_id']?$m['c2']:$m['c1']]??reset($chars);$mySprite=(string)($myChar['sprite_r']??$myChar['sprite']);$foeSprite=(string)($foeChar['sprite_l']??$foeChar['sprite_r']??$foeChar['sprite']);$foeMirror=!empty($foeChar['mirror_left']);$foeBot=$uid===(int)$m['player1_id']?(int)$m['b2']===1:(int)$m['b1']===1;
 $fx=(array)($s['fx']??[]);$fxClasses=['msw-battle-arena','pvp-battle-arena'];if((string)($fx['kind']??'')==='contact')$fxClasses[]='fx-action-contact';if((string)($fx['kind']??'')==='attack'){$actor=(int)($fx['actor']??0);$hit=!empty($fx['hit']);if($actor===$uid){$fxClasses[]='fx-pvp-player-attack';if($hit)$fxClasses[]='fx-pvp-enemy-hit';}elseif($actor===$otherId){$fxClasses[]='fx-pvp-enemy-attack';if($hit)$fxClasses[]='fx-pvp-player-hit';}}
+$GLOBALS['msw_audio_context']=['track'=>'versus','loop'=>true];
 msw_header('Live PvP Match','pvp.php');msw_alert(msw_flash());
+$audioEvent=msw_audio_pvp_event($m,$s,$uid);
+$previousAudio=$_SESSION['msw_audio_pvp_turns'][(string)$id]??null;
+unset($_SESSION['msw_audio_pvp_turns'][(string)$id]);
+if(is_array($previousAudio)&&(int)($previousAudio['uid']??0)===$uid&&(int)($previousAudio['seq']??0)===(int)($fx['seq']??0)-1){
+    msw_audio_event_marker((array)$previousAudio['event']);
+    foreach($audioEvent['cues'] as &$audioCue)$audioCue['delay']=(int)($audioCue['delay']??0)+950;
+    unset($audioCue);
+}
+// Live polling reloads only after the authoritative version changes. This stable
+// payload is therefore also the live-opponent cue, and refreshes cannot retrigger it.
+msw_audio_event_marker($audioEvent);
 ?>
 <div data-pvp-watch data-pvp-id="<?=intval($id)?>" data-pvp-version="<?=intval($m['version'])?>" data-pvp-state-url="<?=msw_e(msw_url('pvp_state.php?id='.$id))?>"><div class="grid g2 battle-layout"><section><?php msw_panel($m['p1'].' vs '.$m['p2'],'MATCH #'.$id.' · '.strtoupper(msw_pvp_mode_label((string)$m['match_mode'])).' · LIVE COMBAT'); ?>
 <div class="battle-scene <?=msw_e(implode(' ',$fxClasses))?>" data-battle-fx-seq="<?=intval($fx['seq']??0)?>"><div class="battle-side battle-side-player"><div class="fighter player"><div class="fighter-sprite-shell"><img class="battle-sprite-face-right" data-battle-facing="right" src="<?=msw_e(msw_url($mySprite))?>" alt=""></div><div class="battle-card"><b><?=msw_e($me['name'])?> · Lv <?=intval($me['level'])?></b><div class="hpbar"><i style="width:<?=max(0,min(100,round(100*$me['hp']/max(1,$me['max_hp']))))?>%"></i></div><small>HP <?=intval($me['hp'])?> / <?=intval($me['max_hp'])?></small></div></div></div><div class="battle-vs">VS</div><div class="battle-side battle-side-enemy"><div class="fighter enemy"><div class="fighter-sprite-shell"><img class="battle-sprite-face-left<?=$foeMirror?' battle-sprite-mirror-x':''?>" data-battle-facing="left" src="<?=msw_e(msw_url($foeSprite))?>" alt=""></div><div class="battle-card"><b><?=msw_e($foe['name'])?> · Lv <?=intval($foe['level'])?> <?=$foeBot?'· AI':''?></b><div class="hpbar"><i style="width:<?=max(0,min(100,round(100*$foe['hp']/max(1,$foe['max_hp']))))?>%"></i></div><small>HP <?=intval($foe['hp'])?> / <?=intval($foe['max_hp'])?></small></div></div></div></div>

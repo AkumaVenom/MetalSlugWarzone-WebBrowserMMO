@@ -52,7 +52,9 @@ foreach(msw_fulton_catalog() as $key=>$fulton){
     if($available&&$readyRecovery===null)$readyRecovery=$key;
     $recoveryOptions[$key]=['definition'=>$fulton,'compatible'=>$compatible,'unlocked'=>$unlocked,'stock'=>$stock,'available'=>$available];
 }
+$GLOBALS['msw_audio_context']=msw_audio_battle_context($s,(string)$row['status']);
 msw_header('Combat Engagement');if(!$flash)$flash=msw_flash();msw_alert($flash);
+msw_audio_event_marker(msw_audio_battle_event($row,$s,$uid));
 ?>
 <?php $operation=$s['context']==='mission'?(msw_mission_catalog()[(string)$s['context_key']]??null):null;
 $operationMap=msw_map_catalog()[(string)($operation['map_key']??'')]??null;

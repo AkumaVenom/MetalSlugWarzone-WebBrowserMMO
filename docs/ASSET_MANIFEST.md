@@ -1,4 +1,60 @@
-# Runtime Asset Manifest — v0.8.7
+# Runtime Asset Manifest — v0.9.0
+
+## v0.9.0 supplied sound and music library
+
+All **18 MP3 music tracks and 8 WAV sound effects** from the supplied
+`Metal Slug Warzone Sound And Music Library v1.zip` are included. All 26 original
+files are preserved byte-for-byte. Runtime names are normalized to lowercase
+hyphenated paths under `public_html/assets/audio/`. Existing artwork, maps,
+sprites and mission card presentation are unchanged.
+
+Music is stereo 44.1 kHz MP3. Effects are PCM 16-bit WAV; seven effects use their
+original 22.05/44.1 kHz files. The supplied rocket effect is 192 kHz mono, so its
+runtime copy is resampled to 44.1 kHz mono PCM16 for a smaller browser decode
+payload. The 192 kHz original remains at
+`assets/audio/source/rocket-original-192khz.wav`. No trimming, gain adjustment or
+other audio transformation is applied.
+
+`config/audio.php` is the runtime catalog. `assets/audio/manifest.json` records
+each source name, runtime path, duration, codec/rate, source/runtime byte counts
+and SHA-256 hashes. Durations below are decoded-container estimates in seconds;
+the browser uses loaded metadata for seek limits.
+
+| Audio ID | Uploaded filename | Runtime path | Duration | Runtime bytes |
+| --- | --- | --- | ---: | ---: |
+| `mother_base` | `Mother Base.mp3` | `assets/audio/music/mother-base.mp3` | 172.173 s | 2,308,844 |
+| `extra_mother_base` | `Extra Mother Base.mp3` | `assets/audio/music/extra-mother-base.mp3` | 156.552 s | 2,455,078 |
+| `missions_select` | `MissionsSelect.mp3` | `assets/audio/music/missions-select.mp3` | 114.024 s | 1,647,864 |
+| `map_1` | `Level Map Variety 1.mp3` | `assets/audio/music/map-1.mp3` | 77.897 s | 1,072,385 |
+| `map_2` | `Level Map Variety 2.mp3` | `assets/audio/music/map-2.mp3` | 64.705 s | 918,727 |
+| `map_3` | `Level Map Variety 3.mp3` | `assets/audio/music/map-3.mp3` | 47.700 s | 631,573 |
+| `map_lunar` | `Level Map Variety LUNAR ONLY.mp3` | `assets/audio/music/map-lunar.mp3` | 87.040 s | 1,305,232 |
+| `battle_1` | `Battle Encounter Variety 1.mp3` | `assets/audio/music/battle-1.mp3` | 88.764 s | 1,356,853 |
+| `battle_2` | `Battle Encounter Variety 2.mp3` | `assets/audio/music/battle-2.mp3` | 123.507 s | 1,901,886 |
+| `battle_3` | `Battle Encounter Variety 3.mp3` | `assets/audio/music/battle-3.mp3` | 76.408 s | 1,162,761 |
+| `battle_lunar` | `Battle Encounter Variety LUNAR ONLY.mp3` | `assets/audio/music/battle-lunar.mp3` | 61.257 s | 886,498 |
+| `boss_battle` | `ALL BOSS BATTLES Music.mp3` | `assets/audio/music/boss-battle.mp3` | 120.007 s | 1,854,931 |
+| `battle_lost` | `Battle or mission lost failed.mp3` | `assets/audio/music/battle-lost.mp3` | 7.262 s | 84,861 |
+| `boss_win` | `Boss Battle WIN.mp3` | `assets/audio/music/boss-win.mp3` | 11.389 s | 142,360 |
+| `fob_battle` | `Invade Fob Battle Replay Music.mp3` | `assets/audio/music/fob-battle.mp3` | 14.315 s | 202,167 |
+| `fob_win` | `Invade Fob Battle Replay WIN THEME.mp3` | `assets/audio/music/fob-win.mp3` | 9.665 s | 114,583 |
+| `versus` | `Metal Gear Solid_ Peace Walker Expanded Soundtrack - 56 - VERSUS OPS.mp3` | `assets/audio/music/versus.mp3` | 77.192 s | 1,099,041 |
+| `mission_complete` | `Metal Gear Solid_ Peace Walker Expanded Soundtrack - 66 - EXTRA OPS (Mission Complete).mp3` | `assets/audio/music/mission-complete.mp3` | 6.191 s | 65,497 |
+| `rifle` | `S_Rifle_Fire_1.wav` | `assets/audio/effects/rifle.wav` | 1.602 s | 282,570 |
+| `bullet` | `S_Bullet.WAV` | `assets/audio/effects/bullet.wav` | 0.218 s | 19,907 |
+| `rocket` | `S_Rocket_Fire.WAV` | `assets/audio/effects/rocket.wav` | 2.334 s | 205,956 |
+| `explosion` | `S_explosion_01.WAV` | `assets/audio/effects/explosion.wav` | 2.378 s | 104,980 |
+| `death_1` | `S_Male_Death_01.WAV` | `assets/audio/effects/death-1.wav` | 0.646 s | 28,520 |
+| `death_2` | `S_Male_Death_02.WAV` | `assets/audio/effects/death-2.wav` | 1.107 s | 48,860 |
+| `enemy_winner` | `S_AI_Commando_or_AnyEnemy_WINNER.WAV` | `assets/audio/effects/enemy-winner.wav` | 1.277 s | 225,406 |
+| `flawless_win` | `S_Player_Flawless_Win.WAV` | `assets/audio/effects/flawless-win.wav` | 1.707 s | 75,302 |
+
+Validation performed while preparing these assets: all 26 original files passed
+FFprobe inspection and full FFmpeg decode; all copied originals were compared
+with SHA-256, and the rocket derivative separately passed full decode. These
+checks establish media integrity; browser playback and account persistence are
+covered separately by the sound-system validation and XAMPP checks in
+[AUDIO_SYSTEM.md](AUDIO_SYSTEM.md).
 
 ## v0.8.7 Characters V2 delta
 

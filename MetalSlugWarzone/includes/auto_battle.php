@@ -1,5 +1,6 @@
 <?php
 declare(strict_types=1);
+require_once __DIR__.'/audio_context.php';
 
 /**
  * Automatic operations battle playback.
@@ -254,13 +255,13 @@ function msw_auto_battle_model_dispatch(array $run,array $units,array $definitio
     $success=(string)($run['result']??'failure')==='success';
     $winner=$success?'left':'right';
     $seed='dispatch|'.(int)$run['id'].'|'.(string)$run['result'].'|'.(int)$run['snapshot_power'];
-    return [
+    return msw_auto_battle_attach_audio([
         'kind'=>'dispatch','title'=>'DISPATCH // AUTOMATIC BATTLE','subtitle'=>(string)($definition['name']??$run['mission_key']??'Dispatch Mission'),
         'left_label'=>'MSW COMBAT UNIT','right_label'=>'HOSTILE FORCE','left_power'=>(int)($run['snapshot_power']??0),'right_power'=>(int)($definition['difficulty']??0),
         'odds'=>round((float)($run['success_chance']??0)*100,1),'left'=>$left,'right'=>$right,'winner'=>$winner,
         'result_label'=>$success?'MISSION SUCCESS':'MISSION FAILED','result_detail'=>$success?'Objective secured. Your team returns with the rewards shown below.':'The squad was pushed back. Your returning rewards are shown below.',
         'events'=>msw_auto_battle_events($left,$right,$winner,$seed),
-    ];
+    ],'dispatch:'.(int)$run['id'],(string)($definition['map_key']??''));
 }
 
 function msw_auto_battle_fob_force_power(array $snapshot): int {
@@ -294,13 +295,13 @@ function msw_auto_battle_model_fob(array $raid,array $attackerSnapshot,array $de
     $leftPower=$viewerIsAttacker?$attackerPower:$defenderPower;
     $rightPower=$viewerIsAttacker?$defenderPower:$attackerPower;
 
-    return [
+    return msw_auto_battle_attach_audio([
         'kind'=>'fob','title'=>'FOB // AUTOMATIC BATTLE','subtitle'=>$modeLabel.' · RAID #'.(int)$raid['id'],
         'left_label'=>$leftName,'right_label'=>$rightName,'left_power'=>$leftPower,'right_power'=>$rightPower,
         'odds'=>$chance,'left'=>$left,'right'=>$right,'winner'=>$winner,
         'result_label'=>$viewerWon?'MISSION SUCCESS':'MISSION FAILED','result_detail'=>$viewerWon?'Your force broke through the enemy defenses. Raid rewards are shown below.':'Your force was repelled by the enemy defenses. The battle report is shown below.',
         'events'=>msw_auto_battle_events($left,$right,$winner,$seed),
-    ];
+    ],'fob:'.(int)$raid['id'].':viewer:'.$viewerId);
 }
 
 function msw_auto_battle_model_fob_abort(array $dispatch,array $units,string $defenderName): array {
@@ -310,12 +311,47 @@ function msw_auto_battle_model_fob_abort(array $dispatch,array $units,string $de
         ['callsign'=>$defenderName.' Perimeter Guard','unit_class'=>'infantry','level'=>1,'combat'=>20,'grade'=>'--','source_enemy_key'=>'rifle'],
     ],$defenderName.' Defense');
     $seed='fob_abort|'.(int)$dispatch['id'];
-    return [
+    return msw_auto_battle_attach_audio([
         'kind'=>'fob','title'=>'FOB // AUTOMATIC BATTLE','subtitle'=>'STAFF STRIKE · OPERATION #'.(int)$dispatch['id'],
         'left_label'=>'STRIKE TEAM','right_label'=>$defenderName,'left_power'=>(int)($dispatch['snapshot_power']??0),'right_power'=>0,'odds'=>round((float)($dispatch['success_chance']??0)*100,1),
         'left'=>$left,'right'=>$right,'winner'=>'none','result_label'=>'OPERATION ABORTED','result_detail'=>'The target recovery shield came online before contact. Your strike team withdrew safely.',
         'events'=>msw_auto_battle_events($left,$right,'left',$seed,true),
+    ],'fob-abort:'.(int)$dispatch['id']);
+}
+
+/** Attach sound to the settled battle film, with no gameplay writes or rerolls. */
+function msw_auto_battle_attach_audio(array $model,string $id,string $mapKey=''): array {
+    // Catalog art identifies the source without changing the established unit
+    // snapshot payload or its HP/stat/formation regression contracts.
+    $typesBySprite=[];
+    foreach(msw_enemy_catalog() as $entry)$typesBySprite[(string)$entry['sprite']]=(string)($entry['type']??'ballistic');
+    $fob=(string)($model['kind']??'')==='fob';
+    $boss=false;
+    foreach((array)($model['right']??[]) as $enemy)if((string)($enemy['class']??'')==='boss')$boss=true;
+    $winner=(string)($model['winner']??'none');
+    $fallback=$fob?'extra_mother_base':'missions_select';
+    $model['audio']=[
+        'id'=>$id,
+        'battle_track'=>$winner==='none'?$fallback:($boss?'boss_battle':($fob?'fob_battle':msw_audio_map_track($mapKey,true))),
+        'result_track'=>$winner==='none'?null:($winner==='left'?($boss?'boss_win':($fob?'fob_win':'mission_complete')):'battle_lost'),
+        'fallback'=>$fallback,
+        'result_cues'=>$winner==='right'?[['sound'=>'enemy_winner','delay'=>450]]:[],
     ];
+    foreach($model['events'] as &$event){
+        $event['audio_cues']=[];
+        if(!in_array((string)($event['type']??''),['exchange','knockout'],true))continue;
+        $actor=$model[(string)($event['actor']??'')][(int)($event['actor_index']??0)]??[];
+        $target=$model[(string)($event['target']??'')][(int)($event['target_index']??0)]??[];
+        $event['audio_cues']=msw_audio_attack_cues('',true,0,$typesBySprite[(string)($actor['sprite']??'')]??'ballistic');
+        if((string)$event['type']==='knockout'){
+            if(in_array((string)($target['class']??''),['vehicle','air','boss'],true)){
+                $hasExplosion=false;foreach($event['audio_cues'] as $cue)if($cue['sound']==='explosion')$hasExplosion=true;
+                if(!$hasExplosion)$event['audio_cues'][]=['sound'=>'explosion','delay'=>420];
+            }else $event['audio_cues'][]=['sound'=>(string)($event['target']??'')==='left'?'death_1':'death_2','delay'=>420];
+        }
+    }
+    unset($event);
+    return $model;
 }
 
 function msw_render_auto_battle_unit(array $unit,string $side,int $index): void {

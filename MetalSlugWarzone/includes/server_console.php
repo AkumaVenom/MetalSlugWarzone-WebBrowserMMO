@@ -36,6 +36,7 @@ function msw_console_suppressed_routes(): array {
         'mother_base_move.php',
         'mother_base_presence.php',
         'pvp_state.php',
+        'audio_state.php',
     ];
 }
 

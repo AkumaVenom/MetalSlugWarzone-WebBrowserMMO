@@ -1,3 +1,26 @@
+## v0.9.0 account audio layer
+
+`includes/audio_ui.php` mounts one global dock from the shared footer before
+`msw.js` runs. `config/audio.php` is the fixed asset/track authority;
+`includes/audio_context.php` supplies page routing and presentation events.
+`assets/js/audio.js` owns media, gain controls, seeking, per-account caches,
+revision-aware checkpoints, tab ownership and bounded effect voices. It never
+submits gameplay actions. `audio.css` scopes its controls without changing
+existing game artwork or card styling.
+
+`audio_state.php` validates the existing authenticated session, CSRF, origin,
+JSON shape and allowlisted track IDs. `includes/audio.php` reads/writes only two
+additive account tables. Settings and each track use separate compare-and-swap
+revisions; delayed checkpoints cannot overwrite newer committed positions or
+preferences. Regular checkpoint traffic is excluded from the activity console.
+The endpoint releases the PHP session lock before storage work.
+
+PvE/PvP sound events are derived from committed FX sequence IDs. Quick AI duels
+retain the already committed player cue before the AI reply. Dispatch/FOB audio
+is added to deterministic film metadata after the existing authoritative result
+is settled. Replay changes presentation only. Browser autoplay and reduced-motion
+settings remain independent of game outcomes and saved account mute.
+
 # Architecture — Metal Slug Warzone v0.8.7
 
 ## v0.8.7 character and operation extension

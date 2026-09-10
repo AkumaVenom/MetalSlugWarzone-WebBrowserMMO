@@ -1,3 +1,47 @@
+# v0.9.0 — Major Sound System validation
+
+Built from the supplied **MetalSlugWarzone_v0.8.7_CharactersV2_Complete(2).zip**
+and **Metal Slug Warzone Sound And Music Library v1.zip**. No user database was
+opened or modified during this build. Earlier sections below describe historical
+releases and must not be read as v0.9.0 PHP/database execution results.
+
+## Executed checks
+
+| Gate | Result | Evidence |
+| --- | --- | --- |
+| Actual audio controller under deterministic DOM/media/storage/fetch fixtures | 30 passed | `tests/audio_client_results.json` and `tests/audio_client.test.js` |
+| Actual battle-film JavaScript sound sequence, Replay, Skip and reduced motion | 13 passed | `tests/audio_replay_regression.js` |
+| Existing map presence | 11 groups / 60 sprite cases passed | `tests/map_presence_client.test.js` |
+| Existing automatic-world client | 13 passed | `tests/world_runtime_client.test.js` |
+| Windows task adapter model | 7 passed; native Windows not executed | `tests/windows_task_adapter.test.js` |
+| Existing Dispatch form behavior | 278 passed across 31 forms | `tests/operations_ui_regression.js` |
+| PHP/SQL install definitions compared as text | All 27 table definitions match; all 25 baseline tables unchanged | `tests/audio_backend_static_090_results.json` |
+| Audio integrity | All 26 originals fully decode; hashes preserved; rocket derivative fully decodes | `assets/audio/manifest.json` under `public_html`, `docs/ASSET_MANIFEST.md` |
+
+Total: **352 passing Node checks**. The controller checks exercise enabled
+defaults, account isolation, mute/volumes, metadata seek restoration, looping,
+transient result restoration, event deduplication, mute during effect downloads,
+eight-voice limits, hidden-tab behavior, unavailable storage, failed saves,
+settings/track revision conflicts, and every pending track on navigation.
+
+## Not executed in this build
+
+- PHP syntax/runtime, MySQL/MariaDB transactions and actual HTTP account saves:
+  PHP/MySQL are absent from the build environment. Reproducible tests are included
+  as `tests/audio_state_http_regression.py`, `tests/audio_state_fixture.php` and
+  `tests/audio_context_regression.php`. These are **not passing runtime claims**.
+- Real-browser playback/autoplay/decoding and visual/mobile layout inspection:
+  cloud-browser access to the local verification page was denied. Deterministic
+  JavaScript and FFmpeg media checks do not substitute for these browser checks.
+- Real XAMPP upgrade, packaged host/client browsers, native Windows background
+  service behavior and multiplayer soak acceptance.
+
+Perform the host checklist in `UPGRADE_v0.9.0.md` and `docs/AUDIO_SYSTEM.md`.
+Global audio CSS is isolated; existing main CSS, art and mission-card pages are
+byte-preserved. New endpoint operations never write gameplay tables.
+
+---
+
 # v0.8.7 — Characters V2 and Tactical Operations validation
 
 This complete release was built from the supplied v0.8.6.3 Public Complete ZIP

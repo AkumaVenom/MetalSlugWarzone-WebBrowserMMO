@@ -31,6 +31,26 @@ CREATE TABLE IF NOT EXISTS users (
  INDEX idx_fob_protection(fob_protection_until)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
+CREATE TABLE IF NOT EXISTS audio_preferences (
+ user_id BIGINT UNSIGNED PRIMARY KEY,
+ muted TINYINT(1) NOT NULL DEFAULT 0,
+ music_volume DECIMAL(4,3) NOT NULL DEFAULT 0.550,
+ effects_volume DECIMAL(4,3) NOT NULL DEFAULT 0.750,
+ settings_revision BIGINT UNSIGNED NOT NULL DEFAULT 0,
+ updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+ FOREIGN KEY(user_id) REFERENCES users(id) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS audio_track_positions (
+ user_id BIGINT UNSIGNED NOT NULL,
+ track_id VARCHAR(64) CHARACTER SET ascii COLLATE ascii_bin NOT NULL,
+ position_seconds DECIMAL(10,3) UNSIGNED NOT NULL DEFAULT 0.000,
+ position_revision BIGINT UNSIGNED NOT NULL DEFAULT 0,
+ updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+ PRIMARY KEY(user_id,track_id),
+ FOREIGN KEY(user_id) REFERENCES users(id) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
 CREATE TABLE IF NOT EXISTS bot_commanders (
  user_id BIGINT UNSIGNED PRIMARY KEY,
  bot_index INT UNSIGNED NOT NULL UNIQUE,
@@ -359,4 +379,4 @@ CREATE TABLE IF NOT EXISTS login_attempts (
  PRIMARY KEY(ip_hash,username_key)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
-INSERT INTO schema_meta(meta_key,meta_value) VALUES ("schema_revision","9") ON DUPLICATE KEY UPDATE meta_value=VALUES(meta_value);
+INSERT INTO schema_meta(meta_key,meta_value) VALUES ("schema_revision","10") ON DUPLICATE KEY UPDATE meta_value=VALUES(meta_value);

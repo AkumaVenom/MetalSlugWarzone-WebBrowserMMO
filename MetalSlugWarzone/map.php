@@ -34,6 +34,7 @@ $mirrorLeft=!empty($character['mirror_left']);
 $initialSprite=$facing==='left'?$spriteL:$spriteR;
 $botPopulation=msw_bot_population_summary();
 
+$GLOBALS['msw_audio_context']=['track'=>msw_audio_map_track($key),'loop'=>true];
 msw_header($map['name'],'map_select.php');
 ?>
 <div class="warzone-toolbar">

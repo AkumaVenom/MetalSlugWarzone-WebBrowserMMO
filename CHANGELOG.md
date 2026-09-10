@@ -1,3 +1,28 @@
+## v0.9.0 — Major Sound System — 2026-09-10
+
+- Integrate all 18 supplied tracks and eight effects with a central audio catalog,
+  readable runtime filenames and verified source provenance. Preserve originals;
+  provide a smaller 44.1 kHz rocket WAV derivative for playback.
+- Add a global, keyboard-accessible Sound dock, master mute, separate music/effects
+  levels, track seeking, pause/play, test-effect and retry controls. Sound defaults
+  on; initial music/effects levels are 55%/75%.
+- Persist account mute/levels and per-track offsets in two additive schema 10
+  tables. Independent settings/track revisions reject stale tab and navigation
+  saves. Session-local checkpoints bridge page loads; normal navigation retains
+  a brief document-loading audio gap.
+- Route map/menu/base/lunar/boss/PvP/dispatch/FOB music from the authored catalog.
+  Drive effects from committed PvE/PvP events and settled battle films. Preserve
+  deduplication on refresh, fresh sound on Replay, and silent fast-forward on Skip.
+- Respect browser autoplay permission, saved mute, hidden tabs and reduced motion.
+  Bound effect overlap, cancel pending/decoding effects on mute, retry failed media,
+  and expose save failures without blocking gameplay.
+- Extend Fresh Install, Update / Repair and Confirm Installation for account
+  audio; preserve the uploaded database credentials, artwork, mission cards,
+  simulation, capture and reward authority.
+- Add 30 controller and 13 replay behavior checks; all 352 Node checks pass.
+  Verify all audio originals and the derivative, and schema parity/preservation.
+  PHP/MySQL and live browser acceptance remain explicitly pending on the host.
+
 ## v0.8.7 — Characters V2 & Tactical Operations — 2026-09-10
 
 - Integrate all 16 supplied V2 PNGs at their original bytes and native dimensions:

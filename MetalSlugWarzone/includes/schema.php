@@ -2,7 +2,7 @@
 declare(strict_types=1);
 require_once __DIR__ . '/catalog.php';
 
-const MSW_SCHEMA_REVISION = 9;
+const MSW_SCHEMA_REVISION = 10;
 
 function msw_schema_statements(): array {
     return [
@@ -36,6 +36,24 @@ function msw_schema_statements(): array {
  INDEX idx_bot_map(is_bot,active_map),
  INDEX idx_power(base_power),
  INDEX idx_fob_protection(fob_protection_until)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci",
+"CREATE TABLE IF NOT EXISTS audio_preferences (
+ user_id BIGINT UNSIGNED PRIMARY KEY,
+ muted TINYINT(1) NOT NULL DEFAULT 0,
+ music_volume DECIMAL(4,3) NOT NULL DEFAULT 0.550,
+ effects_volume DECIMAL(4,3) NOT NULL DEFAULT 0.750,
+ settings_revision BIGINT UNSIGNED NOT NULL DEFAULT 0,
+ updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+ FOREIGN KEY(user_id) REFERENCES users(id) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci",
+"CREATE TABLE IF NOT EXISTS audio_track_positions (
+ user_id BIGINT UNSIGNED NOT NULL,
+ track_id VARCHAR(64) CHARACTER SET ascii COLLATE ascii_bin NOT NULL,
+ position_seconds DECIMAL(10,3) UNSIGNED NOT NULL DEFAULT 0.000,
+ position_revision BIGINT UNSIGNED NOT NULL DEFAULT 0,
+ updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+ PRIMARY KEY(user_id,track_id),
+ FOREIGN KEY(user_id) REFERENCES users(id) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci",
 "CREATE TABLE IF NOT EXISTS bot_commanders (
  user_id BIGINT UNSIGNED PRIMARY KEY,
@@ -603,6 +621,10 @@ function msw_schema_upgrade_world_runtime(mysqli $db): void {
 
 function msw_install_schema(mysqli $db): void {
     foreach (msw_schema_statements() as $sql) $db->query($sql);
+
+    // v9 -> v10 is additive: the two audio tables above are created on install
+    // and repair. Existing accounts read enabled defaults until their first save;
+    // no preference backfill or gameplay mutation is required.
 
     // Non-destructive v1 -> v2 repair path.
     if (!msw_schema_column_exists($db, 'users', 'last_fob_attack_at')) {

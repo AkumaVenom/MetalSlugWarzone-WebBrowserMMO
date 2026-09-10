@@ -73,7 +73,7 @@ if(($_SERVER['REQUEST_METHOD']??'GET')==='POST'){
             $kind='success';
         }elseif($action==='confirm'){
             setup_db($mysqli,$name);
-            $required=['schema_meta','users','bot_commanders','player_resources','inventory','base_sectors','units','security_backup_slots','mother_base_presence','mother_base_unit_positions','encounters','mission_progress','dispatch_missions','base_projects','fob_worlds','fob_world_memberships','fob_strike_dispatches','fob_raids','pvp_matches','friend_requests','friends','direct_messages','strike_forces','strike_force_members','login_attempts'];
+            $required=['schema_meta','users','audio_preferences','audio_track_positions','bot_commanders','player_resources','inventory','base_sectors','units','security_backup_slots','mother_base_presence','mother_base_unit_positions','encounters','mission_progress','dispatch_missions','base_projects','fob_worlds','fob_world_memberships','fob_strike_dispatches','fob_raids','pvp_matches','friend_requests','friends','direct_messages','strike_forces','strike_force_members','login_attempts'];
             foreach($required as $table){
                 $safe=$mysqli->real_escape_string($table);
                 $result=$mysqli->query("SHOW TABLES LIKE '{$safe}'");

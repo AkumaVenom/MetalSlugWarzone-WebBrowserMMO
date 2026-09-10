@@ -378,7 +378,17 @@
     const replay=shell.querySelector('[data-auto-battle-replay]');
     const skip=shell.querySelector('[data-auto-battle-skip]');
     const events=Array.isArray(model.events)?model.events:[];
+    const audio=model.audio&&typeof model.audio==='object'?model.audio:{};
     let runToken=0;
+    let audioRun='auto';
+
+    // These events only describe a film built from an already-settled report.
+    // Stable automatic IDs prevent a refresh from replaying committed effects;
+    // the user's Replay button deliberately gets a fresh presentation ID.
+    const sound=(suffix,detail)=>{
+      if(!audio.id)return;
+      window.dispatchEvent(new CustomEvent('msw:audio-event',{detail:{id:`${audio.id}:${audioRun}:${suffix}`,...detail}}));
+    };
 
     const wait=ms=>new Promise(resolve=>window.setTimeout(resolve,ms));
     const team=side=>Array.isArray(model[side])?model[side]:[];
@@ -424,7 +434,7 @@
       log.append(line);
       log.scrollTop=log.scrollHeight;
     };
-    const applyEvent=evt=>{
+    const applyEvent=(evt,index,withAudio=true)=>{
       clearFx();
       if(evt.left_integrity!==undefined)setIntegrity('left',evt.left_integrity);
       if(evt.right_integrity!==undefined)setIntegrity('right',evt.right_integrity);
@@ -433,10 +443,10 @@
       if(evt.target_index!==undefined&&Number(evt.target_index)>=0&&evt.target&&evt.hp_after!==undefined){
         setHp(String(evt.target),Number(evt.target_index),evt.hp_after);
       }
-      if(evt.actor&&evt.actor!=='none'&&Number(evt.actor_index)>=0){
+      if(!reduced&&evt.actor&&evt.actor!=='none'&&Number(evt.actor_index)>=0){
         const actor=unit(String(evt.actor),Number(evt.actor_index));if(actor)actor.classList.add('is-firing');
       }
-      if(evt.target&&evt.target!=='none'&&Number(evt.target_index)>=0){
+      if(!reduced&&evt.target&&evt.target!=='none'&&Number(evt.target_index)>=0){
         const target=unit(String(evt.target),Number(evt.target_index));if(target)target.classList.add('is-hit');
       }
       if(evt.type==='shield')shell.querySelectorAll('[data-auto-force="right"] .auto-battle-fighter').forEach(node=>node.classList.add('is-shielded'));
@@ -446,6 +456,7 @@
         status.textContent=evt.type==='contact'?'CONTACT':evt.type==='knockout'?'TARGET DOWN':evt.type==='decisive'?'BATTLE COMPLETE':evt.type==='shield'?'SHIELD BLOCK':evt.type==='withdraw'?'WITHDRAWAL':'ENGAGING';
       }
       pushLog(String(evt.log||''));
+      if(withAudio&&Array.isArray(evt.audio_cues)&&evt.audio_cues.length)sound(`frame:${index}`,{cues:evt.audio_cues});
     };
     const finish=()=>{
       clearFx();
@@ -454,23 +465,37 @@
       if(stage)stage.dataset.phase='complete';
       if(replay)replay.disabled=false;
       if(skip)skip.disabled=true;
+      sound('result',{
+        cues:Array.isArray(audio.result_cues)?audio.result_cues:[],
+        music:audio.result_track||audio.fallback,
+        loop:!audio.result_track,
+        fallback:audio.fallback,
+        // Each newly heard settled result deserves its full one-shot sting.
+        // Refresh duplicates are rejected by the stable result ID upstream.
+        restart:!!audio.result_track,
+        cancelPending:true
+      });
     };
-    const applyAll=()=>{reset();events.forEach(applyEvent);finish();};
-    const play=async()=>{
+    // Skip applies all HP frames silently, then plays the single settled result.
+    const applyAll=()=>{reset();events.forEach((evt,index)=>applyEvent(evt,index,false));finish();};
+    const play=async(explicitReplay=false)=>{
       const token=++runToken;
+      audioRun=explicitReplay?`replay:${Date.now()}:${token}`:'auto';
       reset();
       if(replay)replay.disabled=true;if(skip)skip.disabled=false;
-      if(reduced){applyAll();return;}
+      sound('start',{cues:[],music:audio.battle_track,loop:true,fallback:audio.fallback,restart:explicitReplay,cancelPending:true});
+      // Reduced-motion mode omits lunge/hit animation classes, but preserves
+      // readable battle timing and sound. Sound has its own independent controls.
       await wait(550);if(token!==runToken)return;
-      for(const evt of events){
-        applyEvent(evt);
+      for(const [index,evt] of events.entries()){
+        applyEvent(evt,index);
         const pause=evt.type==='contact'?1000:evt.type==='knockout'?950:evt.type==='decisive'?1200:evt.type==='shield'?1250:820;
         await wait(pause);
         if(token!==runToken)return;
       }
       finish();
     };
-    if(replay)replay.addEventListener('click',play);
+    if(replay)replay.addEventListener('click',()=>play(true));
     if(skip)skip.addEventListener('click',()=>{runToken++;applyAll();});
     // Script is cache-busted per release in ui.php, so every result page receives
     // this autoplay code even if the browser had an older msw.js cached.
