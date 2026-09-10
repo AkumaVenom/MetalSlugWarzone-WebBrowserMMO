@@ -3,12 +3,23 @@ declare(strict_types=1);
 require_once __DIR__ . '/bootstrap.php';
 require_once __DIR__ . '/auto_battle.php';
 
+/** Content revisions keep paired renderer/CSS fixes fresh even with local config. */
+function msw_asset_url(string $path): string {
+    static $revisions=[];
+    if(!isset($revisions[$path])){
+        $file=__DIR__.'/../'.$path;
+        $digest=is_file($file)?hash_file('sha256',$file):false;
+        $revisions[$path]=$digest!==false?substr($digest,0,12):'missing';
+    }
+    return msw_url($path.'?v='.rawurlencode((string)msw_config()['version']).'&r='.$revisions[$path]);
+}
+
 function msw_header(string $title,string $active=''): void {
     $u=msw_user(); $chars=msw_character_catalog();
     $script=basename((string)($_SERVER['SCRIPT_NAME']??'index.php'),'.php');
     $pageClass='page-'.preg_replace('/[^a-z0-9]+/','-',strtolower($script));
     if($u && $script!=='mother_base') msw_mb_presence_leave((int)$u['id']);
-    ?><!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="theme-color" content="#0b0c0d"><title><?=msw_e($title)?> · Metal Slug Warzone</title><link rel="stylesheet" href="<?=msw_e(msw_url('assets/css/msw.css?v='.rawurlencode((string)msw_config()['version'])))?>"><?php if($u):?><link rel="stylesheet" href="<?=msw_e(msw_url('assets/css/world_runtime.css?v='.rawurlencode((string)msw_config()['version'])))?>"><?php endif;?></head><body class="<?=msw_e($pageClass)?>">
+    ?><!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="theme-color" content="#0b0c0d"><title><?=msw_e($title)?> · Metal Slug Warzone</title><link rel="stylesheet" href="<?=msw_e(msw_asset_url('assets/css/msw.css'))?>"><?php if($u):?><link rel="stylesheet" href="<?=msw_e(msw_url('assets/css/world_runtime.css?v='.rawurlencode((string)msw_config()['version'])))?>"><?php endif;?></head><body class="<?=msw_e($pageClass)?>">
     <div class="scanline" aria-hidden="true"></div><header class="topbar"><a class="brand" href="<?=msw_e(msw_url($u?'dashboard.php':'index.php'))?>"><span class="brand-mark">MSW</span><span><b>METAL SLUG</b><em>WARZONE // COMMAND NETWORK</em></span></a>
     <div class="network-state" <?php if($u):?>data-world-connection data-state="connecting" aria-label="Connecting to automatic world updates"<?php else:?>aria-label="Command network"<?php endif;?>><i></i><span>WARZONE LINK</span><b <?php if($u):?>data-world-connection-label<?php endif;?>><?=$u?'CONNECTING':'READY'?></b></div>
     <?php if($u): $c=$chars[$u['character_key']]??reset($chars);$p=msw_user_progress($u); ?><div class="commander-chip"><span class="commander-sprite-shell"><img src="<?=msw_e(msw_url($c['sprite']))?>" alt=""></span><span class="commander-chip-copy"><b><?=msw_e($u['username'])?></b><small>LV <?=intval($p['level'])?> · <?=msw_e($u['base_grade'])?> · PWR <?=number_format((int)$u['base_power'])?></small><span class="commander-xp-row"><i><em style="width:<?=round((float)$p['percent'],2)?>%"></em></i><small>XP <?=number_format((int)$p['current_xp'])?> / <?=number_format((int)$p['required_xp'])?></small></span></span></div><?php endif; ?></header>
@@ -18,7 +29,7 @@ function msw_header(string $title,string $active=''): void {
     <main class="shell"><?php
 }
 function msw_footer(): void {
-    ?><footer class="footer"><span>METAL SLUG WARZONE // YOUR WARZONE, ALWAYS READY</span><span>v<?=msw_e((string)msw_config()['version'])?></span></footer></main><script src="<?=msw_e(msw_url('assets/js/msw.js?v='.rawurlencode((string)msw_config()['version'])))?>"></script><?php
+    ?><footer class="footer"><span>METAL SLUG WARZONE // YOUR WARZONE, ALWAYS READY</span><span>v<?=msw_e((string)msw_config()['version'])?></span></footer></main><script src="<?=msw_e(msw_asset_url('assets/js/msw.js'))?>"></script><?php
     if(msw_user_id()>0){
         ?><script src="<?=msw_e(msw_url('assets/js/world_runtime.js?v='.rawurlencode((string)msw_config()['version'])))?>" data-pulse-url="<?=msw_e(msw_url('world_pulse.php'))?>" data-csrf="<?=msw_e(msw_csrf())?>" data-server-time="<?=(int)round(microtime(true)*1000)?>"></script><?php
     }

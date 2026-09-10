@@ -1,3 +1,38 @@
+## v0.8.6.3 — Attached Character Markers — 2026-09-10
+
+- Put each remote character image and label inside one positioned map actor.
+  Center the marker three pixels below the sprite box; move, hide and remove
+  the complete actor together. Preserve profile links and hover/focus identity.
+- Correct the independent CSS scale/centering interaction that shifted mirrored
+  Trevor one sprite width away from his marker. Mirror only the artwork inside
+  remote actors and fix standalone local-avatar centering as well.
+- Retain four-direction sprite initialization and failed-image recovery. Keep
+  stable actor reuse and apply smooth movement only to the shared parent, with
+  a reduced-motion override.
+- Add content-derived revision keys to core CSS/JavaScript URLs so preserved
+  local version settings cannot keep the old mismatched renderer/styles cached.
+- Preserve the uploaded public baseline’s blank MySQL password, with no
+  password environment fallback. Retain its original database test fixtures.
+- Ship the complete project with every supplied baseline file and all native
+  image/map assets retained. Preserve schema 9, the AI population, real Dispatch
+  menus, text-only player Combat Missions, gameplay state and backend logic.
+- Update client tests for shared positioning, atomic visibility/removal and
+  late image events. Add a standalone local browser fixture for host validation.
+
+## Superseded initial AI visibility patch — 2026-09-10
+
+- Fix first-seen remote AI and human sprites when the server reports up/down
+  movement. Select the existing right-facing art for vertical/default headings,
+  with authored left sprites and Trevor mirroring retained for left movement.
+- Keep each remote label and image hidden until the image has decoded successfully;
+  hide both after image failure and retry on the next normal presence poll.
+- Avoid resetting an already-loaded matching image source on repeated polls.
+  Retain stable node reuse, profile links, hover names and complete removal.
+- Apply through the common renderer used by all 17 warzones. Preserve the existing
+  AI roster, server presence filtering, map geometry, CSS and gameplay systems.
+- Ship as a focused update over installed v0.8.6.1 or v0.8.6.2, preserving their
+  configuration and version. Add executable client regression coverage.
+
 ## v0.8.6.1 — Restore original Dispatch menu
 
 - Restore the accepted Dispatch page: Available Dispatches, one staff-selection

@@ -315,3 +315,15 @@ body.page-fob-dispatch-result{--hero-art:url('../artwork/CommandCentreHeader.jpg
    right-facing fallback (currently Trevor) and for Security escorts. */
 .battle-sprite-face-right,.battle-sprite-face-left{transform-origin:50% 50%}
 .battle-sprite-mirror-x{transform:scaleX(-1)!important;transform-origin:50% 50%!important}
+
+/* v0.8.6.3: a character and its marker share one world/foot anchor.
+   Independent CSS scale mirrored the old centering translation, shifting Trevor
+   away from his label. Keep centering on the actor and mirror only its image. */
+.map-avatar[data-mirror-left="1"][data-facing="left"]{scale:none;transform:translate(-50%,-100%) scaleX(-1)}
+.map-actor{position:absolute;width:76px;height:52px;margin:0;padding:0;border:0;transform:translate(-50%,-100%);transform-origin:50% 100%;z-index:4;overflow:visible;transition:left .11s linear,top .11s linear}
+.map-actor[hidden]{display:none!important}
+.map-actor>.map-avatar{position:static;display:block;width:auto;height:52px;max-width:76px;max-height:52px;margin:0 auto;padding:0;border:0;transform:none;scale:none;transition:none}
+.map-actor>.map-avatar[data-mirror-left="1"][data-facing="left"]{transform:scaleX(-1);scale:none;transform-origin:50% 50%}
+.map-actor>.map-label{position:absolute;left:50%;top:calc(100% + 3px);margin:0;transform:translateX(-50%);scale:none;transition:none}
+.map-actor:hover,.map-actor:focus-within{z-index:14}
+@media(prefers-reduced-motion:reduce){.map-actor{transition:none}}

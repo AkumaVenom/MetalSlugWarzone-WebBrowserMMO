@@ -1,3 +1,59 @@
+# v0.8.6.3 — Attached character markers
+
+The earlier script-only fix handled initial vertical sprite visibility. The new
+reported offset was separately traced to independent CSS mirroring: applying
+`scale:-1 1` before the sprite's centering translation shifted left-facing Trevor
+one rendered sprite width to the right of his marker (about 45.247px at 52px high).
+This complete release corrects both problems.
+
+## Correction and checks
+
+- Each remote character has one `.map-actor` with one world x/y. The sprite and
+  marker are children with no separate inline world coordinates. Their movement,
+  visibility, role replacement and departure now apply to the whole actor.
+- The sprite is centered inside the actor. Mirroring affects the artwork only;
+  the label remains centered three pixels below the sprite box. Standalone local
+  Trevor receives the corresponding combined centering/mirroring correction.
+- Independent CSS/specificity and geometry review using all six actual sprite
+  dimensions verifies a common horizontal center for image and label, mirrored or
+  unmirrored. Movement animation lives on the actor and respects reduced motion.
+- **11 executable client regression groups / 60 skin-direction-role combinations
+  pass** against the actual shipped JavaScript. Checks cover shared parenting,
+  initial loading, vertical art, atomic readiness, cached images, failed-image
+  retry, node reuse, movement, role changes, departure and late load events.
+- **134 existing staff-dispatch control assertions** and **13 world client cases**
+  still pass. Shipped browser JavaScript passes Node syntax checks; Python test
+  files parse. Current result: `tests/marker_attachment_0863_results.json`.
+- The shared application configuration retains the uploaded baseline's blank
+  MySQL password and has no password environment fallback. Database test fixtures
+  match the original upload. Static audit confirms gameplay, setup and background
+  execution consume the same application configuration. The entire public
+  package was scanned to verify the mistakenly inserted private value is absent.
+- CSS and core script URLs use content hashes as well as the configured release
+  version, preventing older locally retained version settings from keeping the
+  corrected pair cached under their previous URLs.
+- Every one of the **260 original baseline files** is retained (with the intended
+  edits), and all **95 original image/font assets** match their source bytes.
+  The complete ZIP is ordinary ZIP STORE without ZIP64/encryption. It is fully
+  extracted with independent Info-ZIP and every file is checked against source
+  bytes and the SHA-256 inventory.
+
+## Reproduce and host-check
+
+Run `node tests/map_presence_client.test.js` from the project root.
+`python3 tests/map_marker_browser_fixture.py --port 8765` serves an optional local
+visual fixture at `http://127.0.0.1:8765/`, using the real CSS, JS and sprites with
+disposable presence data. It never connects to the game database. It displays all
+six skins and four headings; controls exercise movement, turns and departures.
+The map links use the actual supplied map art. This fixture belongs in `tests`,
+not in the installed public web folder.
+
+**Limits:** this session's browser permission check denied access to the local
+preview; no browser visual result is claimed. PHP/MySQL and live Windows/XAMPP
+execution were not available for this release. The DOM tests and geometry review
+are automated/static evidence, not a live gameplay acceptance test. Earlier
+HTTP/database/native-Windows evidence below is historical and was not rerun.
+
 # v0.8.6.1 — Dispatch restoration validation
 
 The corrected presentation was tested using PHP8.3.6/MariaDB10.11.14 in an isolated

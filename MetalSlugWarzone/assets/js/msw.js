@@ -65,8 +65,12 @@
     const applyFacingSprite=(image,facing)=>{
       if(!image)return;
       image.dataset.facing=facing||'right';
-      if(facing==='left'&&image.dataset.spriteLeft)image.src=image.dataset.spriteLeft;
-      if(facing==='right'&&image.dataset.spriteRight)image.src=image.dataset.spriteRight;
+      // Movement has four headings; the authored character art has two. Match
+      // map_presence.php: up/down use the right sprite, including first sight.
+      const sprite=facing==='left'
+        ?(image.dataset.spriteLeft||image.dataset.spriteRight)
+        :(image.dataset.spriteRight||image.dataset.spriteLeft);
+      if(sprite&&(image.getAttribute('src')!==sprite||(image.complete&&image.naturalWidth===0)))image.src=sprite;
     };
     if(me){applyFacingSprite(me,me.dataset.facing||'right');centerOn(parseInt(me.style.left||'0',10),parseInt(me.style.top||'0',10));}
 
@@ -139,19 +143,30 @@
           let pair=presenceNodes.get(key);
           const wantsLink=!!player.is_bot;
           if(!pair||pair.isBot!==wantsLink){
-            if(pair){pair.image.remove();pair.label.remove();}
+            if(pair)pair.actor.remove();
+            const actor=document.createElement('div');
+            actor.className='map-actor';actor.dataset.remoteActor='1';actor.dataset.remoteId=key;
             const image=document.createElement('img');
             image.alt='';image.className='map-avatar other'+(wantsLink?' bot-avatar':'');image.dataset.remoteAvatar='1';image.dataset.remoteId=key;
             const label=document.createElement(wantsLink?'a':'span');
             label.className='map-label'+(wantsLink?' bot-label':'');label.dataset.remoteAvatar='1';label.dataset.remoteId=key;
-            world.append(image,label);
-            pair={image,label,isBot:wantsLink};
+            // One positioned parent owns the sprite and marker. Movement, hiding
+            // and removal apply to this parent so the two can never drift apart.
+            const syncVisibility=()=>{
+              const ready=image.complete&&image.naturalWidth>0;
+              actor.hidden=!ready;
+            };
+            actor.hidden=true;
+            image.addEventListener('load',syncVisibility);
+            image.addEventListener('error',syncVisibility);
+            actor.append(image,label);world.append(actor);
+            pair={actor,image,label,isBot:wantsLink,syncVisibility};
             presenceNodes.set(key,pair);
           }
-          const {image,label}=pair;
+          const {actor,image,label}=pair;
           image.dataset.spriteLeft=player.sprite_l||player.sprite;image.dataset.spriteRight=player.sprite_r||player.sprite;image.dataset.mirrorLeft=String(player.mirror_left||0);applyFacingSprite(image,player.facing||'right');
-          image.style.left=player.x+'px';image.style.top=player.y+'px';
-          label.style.left=player.x+'px';label.style.top=player.y+'px';
+          pair.syncVisibility();
+          actor.style.left=player.x+'px';actor.style.top=player.y+'px';
           const fullLabel=player.name+' · '+(wantsLink?'AI COMMANDER · ':'')+player.grade;
           if(wantsLink){
             // Keep autonomous presence readable at 1,000-population scale: a compact
@@ -174,7 +189,7 @@
         }
         for(const [key,pair] of presenceNodes){
           if(seen.has(key))continue;
-          pair.image.remove();pair.label.remove();presenceNodes.delete(key);
+          pair.actor.remove();presenceNodes.delete(key);
         }
       }catch(_error){}
       window.setTimeout(presence,3000);
